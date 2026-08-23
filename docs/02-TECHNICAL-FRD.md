@@ -1666,9 +1666,24 @@ libs/
   util/         shared types, validators, formatters
 ```
 
-Marketplace and vendor storefronts are **one application**, not two. They share the product detail
-page, cart and checkout; only the layout shell, theming and an implicit vendor filter differ. Two
-applications would mean maintaining the product page twice, and it would drift.
+Marketplace and standalone shop websites are **one application**, not two. They share the product
+detail page, cart and checkout; two applications would mean maintaining the product page twice, and
+it would drift. But they are **two distinct layout shells**, not one shell with different colours —
+the distinction matters (Plan §1.1):
+
+| | **Marketplace shell** (`www.…`) | **Shop shell** (`{slug}.…` / custom domain) |
+|---|---|---|
+| Header | Platform logo, global search, cart, account | **Vendor logo**, shop nav (Home / Products / About / Contact), shop-scoped search |
+| Identity | Platform brand throughout | Vendor brand throughout — accent colour, typography scale, banner |
+| Nav scope | All categories, all vendors | This shop's collections and categories only |
+| Vendor presence | **Shop profile page**: vendor banner + catalogue *inside* marketplace chrome, "Follow", link out to their standalone site | The whole site *is* the vendor |
+| Platform presence | Everywhere | A single discreet "Powered by {platform}" in the footer |
+| Footer | Platform links, categories, legal | Shop's policies, contact, socials, powered-by line |
+| Cross-links | Product pages link to the seller's shop profile | No marketplace nav; optionally a subtle link, vendor-controlled |
+
+The shell is selected by the tenant-resolution middleware (§5.2) from the request host. The same
+product route renders in either shell; canonical URL policy (§5.4) decides which one search engines
+index.
 
 ### 20.2 Rendering
 

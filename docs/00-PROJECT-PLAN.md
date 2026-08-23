@@ -32,15 +32,19 @@ The category taxonomy is data-driven, so adding categories later is configuratio
 
 | # | Surface | Host | Audience | Rendering |
 |---|---|---|---|---|
-| 1 | **Marketplace** (buyer) | `www.{platform}.com` | Shoppers | Angular SSR (SEO-critical) |
-| 2 | **Vendor storefront** (public) | `{slug}.{platform}.com` + custom domain | Shoppers, vendor's own audience | Angular SSR (SEO-critical) |
+| 1 | **Marketplace** (buyer) — includes each vendor's **shop profile page** inside marketplace chrome | `www.{platform}.com` | Shoppers | Angular SSR (SEO-critical) |
+| 2 | **Standalone shop website** (public) — the vendor's *own site*: vendor branding dominates, no marketplace chrome | `{slug}.{platform}.com` + custom domain | The vendor's own customers | Angular SSR (SEO-critical) |
 | 3 | **Vendor Admin** | `seller.{platform}.com` | Vendor owner + staff | Angular SPA |
 | 4 | **Super Admin** | `admin.{platform}.com` | Platform ops, finance, CS, content | Angular SPA |
 | 5 | **API** | `api.{platform}.com` | All of the above + future mobile app | .NET 10 Web API |
 
-> Surfaces 1 and 2 share most components — a vendor storefront is a themed, vendor-scoped view of
-> the same catalog. Building them as one SSR app with tenant-aware theming avoids duplicating the
-> product detail page, cart and checkout.
+> **A vendor is visible in two distinct ways, and they are not the same page.** The **shop profile**
+> (surface 1) lives *inside* the marketplace — marketplace header, search and cart, with the vendor's
+> banner and catalogue within it, like a Shopee seller page. The **standalone shop website**
+> (surface 2) is the vendor's own site: their logo in the header, their navigation, their colours,
+> the marketplace visually absent — to their customers it *is* the shop's website, reached via
+> subdomain or the shop's own domain. Both surfaces are served by one SSR application with two layout
+> shells, sharing the product detail, cart and checkout underneath.
 
 ---
 

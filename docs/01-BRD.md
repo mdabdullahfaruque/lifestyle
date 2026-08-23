@@ -470,9 +470,16 @@ Each capability is expanded into functional requirements in the Technical FRD. P
 
 ### 8.3 Storefronts
 
+> **Two vendor surfaces, deliberately distinct.** Every vendor has a **shop profile** *inside* the
+> marketplace (marketplace header and cart, vendor banner and catalogue within — the Shopee-style
+> seller page) *and* a **standalone shop website** on their subdomain / custom domain, where their
+> own brand fills the frame and the marketplace is reduced to a footer line. The standalone site is
+> what the vendor's customers experience as "the shop's website"; the profile is how marketplace
+> shoppers discover them. Requirements below apply to both unless marked.
+
 | ID | Requirement | Pri |
 |---|---|---|
-| BR-S-01 | Every approved vendor gets a public storefront at `{slug}.{platform}.com` | M |
+| BR-S-01 | Every approved vendor gets a standalone shop website at `{slug}.{platform}.com` **and** a shop profile page inside the marketplace | M |
 | BR-S-02 | Vendors customise logo, banner, accent colour, tagline, about text, and social links | M |
 | BR-S-03 | The storefront shows the vendor's catalog with its own search, category filters and sorting | M |
 | BR-S-04 | The storefront shows vendor rating, response rate, joined date, location and follower count | M |
