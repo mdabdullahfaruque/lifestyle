@@ -228,17 +228,29 @@ public static class CatalogModule
 | Type | Purpose |
 |---|---|
 | `Entity`, `AggregateRoot`, `IAuditable`, `ISoftDeletable` | Base classes; `AggregateRoot` collects domain events |
-| `Money`, `Currency` | Value object; decimal + ISO code; arithmetic guarded for currency mismatch |
+| `Money` | Value object; decimal + ISO code; arithmetic guarded for currency mismatch |
 | `Result`, `Result<T>`, `Error`, `ErrorType` | Expected-failure channel (§3.5) |
 | `IClock`, `ICurrentUser`, `ITenantContext` | Injected ambient context |
 | `IDomainEvent`, `IIntegrationEvent`, `IIntegrationEventHandler<T>` | Event contracts |
-| `IHandler<TRequest, TResponse>` | Use-case handler contract |
-| `PagedResult<T>`, `CursorPage<T>`, `PageRequest` | Pagination shapes |
-| Strongly-typed ID base (`readonly record struct` per ID) | `ProductId`, `VendorId` — no Guid mix-ups |
+| `IHandler<TRequest, TResponse>`, `Unit` | Use-case handler contract |
+| `PagedResult<T>`, `CursorPage<T>`, `PageRequest`, `CursorRequest` | Pagination shapes |
+| `Slug` | Slug generation and the reserved-hostname list, shared by vendor, product and category slugs |
+| `Http/` — `ResultExtensions`, `ValidationFilter<T>`, `EndpointExtensions`, `AddHandlersFromAssembly` | The HTTP glue every module needs to map its own endpoints |
 
 Admission rule: a type goes into `SharedKernel` only if it is used by **two or more modules** and
 has **no dependency on any module**. If only one module uses it, it lives in that module's
 `Internal/`. There is no `Helpers/`, `Utils/` or `Common/` folder anywhere in the solution.
+
+**SharedKernel takes the ASP.NET Core framework reference and FluentValidation.** Every module maps
+its own endpoints, so `Result → IResult`, the validation endpoint filter and
+`RequirePermission()`/`RequireVendorStaff()` have to live somewhere every module can reach — and
+`Api` is downstream of all of them. The rule that matters is unchanged and is what the architecture
+test asserts: *SharedKernel references no other project in the solution*.
+
+Strongly-typed IDs (`ProductId`, `VendorId` as `readonly record struct`) are **not** in Phase 0.
+They interact badly with EF value conversions, minimal-API route binding and OpenAPI schema
+generation, and the mix-ups they prevent are largely caught by the compiler already now that every
+cross-module reference goes through a typed contract. Revisit if a real Guid mix-up ever ships.
 
 ### 3.3 A feature file
 
@@ -555,3 +567,22 @@ Exit criterion is unchanged from Plan §6 Phase 0.
 | 02 | §2.1 | One `AppDbContext` with schema per module; per-module context *interfaces*; cross-schema FKs allowed where they protect integrity |
 | 02 | §16 | Search is a feature area inside Catalog behind `ISearchProvider` until an external engine is adopted |
 | 02 | §21.2 | Hangfire deferred to Phase 4 |
+| 02 | §4.2 | Access tokens carry one `perm` claim per permission rather than a bitmask reference. Compaction only pays off once the set is large, and it makes tokens far harder to debug — revisit when a token gets uncomfortable |
+| 02 | §4.2 | JWTs are signed HS256 with a symmetric key, not RS256. Keeps local development and tests free of key material; switching to RS256 is a change to `AuthSetup` and `TokenService` only |
+| 02 | §1.2 | Catalog depends on Media's contracts, not the reverse. Media owns files and knows nothing about products; Catalog stores media ids and asks for URLs. The FRD diagram has this arrow backwards |
+
+---
+
+## 12. What implementation changed, and why
+
+Recorded during the Phase 0/1 build so the reasons survive.
+
+| Decision | Reason |
+|---|---|
+| Vendor onboarding (`/v1/vendor-applications/*`) authenticates with an ordinary buyer token, not the seller surface | The seller role is granted **on approval**. Requiring it to upload KYC documents or submit an application made approval unreachable — a deadlock the end-to-end test caught. `/v1/vendor/*` stays seller-only for everything post-approval |
+| No `Lifestyle.Modules.Inventory` yet | Stock lives on `ProductVariant` and is edited with the product. It becomes a module in Phase 4 when reservations arrive and stock stops being a simple integer |
+| `Money` is not used on `Product`/`ProductVariant` | One deployment per country means one currency, held on the product as a `char(3)` alongside `numeric(18,4)` prices. `Money` earns its place in Ordering and Ledger, where several amounts combine |
+| Modules never reference the Npgsql provider | Keeps `EF.Functions.ILike` and `HasOperators("text_pattern_ops")` out of module code. Postgres-specific *type names* in `HasColumnType` are fine — they are strings, not a compile dependency. The one operator-class index is applied as raw SQL in the migration |
+| `text_pattern_ops` on `catalog.categories.path` | Without it PostgreSQL cannot use the index for `LIKE 'prefix%'` under a non-C collation, and the category-subtree scan on every browse request degrades to a sequential scan |
+| Analyzer suppressions live in `.editorconfig` with a stated reason | `CA1716`/`CA1711`/`CA1000` fight names that are correct here; `CA1848`/`CA1873` push `IsEnabled` guards around cheap log arguments. Each is disabled with the reason written next to it, not silently |
+| `TreatWarningsAsErrors` plus `NU1903` | The vulnerability gate caught two real transitive CVEs during Phase 0 — `Testcontainers → SSH.NET` and `Microsoft.AspNetCore.OpenApi → Microsoft.OpenApi`. Both are pinned to patched versions in `Directory.Packages.props` |

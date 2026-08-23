@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Lifestyle.SharedKernel\Lifestyle.SharedKernel.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Identity\Lifestyle.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Platform\Lifestyle.Modules.Platform.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Vendors\Lifestyle.Modules.Vendors.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Catalog\Lifestyle.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Media\Lifestyle.Modules.Media.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lifestyle.Api" />
+    <InternalsVisibleTo Include="Lifestyle.UnitTests" />
+    <InternalsVisibleTo Include="Lifestyle.IntegrationTests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Lifestyle.Api/Lifestyle.Api.csproj" />
+    <Project Path="src/Lifestyle.Infrastructure/Lifestyle.Infrastructure.csproj" />
+    <Project Path="src/Lifestyle.SharedKernel/Lifestyle.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/Lifestyle.Modules.Catalog/Lifestyle.Modules.Catalog.csproj" />
+    <Project Path="src/Modules/Lifestyle.Modules.Identity/Lifestyle.Modules.Identity.csproj" />
+    <Project Path="src/Modules/Lifestyle.Modules.Media/Lifestyle.Modules.Media.csproj" />
+    <Project Path="src/Modules/Lifestyle.Modules.Platform/Lifestyle.Modules.Platform.csproj" />
+    <Project Path="src/Modules/Lifestyle.Modules.Vendors/Lifestyle.Modules.Vendors.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Lifestyle.ArchitectureTests/Lifestyle.ArchitectureTests.csproj" />
+    <Project Path="tests/Lifestyle.IntegrationTests/Lifestyle.IntegrationTests.csproj" />
+    <Project Path="tests/Lifestyle.UnitTests/Lifestyle.UnitTests.csproj" />
+  </Folder>
+</Solution>

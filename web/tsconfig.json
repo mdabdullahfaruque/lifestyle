@@ -1,0 +1,93 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "preserve",
+    "paths": {
+      "auth": [
+        "./projects/auth/src/public-api.ts"
+      ],
+      "data-access": [
+        "./projects/data-access/src/public-api.ts"
+      ],
+      "i18n": [
+        "./projects/i18n/src/public-api.ts"
+      ],
+      "ui": [
+        "./projects/ui/src/public-api.ts"
+      ],
+      "util": [
+        "./projects/util/src/public-api.ts"
+      ]
+    }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "typeCheckHostBindings": true,
+    "strictTemplates": true
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./projects/storefront/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/storefront/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/seller/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/seller/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/admin/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/admin/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/ui/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/ui/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/data-access/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/data-access/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/auth/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/auth/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/i18n/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/i18n/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/util/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/util/tsconfig.spec.json"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Lifestyle.Api\Lifestyle.Api.csproj" />
+    <ProjectReference Include="..\..\src\Lifestyle.Infrastructure\Lifestyle.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lifestyle.Modules.Identity\Lifestyle.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lifestyle.Modules.Vendors\Lifestyle.Modules.Vendors.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lifestyle.Modules.Catalog\Lifestyle.Modules.Catalog.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="Otp.NET" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+</Project>

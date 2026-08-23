@@ -1,28 +1,55 @@
-# Angular specific
-/dist/
-/out-tsc/
-/tmp/
-/coverage/
-/e2e/test-output/
-/.angular/
+# ── .NET ────────────────────────────────────────────────────────────────────
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.user
+*.suo
+*.userprefs
+*.lscache
+.vs/
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Never commit runtime output
+**/Logs/
+**/logs/
+*.log
+
+# Never commit user uploads — they belong in object storage
+**/wwwroot/uploads/
+.storage/
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+appsettings.Local.json
+appsettings.*.Local.json
+*.pfx
+*.p12
+*.pem
+!deploy/**/*.pem.example
+.env
+.env.*
+!.env.example
+secrets/
+
+# ── Node / Angular ──────────────────────────────────────────────────────────
+node_modules/
+dist/
 .angular/
-
-# Node modules and dependency files
-/node_modules/
-/package-lock.json
-/yarn.lock
-
-# Environment files
-/.env
-
-# Angular CLI and build artefacts
-/.angular-cli.json
-/.ng/
-
-# TypeScript cache
+coverage/
 *.tsbuildinfo
-
-# Logs
 npm-debug.log*
-yarn-debug.log*
 yarn-error.log*
+
+# ── Test output ─────────────────────────────────────────────────────────────
+TestResults/
+*.trx
+*.coverage
+*.cobertura.xml
+
+# ── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

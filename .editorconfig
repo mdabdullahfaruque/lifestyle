@@ -1,0 +1,103 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{json,yml,yaml,xml,csproj,props,targets,ts,js,html,scss,css,md}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# ════════════════════════════════════════════════════════════════════════════
+# C# style
+# ════════════════════════════════════════════════════════════════════════════
+[*.cs]
+csharp_using_directive_placement = outside_namespace:warning
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_prefer_braces = when_multiline:silent
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_throw_expression = true:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+dotnet_sort_system_directives_first = true
+
+# private const and private static readonly are PascalCase (the .NET convention for both);
+# private instance fields are _camelCase. Ordering matters: specific rules must come first.
+dotnet_naming_rule.private_const_pascal.severity = warning
+dotnet_naming_rule.private_const_pascal.symbols = private_const_fields
+dotnet_naming_rule.private_const_pascal.style = pascal
+dotnet_naming_symbols.private_const_fields.applicable_kinds = field
+dotnet_naming_symbols.private_const_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_const_fields.required_modifiers = const
+
+dotnet_naming_rule.private_static_readonly_pascal.severity = warning
+dotnet_naming_rule.private_static_readonly_pascal.symbols = private_static_readonly_fields
+dotnet_naming_rule.private_static_readonly_pascal.style = pascal
+dotnet_naming_symbols.private_static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.private_static_readonly_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_readonly_fields.required_modifiers = static, readonly
+dotnet_naming_style.pascal.capitalization = pascal_case
+
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# ── Rules we deliberately disable, with the reason ──────────────────────────
+# CA1716: "Error", "Result" etc. clash with keywords in VB/F#. We ship a REST API,
+#         not a cross-language library, and Error/Result are the clearest names here.
+dotnet_diagnostic.CA1716.severity = none
+# CA1711: forbids the "EventHandler"/"Collection" suffixes. IIntegrationEventHandler<T>
+#         is exactly what it says it is; renaming it would obscure the pattern.
+dotnet_diagnostic.CA1711.severity = none
+# CA1000: static members on generic types. PagedResult<T>.From(...) is the idiomatic
+#         factory and reads better than a non-generic helper class.
+dotnet_diagnostic.CA1000.severity = none
+# CA1062: null checks on public method arguments. Nullable reference types are on and
+#         enforced; duplicating them as runtime guards is noise.
+dotnet_diagnostic.CA1062.severity = none
+# CA2007: ConfigureAwait(false). ASP.NET Core has no synchronisation context.
+dotnet_diagnostic.CA2007.severity = none
+# CA1848: LoggerMessage source generators. Worth it on hot paths only; we opt in there.
+dotnet_diagnostic.CA1848.severity = none
+# CA1873: wants IsEnabled() guards around log arguments it thinks may be expensive, but it fires on
+#         plain property reads. Guarding every log call would be noise; revisit if a hot path shows up.
+dotnet_diagnostic.CA1873.severity = none
+# CA1515: internal-by-default for types in an app assembly. Our module boundary rule is
+#         enforced by Lifestyle.ArchitectureTests, which understands Contracts/.
+dotnet_diagnostic.CA1515.severity = none
+
+# ── Rules we deliberately raise ─────────────────────────────────────────────
+# Culture-sensitive string/number handling: a real source of bugs across MY/BD/IT.
+dotnet_diagnostic.CA1304.severity = error
+dotnet_diagnostic.CA1305.severity = error
+dotnet_diagnostic.CA1310.severity = error
+# Do not swallow exceptions.
+dotnet_diagnostic.CA1031.severity = suggestion
+# Dispose correctness.
+dotnet_diagnostic.CA2000.severity = warning
+
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA5394.severity = none
+
+[src/Lifestyle.Infrastructure/Persistence/Migrations/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

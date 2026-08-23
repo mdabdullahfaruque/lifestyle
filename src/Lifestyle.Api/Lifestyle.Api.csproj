@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\Lifestyle.SharedKernel\Lifestyle.SharedKernel.csproj" />
+    <ProjectReference Include="..\Lifestyle.Infrastructure\Lifestyle.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Identity\Lifestyle.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Platform\Lifestyle.Modules.Platform.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Vendors\Lifestyle.Modules.Vendors.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Catalog\Lifestyle.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\Modules\Lifestyle.Modules.Media\Lifestyle.Modules.Media.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Enrichers.Environment" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lifestyle.IntegrationTests" />
+  </ItemGroup>
+</Project>

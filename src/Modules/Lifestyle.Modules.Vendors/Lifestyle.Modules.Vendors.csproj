@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Lifestyle.SharedKernel\Lifestyle.SharedKernel.csproj" />
+    <!-- Contracts-only dependency, enforced by Lifestyle.ArchitectureTests. -->
+    <ProjectReference Include="..\Lifestyle.Modules.Identity\Lifestyle.Modules.Identity.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lifestyle.Infrastructure" />
+    <InternalsVisibleTo Include="Lifestyle.Api" />
+    <InternalsVisibleTo Include="Lifestyle.UnitTests" />
+    <InternalsVisibleTo Include="Lifestyle.IntegrationTests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+</Project>

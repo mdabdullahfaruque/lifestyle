@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Deliberately has NO reference to any other project in the solution.
+       See docs/04-CODEBASE-STRUCTURE.md §3.2 for the admission rule.
+
+       It does take the ASP.NET Core framework reference: every module maps its own endpoints, so
+       the Result -> IResult mapping and the validation filter have to live somewhere every module
+       can reach, and Api is downstream of all of them. -->
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
+</Project>

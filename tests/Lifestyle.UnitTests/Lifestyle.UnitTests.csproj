@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Lifestyle.SharedKernel\Lifestyle.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Lifestyle.Infrastructure\Lifestyle.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lifestyle.Modules.Identity\Lifestyle.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lifestyle.Modules.Vendors\Lifestyle.Modules.Vendors.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lifestyle.Modules.Catalog\Lifestyle.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Lifestyle.Modules.Media\Lifestyle.Modules.Media.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+</Project>

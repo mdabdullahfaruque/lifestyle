@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CI: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: lifestyle
+          POSTGRES_PASSWORD: lifestyle
+          POSTGRES_DB: lifestyle_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lifestyle"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore
+
+      # Fails on any new vulnerable transitive package. This is how the Testcontainers -> SSH.NET
+      # and AspNetCore.OpenApi -> Microsoft.OpenApi advisories were caught during Phase 0.
+      - name: Audit dependencies
+        run: dotnet list package --vulnerable --include-transitive
+
+      - name: Format check
+        run: dotnet format --verify-no-changes --no-restore
+
+      # Warnings are errors (Directory.Build.props), so this also gates code style.
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # Boundary rules from docs/04 §2.1. Run before the slower suites — they fail fast.
+      - name: Architecture tests
+        run: dotnet test tests/Lifestyle.ArchitectureTests --no-build --configuration Release
+
+      - name: Unit tests
+        run: dotnet test tests/Lifestyle.UnitTests --no-build --configuration Release
+
+      - name: Integration tests
+        run: dotnet test tests/Lifestyle.IntegrationTests --no-build --configuration Release
+        env:
+          ConnectionStrings__Default: "Host=localhost;Port=5432;Database=lifestyle_test;Username=lifestyle;Password=lifestyle"
+
+      # A model change without a migration is the classic "works locally, breaks on deploy" bug.
+      - name: Migration drift check
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.0.5
+          dotnet ef migrations has-pending-model-changes \
+            --project src/Lifestyle.Infrastructure \
+            --startup-project src/Lifestyle.Api
+        env:
+          ConnectionStrings__Default: "Host=localhost;Port=5432;Database=lifestyle_test;Username=lifestyle;Password=lifestyle"
+
+      - name: Export OpenAPI document
+        run: |
+          dotnet run --project src/Lifestyle.Api --no-build --configuration Release -- openapi > openapi.json || true
+        continue-on-error: true
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm run test --if-present -- --watch=false --browsers=ChromeHeadless
+
+      - name: Build
+        run: npm run build --if-present

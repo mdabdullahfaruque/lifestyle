@@ -1,0 +1,27 @@
+# Normalise line endings in the repository to LF, whatever the developer's OS.
+# The .editorconfig sets end_of_line = lf to match, so `dotnet format` agrees with git
+# and the CI format check passes identically on Windows and Linux.
+* text=auto eol=lf
+
+# Binary — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.gz binary
+*.dll binary
+*.pfx binary
+*.snk binary
+
+# Generated — collapse in diffs and exclude from language statistics.
+web/package-lock.json linguist-generated=true -diff
+src/Lifestyle.Infrastructure/Persistence/Migrations/*.Designer.cs linguist-generated=true -diff
+src/Lifestyle.Infrastructure/Persistence/Migrations/AppDbContextModelSnapshot.cs linguist-generated=true -diff
