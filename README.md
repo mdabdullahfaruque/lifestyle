@@ -18,6 +18,7 @@ the multi-country revisions they need.
 | [01 — Business Requirements (BRD)](docs/01-BRD.md) | Business model, personas, capabilities, business rules, compliance |
 | [02 — Technical FRD](docs/02-TECHNICAL-FRD.md) | Architecture, data model, flows, APIs, security, NFRs |
 | [03 — Infrastructure & Multi-Region](docs/03-INFRASTRUCTURE-MULTI-REGION.md) | Server baseline, Malaysia/Bangladesh/Italy deployment strategy, capacity, gaps |
+| [04 — Codebase Structure](docs/04-CODEBASE-STRUCTURE.md) | Solution layout, module anatomy, persistence and boundary rules; lessons taken from PropertyMart |
 | [infrastructure-mypropertymart/](docs/infrastructure-mypropertymart/) | Existing PropertyMart infrastructure (reference baseline) |
 
 Status: **planning**. No code yet.
