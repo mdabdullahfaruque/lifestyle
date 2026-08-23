@@ -115,7 +115,7 @@ public sealed class ApiBehaviourTests(LifestyleApiFactory factory)
         Skip.If(factory.UnavailableReason is not null, factory.UnavailableReason);
 
         var client = factory.CreateClient();
-        var suffix = Guid.CreateVersion7().ToString("N")[..8];
+        var suffix = LifestyleApiFactory.UniqueSuffix();
         var email = $"buyer-{suffix}@example.com";
 
         await client.PostAsJsonAsync("/v1/auth/register", new
@@ -145,7 +145,7 @@ public sealed class ApiBehaviourTests(LifestyleApiFactory factory)
         Skip.If(factory.UnavailableReason is not null, factory.UnavailableReason);
 
         var client = factory.CreateClient();
-        var email = $"dup-{Guid.CreateVersion7():N}@example.com";
+        var email = $"dup-{LifestyleApiFactory.UniqueSuffix()}@example.com";
 
         var body = new { email, password = "a-long-enough-password", fullName = "Dup", phoneNumber = (string?)null };
 

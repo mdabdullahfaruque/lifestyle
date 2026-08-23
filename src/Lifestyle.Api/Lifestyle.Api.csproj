@@ -1,4 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <!-- Local development secrets (connection string, signing key) live in the user profile,
+         never in the repository. View them with: dotnet user-secrets list. -->
+    <UserSecretsId>a9a01464-c835-4707-87a3-f1511af399c8</UserSecretsId>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lifestyle.SharedKernel\Lifestyle.SharedKernel.csproj" />
     <ProjectReference Include="..\Lifestyle.Infrastructure\Lifestyle.Infrastructure.csproj" />

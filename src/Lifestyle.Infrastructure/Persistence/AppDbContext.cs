@@ -11,6 +11,7 @@ using Lifestyle.Modules.Vendors.Domain;
 using Lifestyle.Modules.Vendors.Persistence;
 using Lifestyle.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lifestyle.Infrastructure.Persistence;
 
@@ -110,9 +111,54 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
 
+        ApplyApplicationGeneratedKeys(modelBuilder);
         ApplySoftDeleteFilters(modelBuilder);
+        ApplyProviderSpecificIndexes(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
+    }
+
+    /// <summary>
+    /// Declares every Guid primary key as application-generated.
+    /// <para>
+    /// This is not cosmetic. <see cref="SharedKernel.Domain.Entity"/> assigns
+    /// <c>Guid.CreateVersion7()</c> in its field initialiser, so a new child arrives at the change
+    /// tracker with its key already set. EF's default for a Guid key is <c>ValueGenerated.OnAdd</c>,
+    /// and its graph attacher reads "store-generated key + value already set" as "this row already
+    /// exists" — so a child added to a <em>loaded</em> aggregate is tracked as <c>Modified</c> and
+    /// EF issues an UPDATE against a row that was never inserted.
+    /// </para>
+    /// <para>
+    /// That silently broke every load-aggregate-then-add-child path: issuing a refresh token on
+    /// login, attaching a KYC document, adding a variant or image, adding vendor staff. Declaring
+    /// the keys never-generated makes EF track them as <c>Added</c>, which is what they are.
+    /// </para>
+    /// </summary>
+    private static void ApplyApplicationGeneratedKeys(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var primaryKey = entityType.FindPrimaryKey();
+            if (primaryKey is null) continue;
+
+            foreach (var property in primaryKey.Properties.Where(p => p.ClrType == typeof(Guid)))
+                property.ValueGenerated = ValueGenerated.Never;
+        }
+    }
+
+    /// <summary>
+    /// PostgreSQL-specific index tuning. It lives here rather than in a module's EF configuration
+    /// because naming an operator class needs the Npgsql provider, and modules must not reference
+    /// it (docs/04 §4.3). Infrastructure already depends on the provider, so this is its job.
+    /// </summary>
+    private static void ApplyProviderSpecificIndexes(ModelBuilder modelBuilder)
+    {
+        // text_pattern_ops is what lets PostgreSQL use this index for LIKE 'prefix%' under a
+        // non-C collation. That prefix scan resolves "this category and everything under it" on
+        // every browse request; without the operator class it degrades to a sequential scan.
+        modelBuilder.Entity<Category>()
+            .HasIndex(c => c.Path)
+            .HasOperators("text_pattern_ops");
     }
 
     /// <summary>

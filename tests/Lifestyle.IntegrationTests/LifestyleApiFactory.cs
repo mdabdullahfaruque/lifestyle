@@ -1,11 +1,17 @@
+using System.Security.Cryptography;
 using Lifestyle.Infrastructure.Persistence;
 using Lifestyle.Infrastructure.Seeding;
+using Lifestyle.Modules.Identity.Contracts;
+using Lifestyle.Modules.Identity.Domain;
+using Lifestyle.Modules.Identity.Internal;
+using Lifestyle.SharedKernel.Abstractions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OtpNet;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -73,7 +79,65 @@ public sealed class LifestyleApiFactory : WebApplicationFactory<Program>, IAsync
         // which is the thing that actually runs in production.
         await db.Database.MigrateAsync();
         await DatabaseSeeder.SeedAsync(Services);
+        await CreateRunScopedAdminsAsync(scope.ServiceProvider, db);
     }
+
+    /// <summary>
+    /// Creates this run's own admin accounts, rather than reusing the seeded one.
+    /// <para>
+    /// Enrolling in TOTP is a one-way change, so a test that asserts "an admin without TOTP is
+    /// blocked" passes on a fresh database and then fails on every re-run against the same one.
+    /// Minting a fresh pair per run — one enrolled with a secret we know, one deliberately not —
+    /// makes the suite repeatable against a long-lived database, which is what CI and a developer's
+    /// local server both are.
+    /// </para>
+    /// </summary>
+    private async Task CreateRunScopedAdminsAsync(IServiceProvider services, AppDbContext db)
+    {
+        var passwords = services.GetRequiredService<IPasswordService>();
+        var clock = services.GetRequiredService<IClock>();
+        var now = clock.UtcNow;
+
+        var runId = UniqueSuffix();
+        AdminEmail = $"admin-{runId}@lifestyle.test";
+        UnenrolledAdminEmail = $"admin-noTotp-{runId}@lifestyle.test";
+        AdminTotpSecret = Base32Encoding.ToString(RandomNumberGenerator.GetBytes(20));
+
+        var enrolled = User.Register(AdminEmail, passwords.Hash(AdminPassword), "Enrolled Admin", null, now);
+        enrolled.VerifyEmail(now);
+        enrolled.EnableTwoFactor(AdminTotpSecret, now);
+        enrolled.AssignRole(SystemRoles.SuperAdminId, null, now);
+        enrolled.AssignRole(SystemRoles.BuyerId, null, now);
+
+        var unenrolled = User.Register(UnenrolledAdminEmail, passwords.Hash(AdminPassword), "Unenrolled Admin", null, now);
+        unenrolled.VerifyEmail(now);
+        unenrolled.AssignRole(SystemRoles.SuperAdminId, null, now);
+        unenrolled.AssignRole(SystemRoles.BuyerId, null, now);
+
+        db.Users.AddRange(enrolled, unenrolled);
+        await db.SaveChangesAsync();
+    }
+
+    public const string AdminPassword = "IntegrationTestAdmin!42";
+
+    /// <summary>
+    /// A suffix that makes test data unique across runs against a long-lived database.
+    /// <para>
+    /// Deliberately <em>not</em> the leading characters of a UUIDv7. Those encode the millisecond
+    /// timestamp, so the first 32 bits only change about once a minute — two runs a few seconds
+    /// apart produce the same "unique" value and the second collides on the email unique index.
+    /// Random bits are what this needs, so it uses a v4.
+    /// </para>
+    /// </summary>
+    public static string UniqueSuffix() => Guid.NewGuid().ToString("N")[..10];
+
+    /// <summary>An admin enrolled in TOTP, with a secret the tests can compute codes from.</summary>
+    public string AdminEmail { get; private set; } = string.Empty;
+
+    public string AdminTotpSecret { get; private set; } = string.Empty;
+
+    /// <summary>An admin deliberately left without TOTP, to assert the enrolment gate holds.</summary>
+    public string UnenrolledAdminEmail { get; private set; } = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -96,8 +160,8 @@ public sealed class LifestyleApiFactory : WebApplicationFactory<Program>, IAsync
                 ["Storage:Provider"] = "local",
                 ["Storage:LocalRoot"] = Path.Combine(Path.GetTempPath(), "lifestyle-tests"),
                 // Seeded so the admin flows have a real account to act as.
-                ["Seed:SuperAdmin:Email"] = TestUsers.AdminEmail,
-                ["Seed:SuperAdmin:Password"] = TestUsers.AdminPassword,
+                ["Seed:SuperAdmin:Email"] = "seeded-admin@lifestyle.test",
+                ["Seed:SuperAdmin:Password"] = AdminPassword,
                 ["Seed:SuperAdmin:FullName"] = "Test Administrator"
             });
         });
@@ -120,12 +184,6 @@ public sealed class LifestyleApiFactory : WebApplicationFactory<Program>, IAsync
         if (_container is not null) await _container.DisposeAsync();
         GC.SuppressFinalize(this);
     }
-}
-
-public static class TestUsers
-{
-    public const string AdminEmail = "admin@lifestyle.test";
-    public const string AdminPassword = "IntegrationTestAdmin!42";
 }
 
 [CollectionDefinition(Name)]

@@ -10,7 +10,8 @@ the multi-country revisions they need.
 
 **Stack:** .NET 10 · EF Core 10 (code-first) · PostgreSQL 17+ · Angular 20 · Redis · S3/MinIO
 
-Status: **Phase 0 and Phase 1 backend complete.** See [Current state](#current-state).
+Status: **Phase 0 and Phase 1 backend complete and verified against a live PostgreSQL.**
+See [Current state](#current-state).
 
 ## Planning documents
 
@@ -128,24 +129,26 @@ Rules 2, 3 and 7 are enforced by the architecture tests, not by review alone.
 
 **Not done**
 
-- **Live database validation.** The schema builds and the migration generates valid SQL, but it has
-  not been applied to a running PostgreSQL — see below.
 - Vendor Admin / Super Admin **UI screens**. The apps, auth and API clients exist; the screens do not.
 - Bulk CSV product import (Phase 1 scope, deferred to the first Phase 2 sprint).
 - Generated API client — `npm run generate:client` is wired but `data-access/models.ts` is currently hand-written.
 - Email sending. `Mailpit` is in Compose; no `IEmailSender` implementation yet.
 
-### Verify the schema against a real database
+### Verified against a real database
 
-The one step not yet run. Any disposable PostgreSQL will do:
+The schema, seed and full Phase 1 flow have been run against PostgreSQL 18: 20 tables across 5
+schemas, citext, jsonb, text[] collections, filtered unique indexes and the text_pattern_ops
+operator class all confirmed live. `PhaseOneExitCriterionTests` walks the whole path — register,
+apply, upload KYC, submit, admin TOTP, approve, sign in as seller, create a three-variant product,
+submit, moderate, and read it back on the shop's own subdomain — and the suite is repeatable
+against a long-lived database.
+
+Doing this found three real defects that a clean build and 130 green tests had missed; they are
+written up in [doc 04 §13](docs/04-CODEBASE-STRUCTURE.md#13-bugs-the-live-database-found).
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres        # or point at any PostgreSQL
 dotnet run --project src/Lifestyle.Api -- migrate
 dotnet run --project src/Lifestyle.Api -- seed
-dotnet test tests/Lifestyle.IntegrationTests
+dotnet test
 ```
-
-`PhaseOneExitCriterionTests` walks the whole Phase 1 path — register, apply, upload KYC, submit,
-admin enrols TOTP, approve, sign in as seller, create a three-variant product, submit, moderate,
-and read it back live on the shop's own subdomain.

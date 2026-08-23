@@ -30,7 +30,7 @@ public sealed class PhaseOneExitCriterionTests(LifestyleApiFactory factory)
     {
         Skip.If(factory.UnavailableReason is not null, factory.UnavailableReason);
 
-        var suffix = Guid.CreateVersion7().ToString("N")[..8];
+        var suffix = LifestyleApiFactory.UniqueSuffix();
         var vendorEmail = $"aisha-{suffix}@example.com";
         var client = factory.CreateClient();
 
@@ -78,7 +78,7 @@ public sealed class PhaseOneExitCriterionTests(LifestyleApiFactory factory)
 
         // ── 4. An admin signs in — TOTP is mandatory on the admin surface (FRD §4.2) ────────
         var adminClient = factory.CreateClient();
-        Authenticate(adminClient, await EnrolAdminAndLoginAsync(adminClient));
+        Authenticate(adminClient, await AdminLoginAsync(adminClient));
 
         // The application is in the queue.
         var queue = await adminClient.GetAsync("/v1/admin/vendors?status=PendingReview&pageSize=100");
@@ -232,50 +232,44 @@ public sealed class PhaseOneExitCriterionTests(LifestyleApiFactory factory)
     }
 
     /// <summary>
-    /// Enrols the seeded super-admin in TOTP and returns an admin-surface access token.
+    /// Signs in on the admin surface, asserting on the way that the mandatory-TOTP gate holds.
     /// <para>
-    /// The seeded account holds both the admin and buyer roles, so it authenticates on the buyer
-    /// surface to enrol, then signs in to the admin surface with a code. Asserting the blocked
-    /// attempt first proves the 2FA gate genuinely holds rather than being decorative.
+    /// Two accounts, both created fresh per run by the fixture: one deliberately without TOTP, to
+    /// prove the gate refuses it, and one enrolled with a secret the test knows, to get through.
+    /// Using the seeded admin instead would make this pass once and fail on every re-run, because
+    /// enrolment is one-way.
     /// </para>
     /// </summary>
-    private static async Task<string> EnrolAdminAndLoginAsync(HttpClient client)
+    private async Task<string> AdminLoginAsync(HttpClient client)
     {
         var blocked = await client.PostAsJsonAsync("/v1/auth/login", new
         {
-            email = TestUsers.AdminEmail,
-            password = TestUsers.AdminPassword,
+            email = factory.UnenrolledAdminEmail,
+            password = LifestyleApiFactory.AdminPassword,
             surface = "admin"
         });
-
-        if (blocked.StatusCode == HttpStatusCode.OK)
-        {
-            // A previous test in this collection already enrolled the shared seeded account.
-            return (await Read(blocked)).GetProperty("accessToken").GetString()!;
-        }
 
         blocked.StatusCode.ShouldBe(HttpStatusCode.Forbidden,
             "an admin without TOTP must not reach the admin surface");
         (await Read(blocked)).GetProperty("code").GetString().ShouldBe("identity.totp_enrolment_required");
 
-        Authenticate(client, await LoginAsync(client, TestUsers.AdminEmail, TestUsers.AdminPassword, "buyer"));
+        var totp = new Totp(Base32Encoding.ToBytes(factory.AdminTotpSecret));
 
-        var begin = await client.PostAsync("/v1/auth/2fa/begin", null);
-        begin.StatusCode.ShouldBe(HttpStatusCode.OK, await Body(begin));
+        // A wrong code must fail too, or "2FA required" would be theatre.
+        var wrongCode = await client.PostAsJsonAsync("/v1/auth/login", new
+        {
+            email = factory.AdminEmail,
+            password = LifestyleApiFactory.AdminPassword,
+            surface = "admin",
+            totpCode = "000000"
+        });
 
-        var secret = (await Read(begin)).GetProperty("secret").GetString()!;
-        var totp = new Totp(Base32Encoding.ToBytes(secret));
-
-        var confirm = await client.PostAsJsonAsync("/v1/auth/2fa/confirm",
-            new { secret, code = totp.ComputeTotp() });
-        confirm.StatusCode.ShouldBe(HttpStatusCode.NoContent, await Body(confirm));
-
-        client.DefaultRequestHeaders.Authorization = null;
+        wrongCode.StatusCode.ShouldBeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
 
         var login = await client.PostAsJsonAsync("/v1/auth/login", new
         {
-            email = TestUsers.AdminEmail,
-            password = TestUsers.AdminPassword,
+            email = factory.AdminEmail,
+            password = LifestyleApiFactory.AdminPassword,
             surface = "admin",
             totpCode = totp.ComputeTotp()
         });

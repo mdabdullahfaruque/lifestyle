@@ -576,13 +576,12 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                 table: "categories",
                 columns: new[] { "parent_id", "sort_order" });
 
-            // Hand-written rather than CreateIndex: text_pattern_ops is what lets PostgreSQL use
-            // this index for LIKE 'prefix%' under a non-C collation, and that prefix scan is how
-            // "this category and everything under it" is resolved on every browse request.
-            // Naming the operator class in CategoryConfiguration would require the Npgsql provider
-            // inside a module, which the architecture tests forbid.
-            migrationBuilder.Sql(
-                "CREATE INDEX ix_categories_path ON catalog.categories (path text_pattern_ops);");
+            migrationBuilder.CreateIndex(
+                name: "ix_categories_path",
+                schema: "catalog",
+                table: "categories",
+                column: "path")
+                .Annotation("Npgsql:IndexOperators", new[] { "text_pattern_ops" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_categories_slug",

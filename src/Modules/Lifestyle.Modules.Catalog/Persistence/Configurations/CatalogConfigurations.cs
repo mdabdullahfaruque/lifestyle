@@ -21,10 +21,8 @@ internal sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
         b.HasIndex(c => c.Slug).IsUnique().HasFilter("deleted_at IS NULL");
 
         // Prefix scan for "this category and everything under it".
-        // NOTE: for PostgreSQL to use this index for LIKE 'prefix%' under a non-C collation, it
-        // needs the text_pattern_ops operator class. That is applied as raw SQL in the migration,
-        // because naming an operator class here would mean referencing the Npgsql provider from a
-        // module — which the architecture tests forbid.
+        // AppDbContext adds the text_pattern_ops operator class to this index: naming it here would
+        // mean referencing the Npgsql provider from a module, which the architecture tests forbid.
         b.HasIndex(c => c.Path);
 
         b.HasIndex(c => new { c.ParentId, c.SortOrder });

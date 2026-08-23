@@ -586,3 +586,57 @@ Recorded during the Phase 0/1 build so the reasons survive.
 | `text_pattern_ops` on `catalog.categories.path` | Without it PostgreSQL cannot use the index for `LIKE 'prefix%'` under a non-C collation, and the category-subtree scan on every browse request degrades to a sequential scan |
 | Analyzer suppressions live in `.editorconfig` with a stated reason | `CA1716`/`CA1711`/`CA1000` fight names that are correct here; `CA1848`/`CA1873` push `IsEnabled` guards around cheap log arguments. Each is disabled with the reason written next to it, not silently |
 | `TreatWarningsAsErrors` plus `NU1903` | The vulnerability gate caught two real transitive CVEs during Phase 0 — `Testcontainers → SSH.NET` and `Microsoft.AspNetCore.OpenApi → Microsoft.OpenApi`. Both are pinned to patched versions in `Directory.Packages.props` |
+| All Guid primary keys are `ValueGenerated.Never` (`AppDbContext.ApplyApplicationGeneratedKeys`) | See §13 — without it, every "load aggregate, add child, save" path issues an UPDATE against a row that was never inserted |
+| JWT validation is configured from `IdentityModuleOptions`, not from `IConfiguration` at registration time | See §13 — reading configuration eagerly let the signing key used to *validate* diverge from the one used to *sign* |
+
+---
+
+## 13. Bugs the live database found
+
+Three defects survived a clean build, 130 green unit and architecture tests, and a reviewed
+migration. All three were caught the moment the API ran against a real PostgreSQL. Recorded because
+each is a class of mistake worth recognising again.
+
+### 13.1 Children added to a loaded aggregate were UPDATEd, never INSERTed
+
+**Symptom.** Every login returned 500 with `DbUpdateConcurrencyException: expected to affect 1
+row(s), but actually affected 0`.
+
+**Cause.** `Entity` assigns `Guid.CreateVersion7()` in a field initialiser, so a new child reaches
+the change tracker with its key already set. EF's default for a Guid key is `ValueGenerated.OnAdd`,
+and its graph attacher reads *store-generated key + value already present* as *this row already
+exists* — tracking the child as `Modified` and emitting an UPDATE against a row that had never been
+inserted.
+
+**Blast radius.** Every load-then-add path: issuing a refresh token on login, attaching a KYC
+document, adding a variant, image, or staff member. Creating a whole new aggregate worked, which is
+why nothing looked wrong until a second request touched an existing one.
+
+**Fix.** A model-wide convention declaring Guid primary keys `ValueGenerated.Never`, which is what
+they are — the application generates them (§4.4).
+
+### 13.2 Tokens were signed with one key and validated with another
+
+**Symptom.** A freshly issued, valid token was rejected with a bare 401.
+
+**Cause.** `AddAuthentication` read `Identity:JwtSigningKey` from `IConfiguration` at *registration*
+time, while `TokenService` bound it lazily through `IdentityModuleOptions`. Any configuration source
+added after the builder was constructed reached the lazy binding but not the eager read.
+
+**Fix.** JWT validation is now configured from `IOptions<IdentityModuleOptions>`, so signing and
+validation cannot diverge. The general rule: **bind options, do not read `IConfiguration` during
+service registration.**
+
+### 13.3 "Unique" test data collided across runs
+
+**Symptom.** The suite passed once, then failed on every re-run against the same database.
+
+**Cause.** Two of them. Test data used `Guid.CreateVersion7().ToString("N")[..8]` as a unique
+suffix — but a v7's leading bits are the *millisecond timestamp*, whose top 32 bits change roughly
+once a minute, so consecutive runs produced identical suffixes. Separately, the tests enrolled the
+*seeded* admin in TOTP, which is a one-way change, so the "an admin without TOTP is blocked"
+assertion could only ever pass once.
+
+**Fix.** `LifestyleApiFactory.UniqueSuffix()` uses random (v4) bits, and the fixture mints its own
+admin pair per run — one enrolled with a known secret, one deliberately not. The suite now passes
+repeatedly against a long-lived database, which is what CI and a developer's local server both are.

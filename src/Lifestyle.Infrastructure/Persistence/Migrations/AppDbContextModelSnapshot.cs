@@ -27,7 +27,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Infrastructure.Persistence.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -76,7 +75,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.AttributeSet", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -126,7 +124,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.Category", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -210,6 +207,8 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                     b.HasIndex("Path")
                         .HasDatabaseName("ix_categories_path");
 
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Path"), new[] { "text_pattern_ops" });
+
                     b.HasIndex("Slug")
                         .IsUnique()
                         .HasDatabaseName("ix_categories_slug")
@@ -224,7 +223,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.Product", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -352,7 +350,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ProductAttribute", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -415,7 +412,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ProductAttributeValue", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -455,7 +451,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ProductImage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -494,7 +489,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ProductVariant", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -567,7 +561,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -638,7 +631,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.Role", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -682,7 +674,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -791,7 +782,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.UserRole", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -831,7 +821,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Media.Domain.MediaDerivative", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -876,7 +865,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Media.Domain.MediaFile", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -978,7 +966,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Platform.Domain.AuditEntry", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1046,7 +1033,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Platform.Domain.PlatformSetting", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1088,7 +1074,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Vendors.Domain.Vendor", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1233,7 +1218,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Vendors.Domain.VendorDocument", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1274,7 +1258,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Vendors.Domain.VendorStaff", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
