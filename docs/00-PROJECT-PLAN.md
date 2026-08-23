@@ -292,6 +292,42 @@ trade-off, and it reverses automatically once Stage 2 lands. Technical detail in
 all built in Phase 3 (FRD §14). Stage 1 ships a `ManualShippingProvider` implementation against that
 same interface. Stage 2 is then a second implementation plus UI — not a redesign.
 
+### 6.2 v1 sells through WhatsApp, not through checkout
+
+**The v1 launch has no cart, no checkout, no payment gateway and no ledger.** A buyer browses the
+storefront, taps **Order on WhatsApp** (or Messenger), and lands in a chat with the shop owner with a
+pre-filled message naming the product, variant, price and a reference code. The sale is closed in
+chat, exactly as these sellers already work today. The vendor then marks the stock down in Vendor
+Admin.
+
+**Why this is the right MVP, not a compromise.** It removes the three slowest and riskiest things
+from the launch path at once: payment gateway merchant approval (someone else's 4–8 week process),
+the checkout and escrow machinery, and the double-entry ledger. It also matches how commerce already
+works in Bangladesh — buyers expect to negotiate, ask for photos, and confirm on WhatsApp. Forcing a
+Western-style checkout on that audience at launch would be the actual compromise.
+
+What we still build in full: the catalogue, the variant model, the storefronts, search, the vendor
+back office, and the media pipeline. **Nothing built for v1 is thrown away** — Phase 4 adds checkout
+alongside conversational ordering rather than replacing it.
+
+#### What this changes
+
+| Area | Consequence |
+|---|---|
+| **Revenue** | **Commission is not collectable in v1.** We cannot see or verify an order that happens in WhatsApp. v1 revenue must be a **subscription or setup fee per shop**. This is a business-model change, not a detail — see BRD §4 |
+| **Stock accuracy** | The single biggest operational risk (R13). Sellers forget to decrement. Mitigated with one-tap updates, staleness indicators and reminders — but v1 stock is *advisory*, and the UI should say so |
+| **Analytics** | We see inquiries, not sales. Conversion is vendor-self-reported. Plan for imperfect numbers |
+| **Buyer accounts** | Optional in v1 — browsing and ordering need no login. This dramatically reduces the personal data we hold, which matters for Italy (doc 03 §15) |
+| **Shipping** | No shipping engine at all in v1; the vendor states their terms in text and settles it in chat. Shipping Stage 1 arrives with checkout in Phase 4 |
+| **Positioning** | v1 is closer to "hosted shop with a catalogue" than "marketplace". That matches the stated model — the site should look like the shop owner's own website |
+
+#### Migration into Phase 4
+
+Conversational ordering is **not** switched off when checkout arrives. Both run side by side, toggled
+per vendor, because some sellers and some categories will keep converting better in chat. The order
+inquiry record built in Phase 3 is deliberately shaped like a thin order, so a vendor moving to
+checkout sees continuous history rather than a hard break.
+
 ### Phase 0 — Foundations (Sprints 1–2)
 
 - Repo, solution skeleton, module scaffolding, architecture tests
@@ -327,20 +363,40 @@ same interface. Stage 2 is then a second implementation plus UI — not a redesi
 
 **Exit:** the storefront is publicly crawlable and a shopper can find a product three different ways.
 
-### Phase 3 — Cart, checkout, payment, orders (Sprints 9–12) — *the critical path*
+### Phase 3 — Conversational ordering & **v1 launch** (Sprints 9–11)
+
+The catalogue goes live and starts taking real orders — **through WhatsApp and Messenger, not through
+a checkout**. See §6.2 for the model and its consequences.
+
+- "Order on WhatsApp" / "Order on Messenger" on product and storefront pages
+- Pre-filled message templates carrying product, variant, SKU, price, quantity, URL and a reference code
+- Per-vendor contact configuration (WhatsApp number, Messenger page, business hours, auto-reply text)
+- **Order inquiry log** — the click is recorded on-platform even though the conversation is not
+- Vendor Admin: inquiry list, mark as won/lost, **one-tap stock decrement** from an inquiry
+- Manual stock management with staleness warnings and daily reminders
+- Vendor-authored shipping and payment policy text on the storefront (no shipping engine yet)
+- Basic analytics: inquiries per product, per storefront, conversion self-reported by the vendor
+- Legal, policies, help content for v1; PDPA/consent basics
+- Performance pass, security review, pilot cohort onboarding
+
+**Exit:** a buyer finds a product, taps through to WhatsApp with a correctly filled message, the
+vendor sells it, and stock is decremented in two taps.
+
+### Phase 4 — Cart, checkout, payments, ledger (Sprints 12–16) — *the critical path*
 
 - Multi-vendor cart, stock reservation with TTL
-- **Shipping Stage 1 (manual rates)** — vendor-configured flat/weight rates per zone, West/East
-  Malaysia, free-shipping thresholds. No carrier API (see §6.1)
+- **Shipping Stage 1 (manual rates)** — vendor-configured flat/weight rates per zone, free-shipping
+  thresholds. No carrier API (see §6.1)
 - Checkout: addresses, per-vendor shipping choice, voucher application, order summary
-- Payment gateway integration (FPX, cards, e-wallets), webhook handling, idempotency
+- Payment gateway integration, webhook handling, idempotency. **COD where the market needs it**
 - Order split into vendor sub-orders; order state machine; buyer and vendor order views
 - **Double-entry ledger**: capture, commission, escrow hold, release
 - Invoices and receipts; order notification emails
+- Migration path: inquiry-based selling and checkout run **side by side**, per vendor (§6.2)
 
 **Exit:** a real end-to-end purchase from two vendors in one cart, with correct money movement.
 
-### Phase 4 — Fulfilment, promotions, trust (Sprints 13–16)
+### Phase 5 — Fulfilment, promotions, trust (Sprints 17–20)
 
 - **Shipping Stage 1 fulfilment** — vendor marks as shipped and enters courier + tracking number
   manually; buyer sees a deep link to the courier's own tracking page. No AWB generation, no pickup
@@ -354,7 +410,7 @@ same interface. Stage 2 is then a second implementation plus UI — not a redesi
 
 **Exit:** the full order lifecycle including the unhappy paths.
 
-### Phase 5 — Launch readiness (Sprints 17–19)
+### Phase 6 — **v2 launch readiness** — full marketplace (Sprints 21–22)
 
 - Super Admin reporting: GMV, commission, vendor performance, category performance
 - Vendor Admin analytics: sales, traffic, conversion, top SKUs
@@ -365,14 +421,14 @@ same interface. Stage 2 is then a second implementation plus UI — not a redesi
 - Content: help centre, policies, T&Cs, vendor agreement
 - Soft launch with a pilot cohort of 10–20 vendors
 
-**Exit:** public launch.
+**Exit:** full marketplace launch.
 
-### Phase 6 — Shipping & Delivery integration (Sprints 20–22) — *deferred, in the pipeline*
+### Phase 7 — Shipping & Delivery integration (Sprints 23–25) — *deferred, in the pipeline*
 
-This is a **committed, scheduled workstream**, not backlog. It is sequenced after launch because
-Stage 1 (manual rates + manual tracking entry) is enough to transact, and because courier contracts
-and volume-based rate negotiation land better once we have real order volume to quote. The
-architecture reserves the seam for it from Phase 3 — see §6.1.
+This is a **committed, scheduled workstream**, not backlog. It is sequenced last because Stage 1
+(manual rates + manual tracking entry) is enough to transact, and because courier contracts and
+volume-based rate negotiation land better once we have real order volume to quote. The architecture
+reserves the seam for it from Phase 4 — see §6.1.
 
 - Courier aggregator integration behind `IShippingProvider` (EasyParcel or equivalent)
 - Live rate quoting at checkout, replacing manual rate tables (vendors may keep manual rates)
@@ -399,18 +455,24 @@ full BM and Chinese localisation · AI product-description assist · recommendat
 |---|---|---|
 | 0 — Foundations | 1–2 | 4 |
 | 1 — Catalog & vendors | 3–5 | 10 |
-| 2 — Storefront & search | 6–8 | 16 |
-| 3 — Checkout & payments | 9–12 | 24 |
-| 4 — Fulfilment & promotions | 13–16 | 32 |
-| 5 — Launch readiness | 17–19 | 38 |
-| **— public launch —** | | **38** |
-| 6 — Shipping & Delivery integration | 20–22 | 44 |
+| 2 — Storefronts & discovery | 6–8 | 16 |
+| 3 — Conversational ordering | 9–11 | 22 |
+| **▶ v1 LAUNCH — live, selling via WhatsApp** | | **22** |
+| 4 — Checkout, payments, ledger | 12–16 | 32 |
+| 5 — Fulfilment & promotions | 17–20 | 40 |
+| 6 — v2 launch readiness | 21–22 | 44 |
+| **▶ v2 LAUNCH — full marketplace** | | **44** |
+| 7 — Shipping & Delivery integration | 23–25 | 50 |
 
-**Roughly 9 months to public launch** at this team size, with shipping integration following about
-6 weeks after. The biggest schedule risk is outside engineering: payment gateway merchant approval
-(a business process, commonly 4–8 weeks — start it in Phase 1). Courier account setup used to sit
-alongside it; deferring shipping to Phase 6 takes it off the launch critical path entirely, which is
-a real benefit of this sequencing.
+**The headline change: v1 goes live at ~22 weeks (about 5 months) instead of 38.** Selling through
+WhatsApp removes checkout, payments, the ledger and gateway approval from the launch critical path —
+roughly four months earlier to real orders, real vendors and real feedback. Full marketplace
+capability lands at ~44 weeks, only slightly later than the original single-launch plan, and by then
+it is being built against a live catalogue with known vendors instead of assumptions.
+
+**This also defuses the biggest schedule risk.** Payment gateway merchant approval (4–8 weeks of
+someone else's process, risk R1) no longer blocks launch — it blocks Phase 4, with months of slack in
+front of it. Courier setup was already off the critical path via Phase 7.
 
 ---
 
@@ -458,8 +520,10 @@ Ordered by how soon they block work.
 | 1 | **Platform domain name** — pick and register | Certificates, all host config, branding | Sprint 2 |
 | 2 | **Server / infrastructure details** — specs, OS, existing stack, who administers it, backup capability | Deployment design, CI/CD, Phase 0 exit | Sprint 2 |
 | 3 | **Business entity and bank account** (Sdn Bhd? SSM registration) | Payment gateway merchant application | Sprint 2 |
-| 4 | **Payment gateway** — options and trade-offs in BRD §11 | Phase 3; long approval lead time, so apply in Phase 1 | Sprint 4 |
-| 5 | **Commission model** — flat or per-category, and the actual numbers | Ledger design, vendor agreement | Sprint 6 |
+| 3b | **v1 pricing — what do shops pay for a storefront?** Commission is not collectable in v1 (§6.2), so this is v1's only revenue | Business model, vendor agreement, v1 launch | **Sprint 6** |
+| 3c | **WhatsApp approach** — click-to-chat links only, or the WhatsApp Business Cloud API? (FRD §18.3.7) | Phase 3 scope; Cloud API needs Meta business verification | Sprint 7 |
+| 4 | **Payment gateway** — options and trade-offs in BRD §11 | Phase 4; long approval lead time, so apply during Phase 2 | Sprint 8 |
+| 5 | **Commission model** — flat or per-category, and the actual numbers. Applies from Phase 4 | Ledger design, vendor agreement | Sprint 12 |
 | 6 | **Settlement terms** — escrow release trigger, payout cadence, minimum payout | Ledger and payout module | Sprint 8 |
 | 7 | **Who bears shipping cost** — buyer, vendor, or subsidised | Phase 3 rate setup | Sprint 10 |
 | 7b | **Courier strategy** — aggregator vs direct contracts | Phase 6 only; deferred with the module (§6.1) | Sprint 16 |
@@ -475,7 +539,7 @@ Ordered by how soon they block work.
 
 | # | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|---|
-| R1 | Payment gateway merchant approval delays | Blocks Phase 3 exit | High | Apply in Phase 1; build against sandbox; keep the gateway behind an abstraction so a second provider is a one-sprint swap |
+| R1 | Payment gateway merchant approval delays | Blocks Phase 4 exit — **no longer blocks launch** (§6.2) | Medium | Apply during Phase 2; build against sandbox; keep the gateway behind an abstraction so a second provider is a one-sprint swap. Selling via WhatsApp in v1 gives months of slack in front of this |
 | R2 | Vendor acquisition falls short — a marketplace with no sellers has no buyers | Existential | High | Recruit the pilot cohort during Phase 2; manual white-glove onboarding; CSV/marketplace import tooling; zero commission for the first N months |
 | R3 | Checkout and ledger complexity underestimated | 4–6 week slip | Medium | Most senior people on Phase 3; ledger designed and reviewed before coding; property-based tests on money arithmetic |
 | R4 | Custom-domain TLS automation (issuance and renewal at scale) | Vendor-visible outages | Medium | Proven on-demand-TLS edge; renewal monitoring with alerts; manual fallback runbook |
@@ -485,6 +549,9 @@ Ordered by how soon they block work.
 | R8 | Search quality on Postgres FTS at scale | Conversion | Medium | Search behind an interface from day one; measure zero-result rate; OpenSearch swap pre-planned |
 | R9 | PDPA / e-invoice compliance gaps | Legal, fines | Medium | Engage Malaysian legal and tax advisors before launch; consent and audit built in Phase 5 |
 | R10 | Single-server deployment as a single point of failure | Outage | Medium | Resolve during infra planning; at minimum, automated off-site backups plus a documented restore drill |
+| R13 | **Stock drift in v1** — sellers forget to decrement after a WhatsApp sale, so buyers order sold-out items | Buyer trust, vendor support load | **High** | One-tap decrement from the inquiry list; "stock last updated N days ago" badge on the vendor dashboard; daily reminder for shops with open inquiries; show stock as availability bands ("In stock" / "Low") rather than exact counts, so small drift is not a visible lie |
+| R14 | **No commission revenue in v1** — orders close off-platform and cannot be verified | Business model | Certain, by design | Subscription/setup fee per shop for v1 (§6.2); commission starts with Phase 4 checkout. Decide pricing before v1 launch, not after |
+| R15 | Vendors stay on WhatsApp and never adopt checkout, so commission never starts | Revenue | Medium | Do not force migration; make checkout obviously better (vouchers, buyer trust, tracked orders). Price the subscription so it stays viable if some vendors never convert |
 | R11 | Manual shipping (Stage 1) creates support load — vendors mistype tracking numbers, forget to mark shipped, quote rates that lose them money | Ops cost, buyer trust | Medium-High | Tracking number format validation per courier; "not yet shipped" nudges at 24 h and 48 h; a rate calculator in Vendor Admin showing real courier rates for reference; measure the ticket rate — if it exceeds ~3 per 100 orders, pull Phase 6 forward |
 | R12 | Deferred shipping delays escrow release, hurting vendor cash flow (§6.1) | Vendor satisfaction | Medium | Communicate the dispatch-based window in the vendor agreement up front; consider a shorter fallback for vendors with a good track record; Phase 6 removes it |
 
@@ -516,6 +583,7 @@ reporting.
 | **00 — Master Project Plan** (this document) | Scope, stack, roadmap, risks, decisions | Everyone |
 | [**01 — BRD**](01-BRD.md) | Business model, personas, capabilities, policies, rules | Business, product, vendors |
 | [**02 — Technical FRD**](02-TECHNICAL-FRD.md) | Architecture, data model, APIs, flows, NFRs | Engineering, QA |
-| 03 — Infrastructure & Deployment | *Pending your server details* | DevOps |
+| [**03 — Infrastructure & Multi-Region**](03-INFRASTRUCTURE-MULTI-REGION.md) | Existing server baseline, MY/BD/IT deployment strategy, the Italy answer, capacity, gaps | DevOps, business |
+| [`infrastructure-mypropertymart/`](infrastructure-mypropertymart/) | Existing PropertyMart infrastructure — the baseline doc 03 builds on | DevOps |
 | 04 — UI/UX Design System | *To follow* | Design, frontend |
 | 05 — ADR log | Architecture decisions with rationale | Engineering |

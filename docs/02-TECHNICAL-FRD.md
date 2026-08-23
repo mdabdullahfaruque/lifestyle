@@ -1415,6 +1415,164 @@ Attachments reuse the media pipeline. Vendor response rate and median response t
 message timestamps for `BR-T-07`. Phone numbers, emails and external links are masked in message
 bodies per `BR-T-08`, with the raw text retained for dispute evidence.
 
+On-platform chat is a **Phase 5** feature. In v1, buyer↔vendor conversation happens in WhatsApp and
+Messenger — see §18.3.
+
+### 18.3 Conversational ordering — the v1 order path
+
+> **This is how v1 takes orders.** There is no cart, no checkout, no payment and no order record in
+> v1 (Project Plan §6.2). A buyer taps through from a product page into WhatsApp or Messenger with a
+> pre-filled message, and the sale is closed in chat. Everything here is built in Phase 3 and
+> **kept** when checkout arrives in Phase 4 — the two run side by side, per vendor.
+
+#### 18.3.1 Vendor contact configuration
+
+`vendors.storefront_contact`:
+
+| Field | Notes |
+|---|---|
+| `whatsapp_number` | **E.164, stored without `+`** — `wa.me` requires that format. Validated on save |
+| `whatsapp_enabled` | Per-vendor toggle |
+| `messenger_page` | Page username or numeric page ID |
+| `messenger_enabled` | |
+| `preferred_channel` | Which button is primary on the product page |
+| `business_hours`, `timezone` | Drives an "usually replies within…" hint and an out-of-hours notice |
+| `order_template_override` | Optional vendor-authored template; falls back to the platform default |
+
+#### 18.3.2 Deep links — and an asymmetry worth knowing
+
+**WhatsApp** supports pre-filled message text:
+
+```
+https://wa.me/{e164_no_plus}?text={urlencoded_message}
+```
+
+**Messenger does not.** `https://m.me/{page}` opens the conversation but **cannot pre-fill the user's
+message**; the `ref` parameter is delivered to a *bot* via the messaging-referrals webhook, not
+rendered as user text. So:
+
+- **WhatsApp** — full pre-filled template. This is the primary channel, and should be the default
+  where the market allows (both Bangladesh and Italy are WhatsApp-first; Messenger is a secondary
+  channel in Bangladesh).
+- **Messenger** — the buyer lands in the chat, and we show the reference code and product details
+  **on the page** with a copy button so they can paste it. Set expectations in the UI accordingly
+  rather than pretending the flows are equivalent.
+- Upgrading Messenger to a true pre-filled/automated flow requires a Messenger bot plus the
+  Cloud API — deferred, see §18.3.7.
+
+#### 18.3.3 Message template
+
+Default template, per-locale, editable by the vendor:
+
+```
+Hi {vendorName}! I'd like to order:
+
+{productTitle}
+{variantSummary}          e.g. Size: M · Colour: Red
+Price: {price}
+Qty: {quantity}
+Ref: {referenceCode}
+
+{productUrl}
+```
+
+Constraints that matter in practice:
+
+- **Keep it short.** The whole URL must survive being passed through link previews, QR codes and
+  in-app browsers. Target well under 1,000 characters total; some clients truncate long ones.
+- URL-encode the body once, correctly — double-encoding is the most common bug here, and it surfaces
+  as literal `%20` in the buyer's message.
+- Emoji are fine and read as normal in this market, but keep them out of the reference code.
+- Templates are stored per locale (`bn`, `en`, `it`), and the buyer's active locale selects one.
+
+#### 18.3.4 Reference code and the redirect endpoint
+
+The buyer does **not** click `wa.me` directly. They click a platform URL that records the intent and
+then redirects:
+
+```
+GET /go/order/{inquiryRef}  →  302  →  https://wa.me/…?text=…
+```
+
+Why this indirection:
+
+1. **Reliable tracking.** A client-side analytics event before an external navigation is routinely
+   lost. A server-side record before the 302 is not.
+2. **Short, clean links** that survive being shared or turned into a QR code.
+3. The template is built **server-side**, so price and stock are current at click time rather than
+   whatever the page was rendered with.
+4. It gives one place to rate-limit and to block abuse.
+
+`referenceCode` is short, unambiguous when read aloud or typed, and greppable by the vendor —
+e.g. `LS-7K4M2`. Excludes visually ambiguous characters (`0/O`, `1/I/l`).
+
+#### 18.3.5 The inquiry record
+
+```
+ordering.order_inquiries
+  id, reference_code (unique), vendor_id, product_id, variant_id, quantity,
+  price_snapshot, channel (WhatsApp | Messenger),
+  storefront_host, locale, referrer, user_agent_class,
+  buyer_user_id (nullable — usually null in v1),
+  status (Clicked | Contacted | Won | Lost | Expired),
+  outcome_note, outcome_set_by, outcome_set_at,
+  created_at
+```
+
+**Deliberately shaped like a thin order** so Phase 4 can present continuous history rather than a hard
+break at the migration. It carries no buyer personal data — that is precisely the property that keeps
+the Italy footprint small (doc 03 §0.1).
+
+`status` is vendor-maintained and inherently approximate. `Clicked` is the only value the system knows
+for certain; everything past it is the vendor's word. **The UI must not present inquiry counts as
+sales.**
+
+#### 18.3.6 Manual stock, and how to stop it lying
+
+The vendor sells in chat, then decrements stock themselves. This is the single largest operational
+risk in v1 (Plan R13). Mitigations, in order of effectiveness:
+
+1. **One-tap decrement from the inquiry list.** Marking an inquiry `Won` offers "reduce stock by
+   {quantity}" pre-filled and applies it in one action. Reducing the work is worth more than any
+   reminder.
+2. **Availability bands, not exact counts.** Show `In stock` / `Only a few left` / `Out of stock`
+   rather than "7 left". Small drift then stops being a visible falsehood, and it removes the most
+   common buyer complaint.
+3. **Staleness signal.** `inventory_items.stock_confirmed_at`, surfaced on the vendor dashboard as
+   "stock last confirmed 6 days ago" with a one-tap "still accurate" confirmation.
+4. **Daily digest** to vendors with open inquiries and stale stock.
+5. **Auto-flag**: a product with inquiries but no stock movement for N days is flagged for review.
+
+All decrements write `stock_movements` with `type = ManualSale` and the inquiry reference — so when
+Phase 4 arrives there is a real movement history, not a mystery.
+
+#### 18.3.7 Upgrade path: WhatsApp Business Cloud API
+
+v1 uses **click-to-chat links only** — no Meta approval, no API integration, works on day one. That is
+the right starting point and it should not be skipped in favour of the API.
+
+The Cloud API becomes worthwhile when we want the platform to *send* messages: order confirmations,
+shipping updates, abandoned-inquiry follow-ups, payment links. It requires a Meta Business account,
+business verification, a dedicated number, and **pre-approved message templates** — a lead time
+measured in weeks, so start it during Phase 4 if it is wanted, not Phase 3.
+
+Note that a number used with the Cloud API can no longer be used in the normal WhatsApp app, which is
+often a blocker for small sellers who run their shop from their personal phone. Expect this to be a
+per-vendor opt-in, not a platform-wide migration.
+
+#### 18.3.8 What this path deliberately does not do
+
+Stated plainly so nobody plans around capabilities that do not exist:
+
+- **No verification that a sale happened.** Hence no commission in v1 (Plan §6.2, R14).
+- **No stock reservation.** Two buyers can click the same last item; the vendor resolves it in chat.
+- **No delivery or read receipts** — we know the click, not the conversation.
+- **No price enforcement.** The vendor can agree any price in chat.
+- **No buyer identity.** Unless the buyer separately registers, we know nothing about them.
+- **No dispute trail on-platform.** The conversation is in Meta's app, not ours.
+
+Each of these is resolved by Phase 4 checkout, and none of them is worth blocking v1 for.
+
 ---
 
 ## 19. API design

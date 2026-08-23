@@ -1,5 +1,11 @@
 # Business Requirements Document (BRD)
-## Lifestyle — Multi-Vendor Marketplace, Malaysia
+## Lifestyle — Multi-Vendor Marketplace
+
+> **Scope note (2026-08-23).** This document was drafted Malaysia-first. The project now targets
+> **Bangladesh (primary), Malaysia, and one client shop in Italy**, and **v1 launches without a
+> checkout** — selling happens over WhatsApp (§4.3, §6.0). Malaysia-specific rules below (SST, FPX,
+> West/East zones) are correct for the Malaysian deployment and are the template for the others;
+> doc 03 §13 lists the per-country revisions still outstanding.
 
 | Field | Value |
 |---|---|
@@ -28,14 +34,20 @@
 
 ## 1. Executive summary
 
-Lifestyle is a **multi-vendor, multi-category online marketplace targeting Malaysian consumers**. It
-lets independent sellers list, sell and fulfil products through a shared shopping destination while
-retaining their own brand presence via a dedicated public storefront on a subdomain — with an
-optional custom domain.
+Lifestyle gives independent sellers **a shop of their own** — a public storefront on their own
+subdomain or custom domain, which to their customers looks and behaves like the shop's own website —
+backed by a shared catalogue platform, and later a shared marketplace, payments and logistics.
 
-The commercial model is a **take-rate marketplace**: the platform does not hold inventory. Revenue
-comes primarily from commission on completed orders, supplemented later by vendor subscription tiers
-and promoted placement.
+Primary market is **Bangladesh**, then **Malaysia**, plus **one client shop in Italy**.
+
+**It arrives in two steps, and the first one has no checkout.** In v1 a buyer browses the storefront
+and taps through to **WhatsApp or Messenger** to complete the purchase with the shop owner directly —
+which is how commerce already works for these sellers and their customers. v2 adds cart, checkout,
+payments and the marketplace layer on top, without taking the conversational path away.
+
+The commercial model follows that split: **subscription per shop in v1** (commission is not
+collectable when the order happens in a chat app — §4.3), moving to a **take rate** in v2. The
+platform never holds inventory.
 
 The differentiator against Shopee and Lazada is not price or logistics scale — we cannot win there.
 It is **vendor brand ownership**: a real storefront the vendor can point their own domain and social
@@ -93,12 +105,16 @@ feature — it is the reason vendors choose us.** It gets first-class investment
 
 ### 4.1 Revenue streams
 
+> **Read §4.3 first.** v1 sells through WhatsApp and has no checkout, so **commission is not
+> collectable at launch**. The table below describes the model from v2 (checkout) onwards; v1 runs on
+> RS-4 alone.
+
 | # | Stream | MVP? | Description |
 |---|---|---|---|
-| RS-1 | **Commission on completed orders** | Yes | Percentage of item subtotal, per-category rate. Charged on completion, not on order placement |
+| RS-1 | **Commission on completed orders** | **v2** | Percentage of item subtotal, per-category rate. Charged on completion, not on order placement. Requires checkout — see §4.3 |
 | RS-2 | **Payment processing fee pass-through** | Yes | Gateway cost recovered from the vendor, shown transparently |
 | RS-3 | **Shipping margin** | Optional | Difference between the aggregator rate and the buyer-facing rate. Recommended: zero margin at launch, for trust |
-| RS-4 | Vendor subscription tiers | Post-launch | Free / Pro / Brand — Pro unlocks custom domain, advanced analytics, more listings |
+| RS-4 | **Shop subscription / setup fee** | **v1 — the only v1 revenue** | Monthly (and/or one-off setup) fee per shop for the storefront, catalogue and ordering tools. See §4.3 |
 | RS-5 | Promoted listings and ads | Post-launch | CPC placement in search and category pages |
 | RS-6 | Campaign participation fees | Post-launch | Paid slots in flagship campaigns |
 | RS-7 | Value-added services | Post-launch | Photography, content, fulfilment assistance |
@@ -120,7 +136,46 @@ project plan) and should be budgeted for.
 Commission is calculated on the **item subtotal after vendor-funded discounts and before shipping and
 platform-funded vouchers** — precise formula in §9.4.
 
-### 4.3 Cost structure to plan for
+### 4.3 v1 revenue — commission does not work when the order happens in WhatsApp
+
+**This needs a decision before v1 launches, and it is easy to miss.**
+
+In v1 a buyer taps through from the storefront into WhatsApp and the sale is closed in chat
+(Project Plan §6.2). The platform sees that someone *clicked*. It does not see whether a sale
+happened, at what price, or for how many units — and it cannot verify any of it.
+
+**So commission is not collectable in v1.** Not "hard to collect" — genuinely unavailable, because
+there is no observed transaction to take a percentage of. Any attempt to charge commission on
+self-reported sales would be unenforceable and would give vendors an obvious incentive to
+under-report, which also poisons our own analytics.
+
+**v1 must therefore be sold as a subscription**, not a take rate. The product being sold is the
+storefront: a professional shop site on the vendor's own domain, a managed catalogue, product pages
+that look credible, and a link they can put in their Instagram or Facebook bio. That is a real
+product with a real price — it is roughly what Shopify sells — and it happens to be exactly what our
+target vendors (P2, P3 in §5.2) already want.
+
+| | **v1 — conversational** | **v2 — checkout** |
+|---|---|---|
+| Revenue model | Subscription and/or setup fee per shop | Commission on completed orders |
+| What the vendor buys | A storefront and catalogue | Storefront + payments + buyer trust + tracked orders |
+| Platform sees the order | No | Yes |
+| Pricing pressure | Compared against Shopify, and against free (Instagram) | Compared against Shopee and Lazada commission rates |
+
+**Consequences to plan for:**
+
+1. **Set the v1 price before launch**, not after. Retrofitting a fee onto vendors who onboarded free
+   is much harder than starting with one — and free-at-launch is still a valid choice, as long as it
+   is a deliberate acquisition decision with an end date.
+2. **v2 pricing must be a real upgrade, not a penalty.** A vendor moving to checkout should not feel
+   they are being charged twice. Either commission replaces the subscription, or the subscription
+   drops when commission starts.
+3. **Some vendors will never move to checkout** (risk R15). Price v1 so the business works even if a
+   meaningful share stays conversational forever.
+4. **BO-3 in §2 assumes commission revenue.** It applies from v2. v1 needs its own target — shops
+   onboarded and paying — which the business should set.
+
+### 4.4 Cost structure to plan for
 
 Payment gateway fees (FPX per-transaction flat fee; card and e-wallet percentage rates), courier
 costs, platform-funded voucher and free-shipping subsidies, infrastructure, customer support,
@@ -177,6 +232,29 @@ commission reports, tax-ready invoice records, refund tracking.
 ---
 
 ## 6. Scope
+
+### 6.0 v1 versus v2 — what actually ships first
+
+The scope table in §6.1 describes the **complete** product. It is delivered in two launches
+(Project Plan §6.2):
+
+| | **v1 — conversational** (~week 22) | **v2 — full marketplace** (~week 44) |
+|---|---|---|
+| Catalogue, variants, media, search | ✔ | ✔ |
+| Vendor storefronts, custom domains | ✔ | ✔ |
+| Vendor onboarding and admin | ✔ | ✔ |
+| Super admin, moderation | ✔ | ✔ |
+| **Ordering** | **WhatsApp / Messenger deep link** | Cart + checkout |
+| **Payment** | Off-platform, seller-arranged | Gateway, escrow |
+| **Stock** | Vendor updates manually after each sale | Automatic on order |
+| **Shipping** | Vendor's policy text; arranged in chat | Rate tables (Stage 1) |
+| Ledger, payouts, commission | ✗ | ✔ |
+| Returns, disputes, reviews | ✗ | ✔ |
+| Promotions, vouchers | ✗ | ✔ |
+| **Revenue** | Subscription per shop (§4.3) | Commission |
+
+Everything built for v1 is kept. Phase 4 adds checkout **alongside** conversational ordering, toggled
+per vendor — some sellers and categories will keep converting better in chat.
 
 ### 6.1 In scope for MVP (public launch)
 
@@ -729,13 +807,15 @@ if vendor demand justifies the operational cost.
 
 | Release | Contents | Target |
 |---|---|---|
-| **Internal alpha** | Catalog + vendor onboarding, seeded data, no payments | End of Phase 1 |
-| **Closed beta** | Full purchase flow, sandbox payments, 5 friendly vendors, invited buyers | End of Phase 3 |
-| **Soft launch** | Live payments, 10–20 pilot vendors, limited marketing, real money | End of Phase 4 |
-| **Public launch** | Full feature set, custom domains, marketing campaign. Shipping Stage 1 | End of Phase 5 |
-| **v1.0.1 — Shipping & Delivery** | **Shipping Stage 2**: courier integration, live rates, labels, pickup booking, automated tracking (§6.6) | End of Phase 6, ~6 weeks post-launch |
-| **v1.1** | Vendor tiers, bundles, campaign tooling, BM localisation | Launch + 3 months |
-| **v2.0** | Mobile app, live selling, ads, affiliate programme | Launch + 9 months |
+| **Internal alpha** | Catalogue + vendor onboarding, seeded data | End of Phase 1 |
+| **Storefront preview** | Live storefronts, browse and search, no ordering | End of Phase 2 |
+| **▶ v1 — conversational launch** | Catalogue, storefronts, custom domains, **WhatsApp/Messenger ordering**, manual stock. Pilot cohort, then open | **End of Phase 3, ~week 22** |
+| **Closed beta — checkout** | Full purchase flow, sandbox payments, 5 friendly vendors | End of Phase 4 |
+| **Soft launch — checkout** | Live payments, 10–20 vendors migrated, real money | End of Phase 5 |
+| **▶ v2 — full marketplace** | Checkout, payments, ledger, returns, promotions, reviews. Shipping Stage 1 | **End of Phase 6, ~week 44** |
+| **v2.1 — Shipping & Delivery** | **Shipping Stage 2**: courier integration, live rates, labels, pickup, automated tracking (§6.6) | End of Phase 7 |
+| **v2.2** | Vendor tiers, bundles, campaign tooling, further localisation | v2 + 3 months |
+| **v3.0** | Mobile app, live selling, ads, affiliate programme | v2 + 9 months |
 
 ---
 
