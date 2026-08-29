@@ -194,6 +194,118 @@ public sealed class ApiBehaviourTests(LifestyleApiFactory factory)
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    /// <summary>
+    /// The on-demand TLS gate (docs/05 §5.3). Caddy asks this before requesting a certificate for
+    /// an unknown hostname. If it ever answers 200 for a domain we do not know, the edge becomes an
+    /// open certificate-request relay and anyone pointing DNS at the server can exhaust our
+    /// Let's Encrypt rate limits — a denial of service on our own ability to issue certificates.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData("attacker-controlled.invalid")]
+    [InlineData("not-a-vendor.com")]
+    [InlineData("")]
+    [InlineData("' OR 1=1 --")]
+    public async Task Tls_check_refuses_domains_we_do_not_know(string domain)
+    {
+        Skip.If(factory.UnavailableReason is not null, factory.UnavailableReason);
+
+        var response = await factory.CreateClient()
+            .GetAsync($"/v1/internal/tls-check?domain={Uri.EscapeDataString(domain)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound,
+            $"'{domain}' is not a registered vendor domain, so no certificate may be issued for it");
+    }
+
+    [SkippableFact]
+    public async Task Tls_check_refuses_an_absurdly_long_hostname()
+    {
+        Skip.If(factory.UnavailableReason is not null, factory.UnavailableReason);
+
+        var response = await factory.CreateClient()
+            .GetAsync($"/v1/internal/tls-check?domain={new string('a', 300)}.com");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    /// <summary>
+    /// In the DNS-only edge mode the wildcard has no proxy in front of it, so Caddy issues
+    /// per-subdomain certificates on demand — which means tls-check must approve
+    /// <c>{slug}.{root}</c> for an approved vendor, and only for an approved vendor.
+    /// </summary>
+    [SkippableFact]
+    public async Task Tls_check_approves_an_approved_vendors_subdomain_and_nothing_deeper()
+    {
+        Skip.If(factory.UnavailableReason is not null, factory.UnavailableReason);
+
+        var client = factory.CreateClient();
+        var slug = await ApprovedVendorSlugAsync(client);
+
+        (await client.GetAsync($"/v1/internal/tls-check?domain={slug}.lifestyle.test"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK, "an approved vendor's subdomain deserves a certificate");
+
+        (await client.GetAsync($"/v1/internal/tls-check?domain=no-such-shop.lifestyle.test"))
+            .StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        (await client.GetAsync($"/v1/internal/tls-check?domain=deep.{slug}.lifestyle.test"))
+            .StatusCode.ShouldBe(HttpStatusCode.NotFound, "only one label below the root is a storefront host");
+    }
+
+    /// <summary>Creates and approves a vendor end to end, returning its storefront slug.</summary>
+    private async Task<string> ApprovedVendorSlugAsync(HttpClient client)
+    {
+        var suffix = LifestyleApiFactory.UniqueSuffix();
+        var email = $"tls-vendor-{suffix}@example.com";
+
+        (await client.PostAsJsonAsync("/v1/auth/register", new
+        {
+            email,
+            password = "a-long-enough-password",
+            fullName = "Tls Vendor",
+            phoneNumber = (string?)null
+        })).EnsureSuccessStatusCode();
+
+        var owner = factory.CreateClient();
+        owner.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", await LoginAsync(owner, email, "a-long-enough-password", "buyer"));
+
+        var apply = await owner.PostAsJsonAsync("/v1/vendor-applications", new
+        {
+            legalName = "TLS Check Sdn Bhd",
+            displayName = $"Tls Shop {suffix}",
+            desiredSlug = $"tls-shop-{suffix}",
+            contactEmail = $"tls-shop-{suffix}@example.com",
+            contactPhone = "+60123456789",
+            registrationNumber = (string?)null
+        });
+        apply.EnsureSuccessStatusCode();
+        var slug = (await Read(apply)).GetProperty("slug").GetString()!;
+
+        foreach (var kind in new[] { "BusinessRegistration", "OwnerIdentity" })
+            (await owner.PostAsJsonAsync("/v1/vendor-applications/documents",
+                new { kind, mediaId = $"m-{kind}-{suffix}", fileName = "doc.pdf" })).EnsureSuccessStatusCode();
+
+        (await owner.PostAsync("/v1/vendor-applications/submit", null)).EnsureSuccessStatusCode();
+
+        var admin = factory.CreateClient();
+        var totp = new OtpNet.Totp(OtpNet.Base32Encoding.ToBytes(factory.AdminTotpSecret));
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            (await Read(await admin.PostAsJsonAsync("/v1/auth/login", new
+            {
+                email = factory.AdminEmail,
+                password = LifestyleApiFactory.AdminPassword,
+                surface = "admin",
+                totpCode = totp.ComputeTotp()
+            }))).GetProperty("accessToken").GetString()!);
+
+        var vendorId = (await Read(await owner.GetAsync("/v1/vendor-applications/mine")))
+            .GetProperty("id").GetGuid();
+
+        (await admin.PostAsJsonAsync($"/v1/admin/vendors/{vendorId}/review",
+            new { approve = true, reason = (string?)null })).EnsureSuccessStatusCode();
+
+        return slug;
+    }
+
     /// <summary>Every response echoes a correlation id, generated when the caller omits one.</summary>
     [SkippableFact]
     public async Task Responses_carry_a_correlation_id()

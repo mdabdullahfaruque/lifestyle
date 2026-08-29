@@ -35,12 +35,12 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IOptions<
 
             if (!string.IsNullOrWhiteSpace(devSlug))
             {
-                await ResolveStorefrontAsync(tenant, vendors, cache, host, devSlug, isCustomDomain: false, context);
+                await ResolveStorefrontAsync(tenant, vendors, cache, host, root, devSlug, isCustomDomain: false, context);
                 await next(context);
                 return;
             }
 
-            tenant.Set(HostKind.Api, host, null, null, false);
+            tenant.Set(HostKind.Api, host, root, null, null, false);
             await next(context);
             return;
         }
@@ -48,26 +48,26 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IOptions<
         if (host.Equals(_platform.MarketplaceHost, StringComparison.OrdinalIgnoreCase) ||
             host.Equals(root, StringComparison.OrdinalIgnoreCase))
         {
-            tenant.Set(HostKind.Marketplace, host, null, null, false);
+            tenant.Set(HostKind.Marketplace, host, root, null, null, false);
         }
         else if (host.Equals(_platform.SellerHost, StringComparison.OrdinalIgnoreCase))
         {
-            tenant.Set(HostKind.Seller, host, null, null, false);
+            tenant.Set(HostKind.Seller, host, root, null, null, false);
         }
         else if (host.Equals(_platform.AdminHost, StringComparison.OrdinalIgnoreCase))
         {
-            tenant.Set(HostKind.Admin, host, null, null, false);
+            tenant.Set(HostKind.Admin, host, root, null, null, false);
         }
         else if (host.EndsWith($".{root}", StringComparison.OrdinalIgnoreCase))
         {
             // {slug}.{root} — a storefront subdomain.
             var slug = host[..^(root.Length + 1)];
-            await ResolveStorefrontAsync(tenant, vendors, cache, host, slug, isCustomDomain: false, context);
+            await ResolveStorefrontAsync(tenant, vendors, cache, host, root, slug, isCustomDomain: false, context);
         }
         else
         {
             // Anything else is a vendor's own custom domain, or noise.
-            await ResolveStorefrontAsync(tenant, vendors, cache, host, host, isCustomDomain: true, context);
+            await ResolveStorefrontAsync(tenant, vendors, cache, host, root, host, isCustomDomain: true, context);
         }
 
         await next(context);
@@ -75,7 +75,7 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IOptions<
 
     private static async Task ResolveStorefrontAsync(
         TenantContext tenant, IVendorsModule vendors, IMemoryCache cache,
-        string host, string slugOrDomain, bool isCustomDomain, HttpContext context)
+        string host, string root, string slugOrDomain, bool isCustomDomain, HttpContext context)
     {
         var cacheKey = $"tenant:{(isCustomDomain ? "domain" : "slug")}:{slugOrDomain}";
 
@@ -91,10 +91,10 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IOptions<
         {
             // Unknown host: no tenant. Public catalog endpoints then serve the marketplace view,
             // and the storefront endpoint returns 404, which is the honest answer.
-            tenant.Set(HostKind.Marketplace, host, null, null, isCustomDomain);
+            tenant.Set(HostKind.Marketplace, host, root, null, null, isCustomDomain);
             return;
         }
 
-        tenant.Set(HostKind.Storefront, host, vendor.Id, vendor.Slug, isCustomDomain);
+        tenant.Set(HostKind.Storefront, host, root, vendor.Id, vendor.Slug, isCustomDomain);
     }
 }

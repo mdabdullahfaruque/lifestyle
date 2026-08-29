@@ -29,6 +29,10 @@ public interface ITenantContext
     HostKind HostKind { get; }
     string Host { get; }
 
+    /// <summary>The platform's apex domain (<c>example.com</c>), from configuration — not derived
+    /// from the request, so it is trustworthy even on internal or spoofed-Host calls.</summary>
+    string RootDomain { get; }
+
     /// <summary>The storefront's vendor, when the host resolves to one.</summary>
     Guid? VendorId { get; }
 

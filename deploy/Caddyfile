@@ -1,0 +1,176 @@
+# Lifestyle origin, behind Cloudflare.
+#
+# Cloudflare terminates TLS for the browser. This file terminates the origin leg — the hop from
+# Cloudflare to this server — which must still be encrypted, or Cloudflare's "Full (strict)" mode
+# has nothing to validate and traffic crosses the public internet in clear text.
+#
+# Three classes of hostname (doc 03 §6.2):
+#   1. api / www / {slug}.{root}  — proxied through Cloudflare (orange cloud)
+#   2. Vendor custom domains via Cloudflare for SaaS — also arrive from Cloudflare
+#   3. Vendor custom domains DNS-only (grey cloud) — Caddy issues the certificate itself
+#
+# Classes 1 and 2 use the Cloudflare Origin CA certificate (see docs/05 §5.2): free, 15-year,
+# trusted only by Cloudflare, which is exactly right for an origin nobody else should reach.
+# Class 3 falls back to on-demand ACME, gated by the API.
+
+{
+    email {$ACME_EMAIL}
+
+    on_demand_tls {
+        # Mandatory. Without it Caddy will request a certificate for ANY hostname pointed at this
+        # IP, and an attacker can exhaust our Let's Encrypt rate limits — a denial of service on
+        # our own ability to issue certificates.
+        ask http://api:8080/v1/internal/tls-check
+    }
+
+    servers {
+        # Cloudflare connects over IPv4/IPv6 and speaks HTTP/2 to the origin.
+        protocols h1 h2
+
+        # Behind a proxy every request appears to come from Cloudflare. Without this, rate limits
+        # and audit logs record Cloudflare's IPs instead of the caller's, which makes both useless.
+        #
+        # Keep these current: https://www.cloudflare.com/ips/
+        # Trusting a range that is NOT Cloudflare would let anyone spoof their own IP, so this list
+        # must never be widened "just to make it work".
+        trusted_proxies static \
+            173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 \
+            141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 \
+            197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 \
+            104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 \
+            2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 \
+            2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+    }
+}
+
+# ── Shared snippets ─────────────────────────────────────────────────────────
+
+(origin_tls) {
+    # Cloudflare Origin CA certificate. Generate it in the dashboard
+    # (SSL/TLS → Origin Server → Create Certificate) and place both files on the host.
+    tls /etc/caddy/origin/cert.pem /etc/caddy/origin/key.pem
+}
+
+(security_headers) {
+    header {
+        # Cloudflare also sets HSTS if enabled there; setting it here too is harmless and means
+        # the header survives if the proxy is ever bypassed.
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "DENY"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+(api_proxy) {
+    # The API is served under the SAME hostname as the site that calls it. That is deliberate:
+    # it keeps requests same-origin, so there is no CORS preflight, and the HttpOnly refresh
+    # cookie (SameSite=Strict) is sent on vendor custom domains too. Serving the API only on
+    # api.{root} would silently break sessions on every custom domain.
+    handle /v1/* {
+        reverse_proxy api:8080 {
+            header_up X-Forwarded-Host {host}
+            health_uri /v1/internal/health
+        }
+    }
+}
+
+(block_internal) {
+    # /v1/internal/* is for the edge and monitoring, never the public internet. Cloudflare should
+    # also block it at the WAF; this is the second lock.
+    handle /v1/internal/* {
+        respond 404
+    }
+}
+
+# PHASE 1: the public storefront is deferred (docs/05 §9), so non-API traffic on the marketplace
+# and shop hosts gets a holding page instead of a proxy to a container that does not exist.
+# PHASE 2: replace `import coming_soon` with `import storefront_proxy` on every site below.
+(coming_soon) {
+    handle {
+        header Content-Type "text/html; charset=utf-8"
+        header Cache-Control "no-store"
+        respond <<HTML
+            <!doctype html>
+            <meta charset="utf-8">
+            <meta name="robots" content="noindex">
+            <title>Coming soon</title>
+            <body style="font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0">
+            <p>This shop is getting ready. Please check back soon.</p>
+            HTML 200
+    }
+}
+
+(storefront_proxy) {
+    handle {
+        reverse_proxy storefront:4000 {
+            # Forwarding the viewer's Host is what makes tenant resolution work. Drop it and every
+            # shop renders as the marketplace — silently, still returning 200.
+            header_up Host {host}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+}
+
+# ── 1. API host ─────────────────────────────────────────────────────────────
+
+api.{$ROOT_DOMAIN} {
+    import origin_tls
+    import security_headers
+    import block_internal
+
+    reverse_proxy api:8080 {
+        header_up X-Forwarded-Host {host}
+        health_uri /v1/internal/health
+    }
+}
+
+# ── 2. Marketplace and vendor subdomains ────────────────────────────────────
+#
+# The seller and admin SPAs are on Cloudflare Pages and never reach this server.
+
+www.{$ROOT_DOMAIN}, {$ROOT_DOMAIN}, *.{$ROOT_DOMAIN} {
+    import origin_tls
+    import security_headers
+    import block_internal
+    import api_proxy
+    import coming_soon
+}
+
+# ── 3. Uploaded media ───────────────────────────────────────────────────────
+#
+# Serves the api-storage volume read-only (Storage__Provider=local, docs/05 §6). Proxy this host
+# through Cloudflare and the edge caches every image after the first hit per region.
+
+media.{$ROOT_DOMAIN} {
+    import origin_tls
+    import security_headers
+
+    root * /srv/media
+    file_server
+
+    # Derivative keys contain a random id and are never rewritten, so they cache hard.
+    header Cache-Control "public, max-age=31536000, immutable"
+
+    # Uploads are attacker-supplied bytes. Never let the browser sniff a type, and never let
+    # anything served from this host execute in the platform's origin.
+    header Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox"
+}
+
+# ── 4. Vendor custom domains, DNS-only ──────────────────────────────────────
+#
+# Only reached for vendors who point an A record straight at this server rather than going
+# through Cloudflare for SaaS. Caddy issues the certificate on demand, gated by the API.
+# Must come last: it is the catch-all.
+
+:443 {
+    tls {
+        on_demand
+    }
+
+    import security_headers
+    import block_internal
+    import api_proxy
+    import coming_soon
+}

@@ -1,0 +1,20 @@
+# Keep the build context small — it is uploaded to the daemon on every build.
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.angular/
+**/.vs/
+**/.git/
+**/.github/
+**/TestResults/
+**/*.user
+**/Logs/
+**/logs/
+.storage/
+web/
+docs/
+design/
+deploy/
+*.md
+!README.md

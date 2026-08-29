@@ -44,6 +44,10 @@ public static class VendorsModule
         GetVendorProfile.Map(vendor);
         UpdateStorefront.Map(vendor);
 
+        // Not publicly routed — the reverse proxy keeps /v1/internal/* on the private network.
+        var @internal = app.MapGroup("/v1/internal").ExcludeFromDescription();
+        CheckCustomDomain.Map(@internal);
+
         var admin = app.MapGroup("/v1/admin/vendors").WithTags("Admin · Vendors").RequireAdminSurface();
         ListVendorsForAdmin.Map(admin);
         GetVendorForAdmin.Map(admin);

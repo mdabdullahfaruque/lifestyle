@@ -1,0 +1,141 @@
+# Production stack for one country deployment.
+#
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
+#
+# One stack per country, each with its own .env, volumes and Docker network — the PropertyMart
+# pattern (doc 03 §2), which already runs three isolated stacks on one host.
+
+name: lifestyle-${DEPLOYMENT:-my-prod}
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Edge: TLS, host routing, and on-demand certificates for vendor domains.
+  # ─────────────────────────────────────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"        # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Cloudflare Origin CA certificate for the Cloudflare-to-origin leg (docs/05 §5.2).
+      - ./origin:/etc/caddy/origin:ro
+      - caddy-data:/data     # ACME certificates for DNS-only custom domains
+      - caddy-config:/config
+      # Read-only so the edge can serve uploaded media without being able to modify it.
+      # Only used when Storage__Provider=local.
+      - api-storage:/srv/media:ro
+    environment:
+      ROOT_DOMAIN: ${ROOT_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [edge, internal]
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # API
+  # ─────────────────────────────────────────────────────────────────────────
+  api:
+    image: ${REGISTRY}/lifestyle-api:${TAG}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379"
+      Platform__Country: ${PLATFORM_COUNTRY}
+      Platform__Currency: ${PLATFORM_CURRENCY}
+      Platform__RootDomain: ${ROOT_DOMAIN}
+      Platform__TimeZone: ${PLATFORM_TIMEZONE}
+      Platform__CorsOrigins__0: "https://www.${ROOT_DOMAIN}"
+      Platform__CorsOrigins__1: "https://seller.${ROOT_DOMAIN}"
+      Platform__CorsOrigins__2: "https://admin.${ROOT_DOMAIN}"
+      Catalog__Currency: ${PLATFORM_CURRENCY}
+      Identity__JwtIssuer: "https://api.${ROOT_DOMAIN}"
+      Identity__JwtAudienceBase: ${JWT_AUDIENCE_BASE}
+      Identity__JwtSigningKey: ${JWT_SIGNING_KEY}
+      Storage__Provider: ${STORAGE_PROVIDER}
+      Storage__BucketName: ${STORAGE_BUCKET}
+      Storage__ServiceUrl: ${STORAGE_SERVICE_URL}
+      Storage__AccessKey: ${STORAGE_ACCESS_KEY}
+      Storage__SecretKey: ${STORAGE_SECRET_KEY}
+      Storage__PublicBaseUrl: ${MEDIA_PUBLIC_BASE_URL}
+    volumes:
+      - api-storage:/app/.storage      # only used when Storage__Provider=local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [internal]
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # DEFERRED TO PHASE 2 (docs/05 §9): the storefront SSR container. The image
+  # definition (deploy/storefront.Dockerfile) is built and tested; when the
+  # storefront phase starts, restore this service and switch the Caddyfile's
+  # placeholder to the storefront proxy.
+  #
+  #  storefront:
+  #    image: ${REGISTRY}/lifestyle-storefront:${TAG}
+  #    restart: unless-stopped
+  #    environment: { NODE_ENV: production, PORT: 4000 }
+  #    networks: [internal]
+  # ─────────────────────────────────────────────────────────────────────────
+
+  # The seller and admin SPAs are NOT here — they deploy to Cloudflare Pages, which already
+  # serves them from Cloudflare's edge (docs/05 §4).
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Data. Neither is published to the host — they are reachable only on the
+  # internal network, which is what keeps them off the public internet.
+  # ─────────────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Deterministic collation, so index behaviour matches development and CI.
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=en-US --encoding=UTF8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+    shm_size: 256mb
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [internal]
+
+volumes:
+  postgres-data:
+  redis-data:
+  api-storage:
+  caddy-data:
+  caddy-config:
+
+networks:
+  edge:
+  # Not marked `internal: true` — the API needs outbound access to S3, SMTP and (from Phase 4)
+  # payment gateways. What keeps Postgres and Redis private is that neither publishes a host
+  # port, so they are reachable only from containers on this network.
+  internal:
