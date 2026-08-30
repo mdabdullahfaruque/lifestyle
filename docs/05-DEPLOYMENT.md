@@ -10,6 +10,7 @@
 | Origin | Your server: Docker Compose — Caddy, API, PostgreSQL, Redis, media on disk (storefront SSR joins in Phase 2) |
 | Related | [03 — Infrastructure & Multi-Region](03-INFRASTRUCTURE-MULTI-REGION.md) · [04 — Codebase Structure](04-CODEBASE-STRUCTURE.md) |
 | Artifacts | [`deploy/`](../deploy/) · [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) |
+| Runbook | **[06 — Phase 1 Go-Live](06-PHASE1-GO-LIVE.md)** — the step-by-step execution of this design |
 
 This is the PropertyMart pattern (doc 03 §2) — Cloudflare in front, Pages for frontends, Docker
 stacks on one host — extended with the pieces Lifestyle needs that PropertyMart does not: SSR,
@@ -209,10 +210,11 @@ $EDITOR deploy/.env               # every blank; secrets via: openssl rand -base
 # Origin certificate — see 5.2 — into deploy/origin/{cert.pem,key.pem}
 
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d postgres redis
+# The image's ENTRYPOINT is already `dotnet Lifestyle.Api.dll` — pass only the argument.
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env \
-  run --rm --no-deps api dotnet Lifestyle.Api.dll migrate
+  run --rm --no-deps api migrate
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env \
-  run --rm --no-deps api dotnet Lifestyle.Api.dll seed
+  run --rm --no-deps api seed
 
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
 ```

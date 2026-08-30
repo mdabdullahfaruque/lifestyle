@@ -33,7 +33,10 @@ log "Backing up before touching the schema"
 
 log "Applying migrations"
 # A one-off container on the same network. It runs and exits; the running API is untouched.
-"${COMPOSE[@]}" run --rm --no-deps api dotnet Lifestyle.Api.dll migrate \
+# NOTE: the image's ENTRYPOINT is already `dotnet Lifestyle.Api.dll`, so only the argument is
+# passed here. Writing `... run api dotnet Lifestyle.Api.dll migrate` would double the entrypoint
+# and silently START THE SERVER instead of migrating.
+"${COMPOSE[@]}" run --rm --no-deps api migrate \
     || fail "Migration failed. The previous release is still serving traffic; nothing was rolled."
 
 log "Rolling API"

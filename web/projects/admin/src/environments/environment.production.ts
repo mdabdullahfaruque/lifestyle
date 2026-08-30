@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
-  // Same-origin in production: the reverse proxy routes /v1/* to the API, so the browser never
-  // makes a cross-origin request and the refresh cookie stays SameSite=Strict.
-  apiBaseUrl: '',
+  // REQUIRED before the first Cloudflare Pages deploy: replace example.com with the real root
+  // domain (docs/06 step B4). This app is served from Pages, so the API is cross-origin — an
+  // empty string here would make it call the Pages host itself and fail on every request.
+  apiBaseUrl: 'https://api.example.com',
 };

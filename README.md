@@ -22,6 +22,8 @@ See [Current state](#current-state).
 | [02 — Technical FRD](docs/02-TECHNICAL-FRD.md) | Architecture, data model, flows, APIs, security, NFRs |
 | [03 — Infrastructure & Multi-Region](docs/03-INFRASTRUCTURE-MULTI-REGION.md) | Server baseline, Malaysia/Bangladesh/Italy deployment strategy, capacity, gaps |
 | [04 — Codebase Structure](docs/04-CODEBASE-STRUCTURE.md) | Solution layout, module anatomy, persistence and boundary rules; lessons taken from PropertyMart |
+| [05 — Deployment](docs/05-DEPLOYMENT.md) | Cloudflare + Pages + single-server topology, TLS, media, backups, CI/CD — the *why* behind every deploy artifact |
+| [06 — Phase 1 Go-Live Runbook](docs/06-PHASE1-GO-LIVE.md) | The *do this, see that* checklist: Cloudflare clicks, server commands, admin bootstrap, verification, troubleshooting |
 | [infrastructure-mypropertymart/](docs/infrastructure-mypropertymart/) | Existing PropertyMart infrastructure (reference baseline) |
 
 ---

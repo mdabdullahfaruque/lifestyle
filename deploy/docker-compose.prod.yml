@@ -62,6 +62,10 @@ services:
       Storage__AccessKey: ${STORAGE_ACCESS_KEY}
       Storage__SecretKey: ${STORAGE_SECRET_KEY}
       Storage__PublicBaseUrl: ${MEDIA_PUBLIC_BASE_URL}
+      # Read only by the one-off `run --rm api seed` command; blank after the first admin exists.
+      Seed__SuperAdmin__Email: ${SEED_SUPERADMIN_EMAIL:-}
+      Seed__SuperAdmin__Password: ${SEED_SUPERADMIN_PASSWORD:-}
+      Seed__SuperAdmin__FullName: ${SEED_SUPERADMIN_NAME:-Platform Administrator}
     volumes:
       - api-storage:/app/.storage      # only used when Storage__Provider=local
     depends_on:

@@ -71,6 +71,9 @@
     handle /v1/* {
         reverse_proxy api:8080 {
             header_up X-Forwarded-Host {host}
+            # One clean value. {client_ip} respects trusted_proxies, so behind Cloudflare this is
+            # the real visitor, and a client-supplied X-Forwarded-For can never smuggle through.
+            header_up X-Forwarded-For {client_ip}
             health_uri /v1/internal/health
         }
     }
@@ -79,7 +82,14 @@
 (block_internal) {
     # /v1/internal/* is for the edge and monitoring, never the public internet. Cloudflare should
     # also block it at the WAF; this is the second lock.
-    handle /v1/internal/* {
+    #
+    # The single exception is the health endpoint: the go-live checks, the CI smoke test and any
+    # uptime monitor probe it from outside. It reveals only "Healthy".
+    @blocked_internal {
+        path /v1/internal/*
+        not path /v1/internal/health
+    }
+    handle @blocked_internal {
         respond 404
     }
 }
@@ -122,6 +132,7 @@ api.{$ROOT_DOMAIN} {
 
     reverse_proxy api:8080 {
         header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-For {client_ip}
         health_uri /v1/internal/health
     }
 }

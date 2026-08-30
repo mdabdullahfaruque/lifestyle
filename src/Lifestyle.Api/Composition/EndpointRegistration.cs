@@ -6,6 +6,7 @@ using Lifestyle.Modules.Platform;
 using Lifestyle.Modules.Vendors;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Routing;
 using Serilog;
 
@@ -19,6 +20,25 @@ internal static class EndpointRegistration
     /// </summary>
     public static WebApplication UseLifestyle(this WebApplication app)
     {
+        // First, before anything reads scheme or client IP. Caddy terminates TLS and talks plain
+        // HTTP to this container, so without this every request looks like HTTP from the proxy's
+        // container IP: the refresh cookie loses its Secure flag, and audit logs and refresh-token
+        // records store Caddy's address instead of the caller's.
+        //
+        // KnownNetworks/KnownProxies are cleared because the container's peer (Caddy) has an
+        // unpredictable Docker-network address. That is safe here, and only here, because nothing
+        // but Caddy can reach this container: the internal network publishes no host port, and
+        // Caddy overwrites X-Forwarded-For with its trusted-proxy-aware client IP — a client
+        // cannot smuggle its own value through.
+        var forwarded = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+            ForwardLimit = 1
+        };
+        forwarded.KnownIPNetworks.Clear();
+        forwarded.KnownProxies.Clear();
+        app.UseForwardedHeaders(forwarded);
+
         app.UseExceptionHandler();
 
         app.UseMiddleware<CorrelationIdMiddleware>();
