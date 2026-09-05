@@ -1,0 +1,37 @@
+# Override for a host that already runs its own reverse proxy.
+#
+#   docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.host-nginx.yml \
+#     --env-file deploy/.env up -d
+#
+# The shared Contabo box (94.136.186.220) already terminates TLS with **host nginx** on ports
+# 80/443 for four other APIs (PropertyMart bd-prod/bd-staging/my-prod, SasthoSeba staging), each
+# proxying to a container published on 127.0.0.1:5X00. The stock stack's Caddy container binds
+# 80/443 itself, which on this host would fail to bind and, if it ever won the race, would take
+# those production sites down.
+#
+# So this override:
+#   - parks `caddy` behind a compose profile, so it never starts unless explicitly asked for;
+#   - publishes the API on the host so the existing proxy (or, until a domain exists, the public
+#     internet) can reach it;
+#   - names containers `lifestyle-<deployment>-*`, matching the box's convention.
+#
+# ⚠ While API_BIND is 0.0.0.0 the API is served over PLAIN HTTP with no proxy in front of it.
+# That is a deliberate interim state until a domain is pointed at this server; then set
+# API_BIND=127.0.0.1, add an nginx site + certbot certificate, and reload nginx.
+
+services:
+  caddy:
+    # Never started by `up`. `--profile edge` is the only way to bring it in, which on this host
+    # you must not do.
+    profiles: ["edge"]
+
+  api:
+    container_name: lifestyle-${DEPLOYMENT:-my-prod}-api
+    ports:
+      - "${API_BIND:-127.0.0.1}:${API_HOST_PORT:-5600}:8080"
+
+  postgres:
+    container_name: lifestyle-${DEPLOYMENT:-my-prod}-db
+
+  redis:
+    container_name: lifestyle-${DEPLOYMENT:-my-prod}-redis
