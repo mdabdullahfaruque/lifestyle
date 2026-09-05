@@ -6,7 +6,10 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # Copy the manifests first so `restore` is cached and only re-runs when a dependency changes.
-COPY Directory.Build.props Directory.Packages.props global.json Lifestyle.slnx ./
+# .editorconfig carries the analyzer severities. Without it, TreatWarningsAsErrors turns the
+# rules it silences (CA1711, CA1716, CA1000 …) into build errors — a container-only failure
+# that never reproduces locally.
+COPY Directory.Build.props Directory.Packages.props global.json Lifestyle.slnx .editorconfig ./
 COPY src/Lifestyle.Api/*.csproj                        src/Lifestyle.Api/
 COPY src/Lifestyle.SharedKernel/*.csproj               src/Lifestyle.SharedKernel/
 COPY src/Lifestyle.Infrastructure/*.csproj             src/Lifestyle.Infrastructure/
