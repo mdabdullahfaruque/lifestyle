@@ -52,6 +52,8 @@ internal static class EndpointRegistration
         app.UseAuthentication();
         app.UseAuthorization();
 
+        app.UseRateLimiter();
+
         app.MapLifestyleEndpoints();
 
         return app;

@@ -21,7 +21,16 @@ public static class InfrastructureModule
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddOptions<StorageOptions>().BindConfiguration(StorageOptions.SectionName);
+        services.AddOptions<StorageOptions>()
+            .BindConfiguration(StorageOptions.SectionName)
+            // s3 with blank credentials must fail at boot, not at the first vendor upload.
+            .Validate(o => !string.Equals(o.Provider, "s3", StringComparison.OrdinalIgnoreCase)
+                           || (!string.IsNullOrWhiteSpace(o.BucketName)
+                               && !string.IsNullOrWhiteSpace(o.ServiceUrl)
+                               && !string.IsNullOrWhiteSpace(o.AccessKey)
+                               && !string.IsNullOrWhiteSpace(o.SecretKey)),
+                "Storage:Provider is s3 but BucketName/ServiceUrl/AccessKey/SecretKey are not all set.")
+            .ValidateOnStart();
         services.AddOptions<OutboxOptions>().BindConfiguration(OutboxOptions.SectionName);
 
         services.AddHttpContextAccessor();
@@ -38,8 +47,18 @@ public static class InfrastructureModule
 
         services.AddDbContext<AppDbContext>((sp, options) =>
         {
+            // Read LAZILY from the service provider, never captured at registration time — an
+            // eager read here would miss configuration sources added after the builder (the exact
+            // bug family recorded in docs/04 §13.2). The blank-string check still fails fast: it
+            // fires on the first DbContext resolution, which for `migrate`, `seed` and the health
+            // check is process start.
+            var connectionString = sp.GetRequiredService<IConfiguration>().GetConnectionString("Default");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new InvalidOperationException(
+                    "ConnectionStrings:Default is not configured. Set it via environment variable or user-secrets.");
+
             options.UseNpgsql(
-                    configuration.GetConnectionString("Default"),
+                    connectionString,
                     npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", "platform"))
                 .UseSnakeCaseNamingConvention()
                 .AddInterceptors(
@@ -61,6 +80,7 @@ public static class InfrastructureModule
         AddStorage(services, configuration);
 
         services.AddHostedService<OutboxDispatcher>();
+        services.AddHostedService<Media.MediaOrphanSweeper>();
 
         return services;
     }

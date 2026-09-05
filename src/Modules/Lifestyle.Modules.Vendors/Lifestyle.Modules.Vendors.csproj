@@ -3,6 +3,7 @@
     <ProjectReference Include="..\..\Lifestyle.SharedKernel\Lifestyle.SharedKernel.csproj" />
     <!-- Contracts-only dependency, enforced by Lifestyle.ArchitectureTests. -->
     <ProjectReference Include="..\Lifestyle.Modules.Identity\Lifestyle.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Lifestyle.Modules.Platform\Lifestyle.Modules.Platform.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentValidation" />

@@ -30,8 +30,9 @@ public static class MediaModule
 
     public static IEndpointRouteBuilder MapMediaEndpoints(this IEndpointRouteBuilder app)
     {
-        var media = app.MapGroup("/v1/media").WithTags("Media");
+        var media = app.MapGroup("/v1/media").WithTags("Media").RequireRateLimiting(RateLimitPolicies.Uploads);
         UploadFile.Map(media);
+        DownloadPrivateFile.Map(media);
         return app;
     }
 }

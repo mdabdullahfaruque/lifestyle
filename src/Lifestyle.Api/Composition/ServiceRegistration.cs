@@ -9,6 +9,7 @@ using Lifestyle.Modules.Identity.Internal;
 using Lifestyle.Modules.Media;
 using Lifestyle.Modules.Platform;
 using Lifestyle.Modules.Vendors;
+using Lifestyle.SharedKernel.Http;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Json;
@@ -47,7 +48,7 @@ internal static class ServiceRegistration
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
-        AddDistributedCache(services, configuration);
+        AddDistributedCache(services, configuration, builder.Environment);
         AddAuthentication(services);
         AddCors(services, configuration);
 
@@ -61,19 +62,33 @@ internal static class ServiceRegistration
         services.AddCatalogModule();
 
         services.AddOpenApiDocument();
-        services.AddHealthChecks();
+
+        // Real checks, not a bare 200: the Dockerfile HEALTHCHECK, compose service_healthy gates
+        // and deploy.sh --wait all key off this endpoint, so it must actually prove the database
+        // and cache are reachable — an API that cannot reach Postgres is not healthy.
+        services.AddHealthChecks()
+            .AddDbContextCheck<Lifestyle.Infrastructure.Persistence.AppDbContext>("database")
+            .AddCheck<CacheHealthCheck>("cache");
+
+        AddRateLimiting(services, configuration);
 
         return builder;
     }
 
-    private static void AddDistributedCache(IServiceCollection services, ConfigurationManager configuration)
+    private static void AddDistributedCache(
+        IServiceCollection services, ConfigurationManager configuration, IWebHostEnvironment environment)
     {
         var redis = configuration.GetConnectionString("Redis");
 
         if (string.IsNullOrWhiteSpace(redis))
         {
-            // In-memory is correct for a single-instance dev box. Rate limits and idempotency keys
-            // will not be shared across instances, which is why production must set Redis.
+            // In-memory is only correct where a single instance is guaranteed and losing the
+            // state on restart is fine — development and tests. In production a missing Redis
+            // means idempotency keys and rate limits silently stop being shared, so fail loudly.
+            if (environment.IsProduction())
+                throw new InvalidOperationException(
+                    "ConnectionStrings:Redis is not configured. Production requires Redis (compose provides one).");
+
             services.AddDistributedMemoryCache();
             return;
         }
@@ -150,4 +165,47 @@ internal static class ServiceRegistration
     }
 
     public const string CorsPolicyName = "LifestyleFrontends";
+
+    /// <summary>
+    /// Per-IP throttles on the endpoints worth attacking (FRD §19.5). The client IP is real
+    /// because UseForwardedHeaders runs first and Caddy sends a trusted-proxy-aware value.
+    /// In-memory per instance — correct for the single-server deployment; revisit with Redis
+    /// partitioning when a second instance exists.
+    /// </summary>
+    private static void AddRateLimiting(IServiceCollection services, ConfigurationManager configuration)
+    {
+        // Configurable so the integration-test host can raise them; production uses the defaults.
+        var authPerMinute = configuration.GetValue("RateLimits:AuthPerMinute", 20);
+        var uploadsPerMinute = configuration.GetValue("RateLimits:UploadsPerMinute", 30);
+
+        services.AddRateLimiter(limiter =>
+        {
+            limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            limiter.OnRejected = (context, _) =>
+            {
+                context.HttpContext.Response.Headers.RetryAfter = "60";
+                return ValueTask.CompletedTask;
+            };
+
+            limiter.AddPolicy(RateLimitPolicies.Auth, context =>
+                System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = authPerMinute,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+
+            limiter.AddPolicy(RateLimitPolicies.Uploads, context =>
+                System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = uploadsPerMinute,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+        });
+    }
 }

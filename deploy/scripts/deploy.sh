@@ -26,7 +26,14 @@ export TAG DEPLOYMENT
 
 log "Pulling ${TAG}"
 # PHASE 2: add `storefront` here when the storefront container joins the stack (docs/05 §9).
-"${COMPOSE[@]}" pull api
+# REGISTRY=local means the image was built on this host (docs/06 Part B4) — nothing to pull,
+# and `docker compose pull` on a local-only image would abort the whole deploy under -e.
+source "${ENV_FILE}" 2>/dev/null || true
+if [[ "${REGISTRY:-local}" == "local" ]]; then
+    log "REGISTRY=local — skipping pull (image built on this host)"
+else
+    "${COMPOSE[@]}" pull api
+fi
 
 log "Backing up before touching the schema"
 "${ROOT}/deploy/scripts/backup.sh" pre-deploy
@@ -46,7 +53,10 @@ log "Rolling API"
 # PHASE 2: roll the storefront here, after the API (docs/05 §9).
 
 log "Reloading edge"
+# up -d alone does not re-read a bind-mounted Caddyfile; an explicit reload does.
 "${COMPOSE[@]}" up -d --no-deps caddy
+"${COMPOSE[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null \
+    || log "caddy reload skipped (container was just created — config already fresh)"
 
 log "Verifying"
 "${COMPOSE[@]}" exec -T api curl -fsS http://localhost:8080/v1/internal/health >/dev/null \

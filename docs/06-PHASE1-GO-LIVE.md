@@ -438,6 +438,8 @@ Every box, no exceptions:
 - [ ] E4 both results correct (400 `totp_required` without a code, 200 with)
 - [ ] `SEED_SUPERADMIN_PASSWORD` is blank in `deploy/.env` (B7)
 - [ ] `nmap -p 5432,6379 <SERVER_IP>` from outside: both **closed**
+- [ ] A KYC document URL (`/v1/media/private/…`) returns **401 without auth** — never the file
+- [ ] `curl https://media.example.com/private/anything` returns **404** (edge lock on the private prefix)
 - [ ] `backup.sh` and `restore-test.sh` both PASS and both cron entries installed (Part F)
 - [ ] Uptime monitor is watching the health endpoint
 - [ ] `deploy/.env` is mode `600` and appears in no commit: `git log --all -- deploy/.env` is empty

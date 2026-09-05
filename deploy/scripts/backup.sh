@@ -12,6 +12,9 @@
 
 set -Eeuo pipefail
 
+# The dump contains password hashes, buyer PII and KYC metadata — never world-readable.
+umask 077
+
 LABEL="${1:-scheduled}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ROOT}/deploy/.env"
@@ -25,6 +28,7 @@ NAME="${DEPLOYMENT}-${STAMP}-${LABEL}.dump"
 LOCAL_DIR="/var/backups/lifestyle/${DEPLOYMENT}"
 
 mkdir -p "${LOCAL_DIR}"
+chmod 700 "/var/backups/lifestyle" "${LOCAL_DIR}" 2>/dev/null || true
 
 # Custom format (-Fc): compressed, and restorable selectively with pg_restore.
 "${COMPOSE[@]}" exec -T postgres \

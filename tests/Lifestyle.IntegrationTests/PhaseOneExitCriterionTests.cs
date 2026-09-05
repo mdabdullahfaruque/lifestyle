@@ -69,8 +69,19 @@ public sealed class PhaseOneExitCriterionTests(LifestyleApiFactory factory)
             .ShouldBe("vendors.registration_document_missing");
 
         // ── 3. Upload the KYC documents and submit ─────────────────────────────────────────
-        await AttachDocumentAsync(client, "BusinessRegistration", await UploadAsync(client, "ssm.png"), "ssm.png");
-        await AttachDocumentAsync(client, "OwnerIdentity", await UploadAsync(client, "ic.png"), "ic.png");
+        var registrationDocId = await UploadAsync(client, "ssm.png", isPrivate: true);
+        await AttachDocumentAsync(client, "BusinessRegistration", registrationDocId, "ssm.png");
+        await AttachDocumentAsync(client, "OwnerIdentity", await UploadAsync(client, "ic.png", isPrivate: true), "ic.png");
+
+        // A KYC document must never be publicly readable: anonymous is refused outright, and the
+        // authorised endpoint serves it to its uploader.
+        var anonymousDoc = await factory.CreateClient().GetAsync($"/v1/media/private/{registrationDocId}");
+        anonymousDoc.StatusCode.ShouldBe(HttpStatusCode.Unauthorized,
+            "an identity document reachable without auth is a breach, not a bug");
+
+        var ownerDoc = await client.GetAsync($"/v1/media/private/{registrationDocId}");
+        ownerDoc.StatusCode.ShouldBe(HttpStatusCode.OK, await Body(ownerDoc));
+        ownerDoc.Content.Headers.ContentType?.MediaType.ShouldBe("image/png");
 
         var submit = await client.PostAsync("/v1/vendor-applications/submit", null);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK, await Body(submit));
@@ -279,13 +290,14 @@ public sealed class PhaseOneExitCriterionTests(LifestyleApiFactory factory)
     }
 
     /// <summary>Uploads a real PNG so the media pipeline is exercised rather than stubbed.</summary>
-    private static async Task<string> UploadAsync(HttpClient client, string fileName)
+    private static async Task<string> UploadAsync(HttpClient client, string fileName, bool isPrivate = false)
     {
         using var content = new MultipartFormDataContent();
 
         // CA2000: ownership transfers to the MultipartFormDataContent on Add, which disposes it.
 #pragma warning disable CA2000
         var image = new ByteArrayContent(OnePixelPng);
+        if (isPrivate) content.Add(new StringContent("true"), "private");
 #pragma warning restore CA2000
         image.Headers.ContentType = new MediaTypeHeaderValue("image/png");
         content.Add(image, "file", fileName);

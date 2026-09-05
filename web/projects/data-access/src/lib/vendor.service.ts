@@ -110,9 +110,15 @@ export class VendorService {
     });
   }
 
-  upload(file: File): Observable<MediaAsset> {
+  /**
+   * KYC documents MUST be uploaded with isPrivate=true: private files are excluded from the
+   * public media host and readable only through the authorised endpoint. Product images stay
+   * public so the CDN can cache them.
+   */
+  upload(file: File, isPrivate = false): Observable<MediaAsset> {
     const form = new FormData();
     form.append('file', file, file.name);
+    if (isPrivate) form.append('private', 'true');
 
     return this.http.post<MediaAsset>(`${this.baseUrl}/v1/media`, form);
   }

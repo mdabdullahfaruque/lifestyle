@@ -1,9 +1,6 @@
 # Keep the build context small — it is uploaded to the daemon on every build.
 **/bin/
 **/obj/
-**/node_modules/
-**/dist/
-**/.angular/
 **/.vs/
 **/.git/
 **/.github/
@@ -12,7 +9,11 @@
 **/Logs/
 **/logs/
 .storage/
-web/
+web/node_modules/
+web/dist/
+web/.angular/
+**/node_modules/
+**/.angular/
 docs/
 design/
 deploy/

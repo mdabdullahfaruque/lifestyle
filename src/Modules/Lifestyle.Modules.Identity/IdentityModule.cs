@@ -38,7 +38,8 @@ public static class IdentityModule
 
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder app)
     {
-        var auth = app.MapGroup("/v1/auth").WithTags("Auth");
+        // The brute-force surface: per-IP throttle on top of the per-account lockout.
+        var auth = app.MapGroup("/v1/auth").WithTags("Auth").RequireRateLimiting(RateLimitPolicies.Auth);
         Register.Map(auth);
         Login.Map(auth);
         RefreshSession.Map(auth);

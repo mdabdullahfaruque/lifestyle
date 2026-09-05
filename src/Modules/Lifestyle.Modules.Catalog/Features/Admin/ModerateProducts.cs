@@ -3,6 +3,7 @@ using Lifestyle.Modules.Catalog.Domain;
 using Lifestyle.Modules.Catalog.Features.Products;
 using Lifestyle.Modules.Catalog.Persistence;
 using Lifestyle.Modules.Identity.Contracts;
+using Lifestyle.Modules.Platform.Contracts;
 using Lifestyle.SharedKernel.Abstractions;
 using Lifestyle.SharedKernel.Http;
 using Lifestyle.SharedKernel.Paging;
@@ -111,7 +112,7 @@ internal static class ModerateProduct
                 .MaximumLength(1000);
     }
 
-    internal sealed class Handler(ICatalogDbContext db, IClock clock)
+    internal sealed class Handler(ICatalogDbContext db, IAuditLog audit, IClock clock)
         : IHandler<Handler.Command, Result<ProductResponse>>
     {
         internal sealed record Command(Guid ProductId, Request Request);
@@ -131,6 +132,11 @@ internal static class ModerateProduct
                 : product.Reject(command.Request.Note!, clock.UtcNow);
 
             if (result.IsFailure) return result.Error;
+
+            audit.Record(
+                command.Request.Approve ? "product.approved" : "product.rejected",
+                "product", product.Id,
+                new { product.Name, product.VendorId, command.Request.Note });
 
             await db.SaveChangesAsync(ct);
             return product.ToResponse();
@@ -158,7 +164,7 @@ internal static class TakeDownProduct
         public Validator() => RuleFor(r => r.Reason).NotEmpty().MaximumLength(1000);
     }
 
-    internal sealed class Handler(ICatalogDbContext db, IClock clock)
+    internal sealed class Handler(ICatalogDbContext db, IAuditLog audit, IClock clock)
         : IHandler<Handler.Command, Result<ProductResponse>>
     {
         internal sealed record Command(Guid ProductId, Request Request);
@@ -175,6 +181,9 @@ internal static class TakeDownProduct
 
             var result = product.Unpublish(command.Request.Reason, clock.UtcNow);
             if (result.IsFailure) return result.Error;
+
+            audit.Record("product.taken_down", "product", product.Id,
+                new { product.Name, product.VendorId, command.Request.Reason });
 
             await db.SaveChangesAsync(ct);
             return product.ToResponse();

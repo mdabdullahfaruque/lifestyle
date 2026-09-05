@@ -896,6 +896,10 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("height");
 
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_private");
+
                     b.Property<Guid?>("OwnerId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_id");

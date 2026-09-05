@@ -4,6 +4,7 @@
     <!-- Contracts-only dependencies, enforced by Lifestyle.ArchitectureTests. -->
     <ProjectReference Include="..\Lifestyle.Modules.Vendors\Lifestyle.Modules.Vendors.csproj" />
     <ProjectReference Include="..\Lifestyle.Modules.Media\Lifestyle.Modules.Media.csproj" />
+    <ProjectReference Include="..\Lifestyle.Modules.Platform\Lifestyle.Modules.Platform.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentValidation" />

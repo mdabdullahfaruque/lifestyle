@@ -1,23 +1,115 @@
 {
   "pages": [
-    { "id": "page-1", "name": "v1 Screens" },
-    { "id": "page-2", "name": "Directions" }
+    {
+      "id": "page-1",
+      "name": "v1 Screens"
+    },
+    {
+      "id": "page-2",
+      "name": "Direction"
+    }
   ],
   "artboards": [
-    { "file": "Main.dc.html", "title": "Marketplace · Home", "x": 0, "y": 0, "w": 390, "h": 1640, "page": "page-1" },
-    { "file": "Product.dc.html", "title": "Marketplace · Product — WhatsApp order", "x": 470, "y": 0, "w": 390, "h": 2150, "page": "page-1" },
-    { "file": "ShopProfile.dc.html", "title": "Marketplace · Shop profile", "x": 950, "y": 0, "w": 390, "h": 1660, "page": "page-1" },
-    { "file": "ShopSite.dc.html", "title": "Shop website · Home (mobile)", "x": 0, "y": 2310, "w": 390, "h": 1900, "page": "page-1" },
-    { "file": "ShopProduct.dc.html", "title": "Shop website · Product", "x": 470, "y": 2310, "w": 390, "h": 1960, "page": "page-1" },
-    { "file": "ShopSiteDesktop.dc.html", "title": "Shop website · Home (desktop)", "x": 950, "y": 2310, "w": 1280, "h": 1500, "page": "page-1" },
-    { "file": "DirectionBazaar.dc.html", "title": "Direction A — Bazaar energy", "x": 0, "y": 0, "w": 390, "h": 1000, "page": "page-2" },
-    { "file": "DirectionEditorial.dc.html", "title": "Direction B — Mono editorial", "x": 470, "y": 0, "w": 390, "h": 1000, "page": "page-2" }
+    {
+      "file": "Main.dc.html",
+      "title": "Marketplace · Home",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 2000,
+      "page": "page-1"
+    },
+    {
+      "file": "Product.dc.html",
+      "title": "Marketplace · Product — WhatsApp order",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 1480,
+      "page": "page-1"
+    },
+    {
+      "file": "ShopProfile.dc.html",
+      "title": "Marketplace · Shop profile",
+      "x": 950,
+      "y": 0,
+      "w": 390,
+      "h": 1200,
+      "page": "page-1"
+    },
+    {
+      "file": "ShopSite.dc.html",
+      "title": "Shop website · Home (mobile)",
+      "x": 0,
+      "y": 2140,
+      "w": 390,
+      "h": 1580,
+      "page": "page-1"
+    },
+    {
+      "file": "ShopProduct.dc.html",
+      "title": "Shop website · Product",
+      "x": 470,
+      "y": 2140,
+      "w": 390,
+      "h": 1720,
+      "page": "page-1"
+    },
+    {
+      "file": "ShopSiteDesktop.dc.html",
+      "title": "Shop website · Home (desktop)",
+      "x": 950,
+      "y": 2140,
+      "w": 1280,
+      "h": 1520,
+      "page": "page-1"
+    },
+    {
+      "file": "DirectionValueRetail.dc.html",
+      "title": "Direction — Value Retail (tokens)",
+      "x": 0,
+      "y": 0,
+      "w": 820,
+      "h": 660,
+      "page": "page-2"
+    }
   ],
   "annotations": [
-    { "id": "note-surfaces", "x": -380, "y": 0, "w": 300, "page": "page-1", "text": "Two buyer-facing surfaces, one platform:\n\nTOP ROW — the marketplace (www.{platform}.com): platform brand, discovery across all shops.\n\nBOTTOM ROW — the standalone shop website ({slug}.{platform}.com or the shop's own domain, e.g. arunima.com.bd): the vendor's brand fills the frame; the platform is one footer line.\n\nSame products power both." },
-    { "id": "note-whatsapp", "x": 470, "y": -280, "w": 330, "page": "page-1", "text": "v1 ordering: no cart, no checkout. The primary CTA opens WhatsApp with the order pre-filled (product, size, colour, price, ref code). Messenger can't pre-fill a message, so the ref code is shown on the page with a copy button.\n\nStock shows as availability bands (In stock / Only a few left), never exact counts — seller-maintained stock drifts, and a band doesn't lie." },
-    { "id": "note-profile", "x": 950, "y": -280, "w": 340, "page": "page-1", "text": "Shop PROFILE ≠ shop WEBSITE. This page lives inside marketplace chrome (marketplace search, bottom nav). The vendor's banner sits within it, and the \"Website\" button leads to their standalone site (bottom row).\n\nTrust signals in v1 are only what we can verify: verified badge, followers, joined date, order-request counts. Star ratings & reviews arrive with v2 checkout." },
-    { "id": "note-direction", "x": 940, "y": 0, "w": 320, "page": "page-2", "text": "Chosen direction — \"Warm curated\" (page 1): editorial warmth with commerce density in the middle. Plum + marigold + cream; Bricolage Grotesque + Instrument Sans; WhatsApp green reserved for the one action that matters.\n\nThese two sketches are genuinely different stances, not shades of the same idea. Say the word and page 1 pivots." }
+    {
+      "id": "note-surfaces",
+      "x": -380,
+      "y": 0,
+      "w": 300,
+      "page": "page-1",
+      "text": "Two buyer-facing surfaces, one platform:\n\nTOP ROW — the marketplace (www.{platform}.com): platform brand, cobalt accent, discovery across all shops.\n\nBOTTOM ROW — the standalone shop website ({slug}.{platform}.com or the shop's own domain, e.g. arunima.com.bd): same layout DNA, but the vendor's accent colour and wordmark replace the platform's; Lifestyle is one footer line.\n\nSame products power both."
+    },
+    {
+      "id": "note-whatsapp",
+      "x": 470,
+      "y": -280,
+      "w": 330,
+      "page": "page-1",
+      "text": "v1 ordering: no cart, no checkout. The primary CTA opens WhatsApp with the order pre-filled (product, size, colour, price, ref code). Messenger can't pre-fill a message, so the ref code is shown on the page with a copy button.\n\nStock shows as availability bands (In stock / Only a few left), never exact counts — seller-maintained stock drifts, and a band doesn't lie."
+    },
+    {
+      "id": "note-profile",
+      "x": 950,
+      "y": -280,
+      "w": 340,
+      "page": "page-1",
+      "text": "Shop PROFILE ≠ shop WEBSITE. This page lives inside marketplace chrome (marketplace search, bottom nav, blue Follow). The vendor's banner sits within it, and the \"Website\" button leads to their standalone site (bottom row).\n\nTrust signals in v1 are only what we can verify: verified badge, followers, joined date, order-request counts. Star ratings & reviews arrive with v2 checkout."
+    },
+    {
+      "id": "note-direction",
+      "x": 900,
+      "y": 0,
+      "w": 330,
+      "page": "page-2",
+      "text": "Direction pivot (requested): value-retail, in the spirit of walmart.com — search-first chrome, dense price-led grids, flat pill CTAs, deal badging on a white ground.\n\nDeliberately NOT copied: no borrowed logo or spark-style mark, no blue-plus-yellow brand pairing, no trademarked deal names. The genre is shared retail language; the identity is ours.\n\nThis sheet is the token reference for the storefront build in web/."
+    }
   ],
-  "launch": { "view": "canvas", "page": "page-1" }
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
 }

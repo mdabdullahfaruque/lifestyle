@@ -158,6 +158,12 @@ media.{$ROOT_DOMAIN} {
     import origin_tls
     import security_headers
 
+    # Private files (KYC documents) live under private/ and are ONLY served by the API's
+    # authorised endpoint. This block is the edge-level lock; the key prefix is the second.
+    handle /private/* {
+        respond 404
+    }
+
     root * /srv/media
     file_server
 

@@ -1,3 +1,4 @@
+using System.Text;
 using FluentValidation;
 using Lifestyle.Modules.Identity.Internal;
 using Lifestyle.Modules.Identity.Persistence;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 
 namespace Lifestyle.Modules.Identity.Features.Auth;
@@ -21,13 +23,13 @@ internal static class EnrolTwoFactor
 {
     public sealed record BeginResponse(string Secret, string ProvisioningUri);
 
-    public sealed record ConfirmRequest(string Secret, string Code);
+    /// <summary>Secret is accepted for wire-compatibility but IGNORED — the server-held one wins.</summary>
+    public sealed record ConfirmRequest(string? Secret, string Code);
 
     public sealed class ConfirmValidator : AbstractValidator<ConfirmRequest>
     {
         public ConfirmValidator()
         {
-            RuleFor(r => r.Secret).NotEmpty();
             RuleFor(r => r.Code).NotEmpty().Length(6).Matches("^[0-9]{6}$");
         }
     }
@@ -36,6 +38,7 @@ internal static class EnrolTwoFactor
         IIdentityDbContext db,
         ITotpService totp,
         ICurrentUser currentUser,
+        IDistributedCache cache,
         IOptions<IdentityModuleOptions> options)
         : IHandler<Unit, Result<BeginResponse>>
     {
@@ -48,14 +51,24 @@ internal static class EnrolTwoFactor
             if (user is null) return Error.NotFound("identity.user_not_found");
 
             var secret = totp.GenerateSecret();
+
+            // The secret the CONFIRM step will accept is this one, held server-side against the
+            // user for ten minutes — never the one the client sends back. Otherwise a hijacked
+            // session could enrol an attacker-chosen secret and own the second factor.
+            await cache.SetAsync(EnrolmentKey(userId), Encoding.UTF8.GetBytes(secret),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) }, ct);
+
             return new BeginResponse(secret, totp.BuildProvisioningUri(secret, user.Email, options.Value.JwtIssuer));
         }
     }
+
+    internal static string EnrolmentKey(Guid userId) => $"2fa-enrol:{userId}";
 
     internal sealed class ConfirmHandler(
         IIdentityDbContext db,
         ITotpService totp,
         ICurrentUser currentUser,
+        IDistributedCache cache,
         IClock clock)
         : IHandler<ConfirmRequest, Result>
     {
@@ -67,11 +80,20 @@ internal static class EnrolTwoFactor
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
             if (user is null) return Error.NotFound("identity.user_not_found");
 
-            if (!totp.Verify(request.Secret, request.Code))
+            // Only the server-held secret from the begin step counts; request.Secret is ignored.
+            var cached = await cache.GetAsync(EnrolmentKey(userId), ct);
+            if (cached is null)
+                return Error.Validation("identity.totp_enrolment_expired",
+                    "The enrolment expired. Start again from the QR step.");
+
+            var secret = Encoding.UTF8.GetString(cached);
+
+            if (!totp.Verify(secret, request.Code))
                 return Error.Validation("identity.totp_invalid", "That code did not match. Check your authenticator app.");
 
-            user.EnableTwoFactor(request.Secret, clock.UtcNow);
+            user.EnableTwoFactor(secret, clock.UtcNow);
             await db.SaveChangesAsync(ct);
+            await cache.RemoveAsync(EnrolmentKey(userId), ct);
 
             return Result.Success();
         }

@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\Lifestyle.SharedKernel\Lifestyle.SharedKernel.csproj" />
+    <!-- Contracts-only dependency (Surfaces, Permissions), enforced by Lifestyle.ArchitectureTests. -->
+    <ProjectReference Include="..\Lifestyle.Modules.Identity\Lifestyle.Modules.Identity.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentValidation" />

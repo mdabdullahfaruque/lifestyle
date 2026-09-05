@@ -159,6 +159,9 @@ public sealed class LifestyleApiFactory : WebApplicationFactory<Program>, IAsync
                 ["Catalog:Currency"] = "MYR",
                 ["Storage:Provider"] = "local",
                 ["Storage:LocalRoot"] = Path.Combine(Path.GetTempPath(), "lifestyle-tests"),
+                // The suite logs in dozens of times from one IP; production defaults would 429 it.
+                ["RateLimits:AuthPerMinute"] = "1000",
+                ["RateLimits:UploadsPerMinute"] = "1000",
                 // Seeded so the admin flows have a real account to act as.
                 ["Seed:SuperAdmin:Email"] = "seeded-admin@lifestyle.test",
                 ["Seed:SuperAdmin:Password"] = AdminPassword,

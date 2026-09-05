@@ -33,7 +33,7 @@ internal static class UploadFile
     {
         private readonly MediaModuleOptions _options = options.Value;
 
-        internal sealed record Command(IFormFile File);
+        internal sealed record Command(IFormFile File, bool IsPrivate);
 
         public async Task<Result<MediaAsset>> Handle(Command command, CancellationToken ct)
         {
@@ -56,13 +56,25 @@ internal static class UploadFile
 
             var publicId = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
             var extension = ExtensionFor(contentType);
-            var originalKey = BuildKey(publicId, "original", extension);
+            var originalKey = BuildKey(publicId, "original", extension, command.IsPrivate);
 
             int? width = null, height = null;
             var isImage = contentType.StartsWith("image/", StringComparison.Ordinal);
 
             await using (var stream = file.OpenReadStream())
             {
+                // The multipart content type is client-asserted. Images are already verified by the
+                // decoder below; PDFs get a magic-byte check so an arbitrary file cannot be parked
+                // in storage wearing a pdf label.
+                if (contentType == "application/pdf")
+                {
+                    var head = new byte[5];
+                    var read = await stream.ReadAtLeastAsync(head, 5, throwOnEndOfStream: false, ct);
+                    if (read < 5 || head[0] != 0x25 || head[1] != 0x50 || head[2] != 0x44 || head[3] != 0x46 || head[4] != 0x2D)
+                        return Error.Validation("media.not_a_pdf", "That file is not a readable PDF.");
+                    stream.Position = 0;
+                }
+
                 if (isImage)
                 {
                     var dimensions = await images.ReadDimensionsAsync(stream, ct);
@@ -78,9 +90,11 @@ internal static class UploadFile
 
             var media = MediaFile.Record(
                 publicId, SafeFileName(file.FileName), contentType, file.Length, originalKey,
-                width, height, userId, currentUser.VendorId, clock.UtcNow);
+                width, height, userId, currentUser.VendorId, command.IsPrivate, clock.UtcNow);
 
-            if (isImage)
+            // Private files get no public derivatives: they are documents for a reviewer, not
+            // storefront imagery, and every derivative would be another key to protect.
+            if (isImage && !command.IsPrivate)
                 await GenerateDerivativesAsync(media, file, publicId, extension, ct);
 
             db.MediaFiles.Add(media);
@@ -118,8 +132,14 @@ internal static class UploadFile
             }
         }
 
-        private static string BuildKey(string publicId, string variant, string extension) =>
-            string.Create(CultureInfo.InvariantCulture, $"{publicId[..2]}/{publicId}/{variant}{extension}");
+        /// <summary>
+        /// Private files live under the private/ prefix, which the edge never serves — they are
+        /// only reachable through the authorised download endpoint. KYC documents are the reason
+        /// this exists: an identity card must never sit on a public, CDN-cached URL.
+        /// </summary>
+        private static string BuildKey(string publicId, string variant, string extension, bool isPrivate = false) =>
+            string.Create(CultureInfo.InvariantCulture,
+                $"{(isPrivate ? "private/" : "")}{publicId[..2]}/{publicId}/{variant}{extension}");
 
         private static string ExtensionFor(string contentType) => contentType switch
         {
@@ -151,12 +171,15 @@ internal static class UploadFile
         media.SizeBytes,
         media.Width,
         media.Height,
-        storage.GetPublicUrl(media.StorageKey),
-        media.Derivatives.ToDictionary(d => d.Variant, d => storage.GetPublicUrl(d.StorageKey), StringComparer.Ordinal));
+        // A private file is addressed through the authorised endpoint, never the media host.
+        media.IsPrivate ? $"/v1/media/private/{media.PublicId}" : storage.GetPublicUrl(media.StorageKey),
+        media.IsPrivate
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            : media.Derivatives.ToDictionary(d => d.Variant, d => storage.GetPublicUrl(d.StorageKey), StringComparer.Ordinal));
 
     public static void Map(IEndpointRouteBuilder group) =>
-        group.MapPost("/", async (IFormFile file, Handler handler, CancellationToken ct) =>
-                (await handler.Handle(new Handler.Command(file), ct)).ToHttpResult())
+        group.MapPost("/", async (IFormFile file, [Microsoft.AspNetCore.Mvc.FromForm(Name = "private")] bool? isPrivate, Handler handler, CancellationToken ct) =>
+                (await handler.Handle(new Handler.Command(file, isPrivate ?? false), ct)).ToHttpResult())
             .WithName("UploadFile")
             .WithSummary("Upload an image or document and generate its derivative sizes.")
             .RequireAuthorization()

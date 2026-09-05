@@ -183,7 +183,7 @@ Two files the repo must carry for Pages:
   export const environment = { production: true, apiBaseUrl: 'https://api.example.com' };
   ```
 
-  `Platform__CorsOrigins` in the compose file already lists exactly these two hosts — credentialed
+  `Platform__CorsOrigins` in the compose file already lists exactly these hosts (www, seller, admin) — credentialed
   CORS with a wildcard is refused by design. *(The storefront keeps `apiBaseUrl: ''`: it is served
   by Caddy, same-origin, which is what lets the `SameSite=Strict` refresh cookie work on vendor
   custom domains.)*
@@ -251,6 +251,12 @@ and a sandboxing CSP (uploads are attacker-supplied bytes and must never execute
 origin). With the `media` record proxied (§2.1), Cloudflare caches every image at its edge — after
 the first request per region, image traffic never reaches Mumbai. This is the strongest single
 argument for the proxy on a multi-region audience.
+
+**KYC documents are the exception.** Uploaded with the private flag, they live under a `private/`
+key prefix that the Caddy media host refuses to serve, and are readable only through the
+authorised `/v1/media/private/{id}` endpoint — uploader, the owning vendor's staff, or
+vendor-review admins, with `Cache-Control: no-store`. An identity card must never sit on a
+public, CDN-cached URL.
 
 Watch disk: vendor media shares the NVMe with the database, and doc 03 §7.2 calls disk the
 constraint that bites first. `df -h` belongs in whatever monitoring you add (§10). If media

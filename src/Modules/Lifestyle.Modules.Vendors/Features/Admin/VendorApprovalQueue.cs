@@ -1,5 +1,6 @@
 using FluentValidation;
 using Lifestyle.Modules.Identity.Contracts;
+using Lifestyle.Modules.Platform.Contracts;
 using Lifestyle.Modules.Vendors.Domain;
 using Lifestyle.Modules.Vendors.Features.Vendors;
 using Lifestyle.Modules.Vendors.Persistence;
@@ -123,6 +124,7 @@ internal static class ReviewVendorApplication
     internal sealed class Handler(
         IVendorsDbContext db,
         IIdentityModule identity,
+        IAuditLog audit,
         ICurrentUser currentUser,
         IClock clock)
         : IHandler<Handler.Command, Result<VendorResponse>>
@@ -146,6 +148,14 @@ internal static class ReviewVendorApplication
                 : vendor.Reject(adminId, command.Request.Reason!, clock.UtcNow);
 
             if (result.IsFailure) return result.Error;
+
+            // Same change tracker, same SaveChanges: the decision and its audit record commit
+            // together or not at all — an approved vendor with no record of who approved it must
+            // be impossible (Plan 8, Definition of Done).
+            audit.Record(
+                command.Request.Approve ? "vendor.approved" : "vendor.rejected",
+                "vendor", vendor.Id,
+                new { vendor.DisplayName, command.Request.Reason });
 
             await db.SaveChangesAsync(ct);
 
@@ -180,7 +190,7 @@ internal static class SetVendorSuspension
             RuleFor(r => r.Reason).NotEmpty().When(r => r.Suspend).MaximumLength(1000);
     }
 
-    internal sealed class Handler(IVendorsDbContext db, ICurrentUser currentUser, IClock clock)
+    internal sealed class Handler(IVendorsDbContext db, IAuditLog audit, ICurrentUser currentUser, IClock clock)
         : IHandler<Handler.Command, Result<VendorResponse>>
     {
         internal sealed record Command(Guid VendorId, Request Request);
@@ -202,6 +212,11 @@ internal static class SetVendorSuspension
                 : vendor.Reinstate(clock.UtcNow);
 
             if (result.IsFailure) return result.Error;
+
+            audit.Record(
+                command.Request.Suspend ? "vendor.suspended" : "vendor.reinstated",
+                "vendor", vendor.Id,
+                new { vendor.DisplayName, command.Request.Reason });
 
             await db.SaveChangesAsync(ct);
             return vendor.ToResponse();

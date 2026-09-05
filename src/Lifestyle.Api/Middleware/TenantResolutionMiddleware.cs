@@ -17,7 +17,10 @@ namespace Lifestyle.Api.Middleware;
 /// tampering with a query parameter (FRD §19.4).
 /// </para>
 /// </summary>
-internal sealed class TenantResolutionMiddleware(RequestDelegate next, IOptions<PlatformOptions> options)
+internal sealed class TenantResolutionMiddleware(
+    RequestDelegate next,
+    IOptions<PlatformOptions> options,
+    IHostEnvironment environment)
 {
     private readonly PlatformOptions _platform = options.Value;
 
@@ -29,9 +32,12 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next, IOptions<
         if (host.Equals(_platform.ApiHost, StringComparison.OrdinalIgnoreCase) ||
             host is "localhost" or "127.0.0.1")
         {
-            // Local development and the API host itself carry no tenant. A storefront can still be
-            // exercised locally by passing ?storefront=slug, which is honoured below.
-            var devSlug = context.Request.Query["storefront"].ToString();
+            // Development only: a storefront can be exercised locally with ?storefront=slug.
+            // Gated on the environment — in production this override would let any caller pin
+            // the public catalog on api.{root} to an arbitrary vendor.
+            var devSlug = environment.IsDevelopment()
+                ? context.Request.Query["storefront"].ToString()
+                : string.Empty;
 
             if (!string.IsNullOrWhiteSpace(devSlug))
             {

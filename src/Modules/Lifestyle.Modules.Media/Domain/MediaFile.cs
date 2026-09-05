@@ -23,6 +23,12 @@ internal sealed class MediaFile : AggregateRoot
     public long SizeBytes { get; private set; }
     public string StorageKey { get; private set; } = null!;
 
+    /// <summary>
+    /// Private files (KYC documents) are stored under a key prefix the edge never serves and are
+    /// only readable through the authorised download endpoint — never from the public media host.
+    /// </summary>
+    public bool IsPrivate { get; private set; }
+
     public int? Width { get; private set; }
     public int? Height { get; private set; }
 
@@ -44,9 +50,10 @@ internal sealed class MediaFile : AggregateRoot
 
     public static MediaFile Record(
         string publicId, string fileName, string contentType, long sizeBytes, string storageKey,
-        int? width, int? height, Guid uploadedBy, Guid? vendorId, DateTimeOffset now) => new()
+        int? width, int? height, Guid uploadedBy, Guid? vendorId, bool isPrivate, DateTimeOffset now) => new()
         {
             PublicId = publicId,
+            IsPrivate = isPrivate,
             FileName = fileName,
             ContentType = contentType,
             SizeBytes = sizeBytes,
