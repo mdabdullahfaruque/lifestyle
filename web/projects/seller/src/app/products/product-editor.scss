@@ -1,0 +1,98 @@
+:host { display: block; max-width: 720px; }
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.head h1 { font-size: 1.3rem; }
+.head p { margin: 0; font-size: 0.88rem; }
+
+.card { margin-bottom: 1rem; }
+.card h2 { font-size: 1.05rem; margin-bottom: 0.8rem; }
+
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.card__head h2 { margin: 0; }
+
+.block { height: 220px; }
+.hint { font-size: 0.85rem; margin: 0 0 0.9rem; }
+.req { color: var(--danger); }
+
+.variant {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  margin-bottom: 0.7rem;
+  background: var(--tile);
+}
+
+.variant__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.7rem;
+}
+
+@media (min-width: 620px) {
+  .variant__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.variant .field { margin-bottom: 0.6rem; }
+.variant__remove { color: var(--danger); }
+
+.images { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+
+.thumb {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+}
+
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.thumb__x {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+.upload {
+  width: 74px;
+  height: 74px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.3rem;
+  background: #fff;
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }

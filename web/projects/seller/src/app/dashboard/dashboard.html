@@ -1,0 +1,109 @@
+@if (!shop.isLoaded()) {
+  <div class="skeleton block"></div>
+} @else if (shop.stage() === 'none') {
+  <section class="card intro">
+    <h1>Open your shop</h1>
+    <p class="muted">
+      You are signed in, but no shop is attached to this account yet. Applying takes a few minutes:
+      your business details, then two documents for verification.
+    </p>
+    <a class="btn btn--primary" routerLink="/apply">Apply for a shop</a>
+  </section>
+} @else if (shop.stage() === 'draft') {
+  <section class="card intro">
+    <h1>Finish your application</h1>
+    <p class="muted">
+      Your application is saved as a draft. It is not with our review team until you upload both
+      verification documents and submit it.
+    </p>
+    <a class="btn btn--primary" routerLink="/apply">Continue application</a>
+  </section>
+} @else if (shop.stage() === 'pending') {
+  <section class="card intro">
+    <h1>Application under review</h1>
+    <p class="muted">
+      We have your application and documents. Reviews are done by a person, so this is not instant —
+      you will be able to add products as soon as it is approved.
+    </p>
+    <a class="btn" routerLink="/apply">View what you submitted</a>
+  </section>
+} @else if (shop.stage() === 'rejected') {
+  <section class="card intro">
+    <h1>Application was not approved</h1>
+    @if (shop.vendor()?.statusReason; as reason) {
+      <p class="alert">{{ reason }}</p>
+    }
+    <p class="muted">Correct the points above and submit again.</p>
+    <a class="btn btn--primary" routerLink="/apply">Update application</a>
+  </section>
+} @else if (shop.stage() === 'suspended') {
+  <section class="card intro">
+    <h1>This shop is suspended</h1>
+    @if (shop.vendor()?.statusReason; as reason) {
+      <p class="alert">{{ reason }}</p>
+    }
+    <p class="muted">Your products are not visible to buyers while a shop is suspended.</p>
+  </section>
+} @else {
+  <header class="head">
+    <div>
+      <h1>Overview</h1>
+      <p class="muted">{{ shop.vendor()?.displayName }}</p>
+    </div>
+    <a class="btn btn--primary" routerLink="/products/new">Add product</a>
+  </header>
+
+  @if (loading()) {
+    <div class="skeleton block"></div>
+  } @else {
+    <div class="stats">
+      <div class="stat">
+        <p class="stat__n">{{ counts().published }}</p>
+        <p class="stat__l muted">Live</p>
+      </div>
+      <div class="stat">
+        <p class="stat__n">{{ counts().pending }}</p>
+        <p class="stat__l muted">In review</p>
+      </div>
+      <div class="stat">
+        <p class="stat__n">{{ counts().draft }}</p>
+        <p class="stat__l muted">Draft</p>
+      </div>
+      <div class="stat" [class.stat--warn]="counts().lowStock + counts().outOfStock > 0">
+        <p class="stat__n">{{ counts().lowStock + counts().outOfStock }}</p>
+        <p class="stat__l muted">Need stock</p>
+      </div>
+    </div>
+
+    @if (!counts().total) {
+      <section class="card intro">
+        <h2>No products yet</h2>
+        <p class="muted">
+          Add your first product. It goes to our moderators before it appears on the marketplace.
+        </p>
+        <a class="btn btn--primary" routerLink="/products/new">Add product</a>
+      </section>
+    } @else {
+      <section class="card">
+        <div class="card__head">
+          <h2>Recent products</h2>
+          <a class="btn btn--ghost btn--sm" routerLink="/products">See all</a>
+        </div>
+        <table class="table">
+          <thead>
+            <tr><th>Product</th><th>Status</th><th>Stock</th></tr>
+          </thead>
+          <tbody>
+            @for (p of products().slice(0, 6); track p.id) {
+              <tr>
+                <td>{{ p.name }}</td>
+                <td><span class="status" [class]="'status status--' + p.status.toLowerCase()">{{ p.status }}</span></td>
+                <td>{{ p.totalStock }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  }
+}

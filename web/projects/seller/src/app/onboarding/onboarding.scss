@@ -1,0 +1,38 @@
+:host { display: block; max-width: 640px; }
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.head h1 { font-size: 1.3rem; }
+
+.card { margin-bottom: 1rem; }
+.card h2 { font-size: 1.05rem; margin-bottom: 0.8rem; }
+
+.docs__note { margin: -0.4rem 0 1rem; font-size: 0.85rem; }
+
+.doc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.doc__text { min-width: 0; }
+.doc__label { margin: 0; font-weight: 600; font-size: 0.92rem; }
+.doc__hint { margin: 0; font-size: 0.82rem; }
+.doc__btn { flex: none; cursor: pointer; }
+
+.doc__tick {
+  color: var(--ok);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 0.35rem;
+}
+
+.submit { margin-top: 1rem; }

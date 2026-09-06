@@ -1,0 +1,39 @@
+<div class="auth">
+  <form class="auth__card" (ngSubmit)="submit()">
+    <p class="auth__brand">Lifestyle</p>
+    <h1 class="auth__title">Seller Console</h1>
+    <p class="auth__sub">Sign in to manage your shop, products and stock.</p>
+
+    @if (error(); as message) {
+      <p class="alert" role="alert">{{ message }}</p>
+    }
+
+    <label class="field">
+      <span class="field__label">Email</span>
+      <input name="email" type="email" autocomplete="username" required
+             [(ngModel)]="email" [disabled]="busy()" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Password</span>
+      <input name="password" type="password" autocomplete="current-password" required
+             [(ngModel)]="password" [disabled]="busy()" />
+    </label>
+
+    @if (needsTotp()) {
+      <label class="field">
+        <span class="field__label">Two-factor code</span>
+        <input name="totpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+               placeholder="000000" [(ngModel)]="totpCode" [disabled]="busy()" />
+      </label>
+    }
+
+    <button class="btn btn--primary" type="submit" [disabled]="busy()">
+      {{ busy() ? 'Signing in…' : 'Sign in' }}
+    </button>
+
+    <p class="auth__foot">
+      Not selling yet? Sign in with your marketplace account and you can apply for a shop here.
+    </p>
+  </form>
+</div>

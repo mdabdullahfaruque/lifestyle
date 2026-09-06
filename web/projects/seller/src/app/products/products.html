@@ -1,0 +1,51 @@
+<header class="head">
+  <h1>Products</h1>
+  <a class="btn btn--primary" routerLink="/products/new">Add product</a>
+</header>
+
+@if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+@if (notice(); as message) { <p class="alert alert--ok" role="status">{{ message }}</p> }
+
+<div class="filters">
+  @for (f of filters; track f.label) {
+    <button type="button" class="chip" [class.chip--on]="filter() === f.value" (click)="setFilter(f.value)">
+      {{ f.label }}
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else if (!items().length) {
+  <section class="card empty">
+    <h2>Nothing here</h2>
+    <p class="muted">No products match this filter.</p>
+    <a class="btn btn--primary" routerLink="/products/new">Add product</a>
+  </section>
+} @else {
+  <section class="card">
+    <table class="table">
+      <thead>
+        <tr><th>Product</th><th>Price</th><th>Stock</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (p of items(); track p.id) {
+          <tr>
+            <td class="cell-name">{{ p.name }}</td>
+            <td class="nowrap">{{ p.price.min }}<span class="muted"> {{ p.price.currency }}</span></td>
+            <td [class.low]="p.totalStock <= 5">{{ p.totalStock }}</td>
+            <td><span class="status" [class]="'status status--' + p.status.toLowerCase()">{{ p.status }}</span></td>
+            <td class="right">
+              @if (p.status === 'Draft' || p.status === 'Rejected') {
+                <button class="btn btn--sm" type="button" [disabled]="working() === p.id"
+                        (click)="submitForReview(p)">
+                  {{ working() === p.id ? 'Sending…' : 'Submit for review' }}
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

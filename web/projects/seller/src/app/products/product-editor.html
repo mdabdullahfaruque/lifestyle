@@ -1,0 +1,176 @@
+<header class="head">
+  <div>
+    <h1>New product</h1>
+    <p class="muted">It goes to a moderator before buyers see it.</p>
+  </div>
+  <a class="btn btn--ghost" routerLink="/products">Cancel</a>
+</header>
+
+@if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else {
+  <section class="card">
+    <h2>Basics</h2>
+
+    <label class="field">
+      <span class="field__label">Category</span>
+      <select name="categoryId" [(ngModel)]="form.categoryId" (ngModelChange)="onCategoryChange()"
+              [disabled]="busy()">
+        <option value="">Choose a category…</option>
+        @for (c of leaves(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+      <span class="field__hint">
+        The category decides which details and variant options this product has, so it cannot be
+        changed later without redoing them.
+      </span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Product name</span>
+      <input name="name" required [(ngModel)]="form.name" [disabled]="busy()" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Brand</span>
+      <input name="brand" [(ngModel)]="form.brand" [disabled]="busy()" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Short description</span>
+      <input name="shortDescription" [(ngModel)]="form.shortDescription" [disabled]="busy()"
+             placeholder="One line, shown under the price." />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Description</span>
+      <textarea name="description" rows="4" required [(ngModel)]="form.description" [disabled]="busy()"></textarea>
+    </label>
+  </section>
+
+  @if (form.categoryId) {
+    @if (productAttributes().length) {
+      <section class="card">
+        <h2>Details</h2>
+        @for (a of productAttributes(); track a.code) {
+          <label class="field">
+            <span class="field__label">
+              {{ a.name }}@if (a.isRequired) { <span class="req">*</span> }
+            </span>
+
+            @if (a.allowedValues.length) {
+              <select [name]="a.code" [(ngModel)]="attributes[a.code]" [disabled]="busy()">
+                <option value="">{{ a.isRequired ? 'Choose…' : 'Not specified' }}</option>
+                @for (v of a.allowedValues; track v) { <option [value]="v">{{ v }}</option> }
+              </select>
+            } @else {
+              <input [name]="a.code" [(ngModel)]="attributes[a.code]" [disabled]="busy()"
+                     [attr.inputmode]="a.dataType === 'Number' ? 'numeric' : null" />
+            }
+
+            @if (a.unit) { <span class="field__hint">In {{ a.unit }}.</span> }
+          </label>
+        }
+      </section>
+    }
+
+    <section class="card">
+      <div class="card__head">
+        <h2>Variants</h2>
+        <button class="btn btn--sm" type="button" (click)="addVariant()" [disabled]="busy()">Add variant</button>
+      </div>
+
+      <p class="muted hint">
+        One row per thing a buyer can actually buy. Each needs its own price and stock —
+        @if (axes().length) {
+          and a value for {{ axes().length === 1 ? 'the option' : 'every option' }} below.
+        } @else {
+          this category has no size or colour options, so one row is usually enough.
+        }
+      </p>
+
+      @if (!variants().length) {
+        <button class="btn" type="button" (click)="addVariant()">Add the first variant</button>
+      }
+
+      @for (v of variants(); track $index) {
+        <div class="variant">
+          <div class="variant__grid">
+            @for (axis of axes(); track axis.code) {
+              <label class="field">
+                <span class="field__label">{{ axis.name }}</span>
+                <select [name]="'axis-' + $index + '-' + axis.code" [ngModel]="v.options[axis.code]"
+                        (ngModelChange)="setOption($index, axis.code, $event)" [disabled]="busy()">
+                  <option value="">Choose…</option>
+                  @for (value of axis.allowedValues; track value) {
+                    <option [value]="value">{{ value }}</option>
+                  }
+                </select>
+              </label>
+            }
+
+            <label class="field">
+              <span class="field__label">Price</span>
+              <input [name]="'price-' + $index" type="number" min="0" step="0.01" required
+                     [(ngModel)]="v.price" [disabled]="busy()" />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Was</span>
+              <input [name]="'was-' + $index" type="number" min="0" step="0.01"
+                     [(ngModel)]="v.compareAtPrice" [disabled]="busy()" />
+              <span class="field__hint">Optional. Shows as a saving.</span>
+            </label>
+
+            <label class="field">
+              <span class="field__label">Stock</span>
+              <input [name]="'stock-' + $index" type="number" min="0" step="1" required
+                     [(ngModel)]="v.stockQuantity" [disabled]="busy()" />
+            </label>
+
+            <label class="field">
+              <span class="field__label">SKU</span>
+              <input [name]="'sku-' + $index" [(ngModel)]="v.sku" [disabled]="busy()" />
+            </label>
+          </div>
+
+          @if (variants().length > 1) {
+            <button class="btn btn--sm variant__remove" type="button" (click)="removeVariant($index)"
+                    [disabled]="busy()">Remove</button>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="card">
+      <h2>Images</h2>
+      <div class="images">
+        @for (id of imageIds(); track id) {
+          <div class="thumb">
+            <img [src]="'https://media.mylifestylemart.com/' + id.slice(0, 2) + '/' + id + '/thumb.png'" alt="" />
+            <button class="thumb__x" type="button" (click)="removeImage(id)" aria-label="Remove image">×</button>
+          </div>
+        }
+
+        <label class="upload">
+          {{ uploading() ? 'Uploading…' : '+ Add image' }}
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden
+                 [disabled]="uploading() || busy()" (change)="uploadImage($event)" />
+        </label>
+      </div>
+      <p class="muted hint">JPG, PNG or WebP, up to 10 MB. The first image is the one buyers see in the grid.</p>
+    </section>
+
+    <div class="actions">
+      <button class="btn" type="button" [disabled]="!canSave() || busy()" (click)="save(false)">
+        {{ busy() ? 'Saving…' : 'Save as draft' }}
+      </button>
+      <button class="btn btn--primary" type="button" [disabled]="!canSave() || busy()" (click)="save(true)">
+        {{ busy() ? 'Saving…' : 'Save and submit for review' }}
+      </button>
+    </div>
+  }
+}

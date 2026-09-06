@@ -1,0 +1,45 @@
+<header class="head">
+  <h1>Shop settings</h1>
+  @if (shop.vendor(); as v) {
+    <p class="muted">Your shop address is <strong>{{ v.slug }}.mylifestylemart.com</strong></p>
+  }
+</header>
+
+@if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+@if (notice(); as message) { <p class="alert alert--ok" role="status">{{ message }}</p> }
+
+<form class="card" (ngSubmit)="save()">
+  <label class="field">
+    <span class="field__label">Shop name</span>
+    <input name="displayName" required [(ngModel)]="form.displayName" [disabled]="busy()" />
+  </label>
+
+  <label class="field">
+    <span class="field__label">About</span>
+    <textarea name="about" rows="4" [(ngModel)]="form.about" [disabled]="busy()"
+              placeholder="What you sell, and what makes your shop worth buying from."></textarea>
+  </label>
+
+  <label class="field">
+    <span class="field__label">WhatsApp ordering number</span>
+    <input name="whatsAppNumber" [(ngModel)]="form.whatsAppNumber" [disabled]="busy()"
+           placeholder="+8801XXXXXXXXX" />
+    <span class="field__hint">
+      Full international format. This is where buyers' orders arrive — without it, the order button
+      on your products has nowhere to send them.
+    </span>
+  </label>
+
+  <label class="field">
+    <span class="field__label">Accent colour</span>
+    <div class="colour">
+      <input name="accentColour" [(ngModel)]="form.accentColour" [disabled]="busy()" placeholder="#B1365A" />
+      <span class="swatch" [style.background]="form.accentColour || 'transparent'"></span>
+    </div>
+    <span class="field__hint">Hex, e.g. #B1365A. Used on your own shop site.</span>
+  </label>
+
+  <button class="btn btn--primary" type="submit" [disabled]="busy()">
+    {{ busy() ? 'Saving…' : 'Save settings' }}
+  </button>
+</form>

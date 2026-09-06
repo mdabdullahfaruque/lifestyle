@@ -1,0 +1,80 @@
+:host { display: block; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+@media (min-width: 900px) {
+  .layout { grid-template-columns: 232px 1fr; }
+}
+
+.side {
+  background: #fff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem 0.9rem;
+
+  /* Off-canvas below the breakpoint; the burger in the bar toggles it. */
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 232px;
+  z-index: 40;
+  transform: translateX(-100%);
+  transition: transform 0.18s ease;
+}
+
+.side--open { transform: none; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35); }
+
+@media (min-width: 900px) {
+  .side { position: sticky; top: 0; height: 100vh; transform: none; box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side { transition: none; }
+}
+
+.side__brand { margin: 0; font-weight: 800; color: var(--accent); letter-spacing: -0.02em; }
+.side__surface { margin: 0 0 1.2rem; font-size: 0.8rem; }
+
+.nav { display: grid; gap: 2px; flex: 1; align-content: start; }
+
+.nav a {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.nav a:hover { background: var(--tile); color: var(--ink); }
+.nav a.is-active { background: var(--accent-soft); color: var(--accent); }
+
+.side__foot { border-top: 1px solid var(--border); padding-top: 0.8rem; }
+.side__user { margin: 0; font-weight: 600; font-size: 0.88rem; }
+.side__email { margin: 0 0 0.6rem; font-size: 0.78rem; word-break: break-all; }
+
+.main { display: flex; flex-direction: column; min-width: 0; }
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.burger { background: none; border: 0; color: var(--ink); display: grid; place-items: center; padding: 0; }
+
+@media (min-width: 900px) {
+  .burger { display: none; }
+}
+
+.bar__shop { font-weight: 700; }
+
+.content { padding: 1.2rem 1rem 3rem; max-width: 1000px; width: 100%; }

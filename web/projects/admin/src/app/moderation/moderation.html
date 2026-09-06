@@ -1,0 +1,127 @@
+<header class="head">
+  <h1>Catalogue moderation</h1>
+</header>
+
+@if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+@if (notice(); as message) { <p class="alert alert--ok" role="status">{{ message }}</p> }
+
+<div class="filters">
+  @for (f of filters; track f.label) {
+    <button type="button" class="chip" [class.chip--on]="status() === f.value" (click)="setStatus(f.value)">
+      {{ f.label }}
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else if (!items().length) {
+  <section class="card empty">
+    <h2>Queue is clear</h2>
+    <p class="muted">No products with this status.</p>
+  </section>
+} @else {
+  <section class="card list">
+    <table class="table">
+      <thead>
+        <tr><th></th><th>Product</th><th>Price</th><th>Stock</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (p of items(); track p.id) {
+          <tr>
+            <td class="thumb-cell">
+              @if (p.primaryImageMediaId; as id) {
+                <img class="thumb" [src]="imageUrl(id, 'thumb')" alt="" loading="lazy" />
+              } @else {
+                <span class="thumb thumb--none"></span>
+              }
+            </td>
+            <td class="cell-name">{{ p.name }}</td>
+            <td class="nowrap">{{ p.price.min }}<span class="muted"> {{ p.price.currency }}</span></td>
+            <td>{{ p.totalStock }}</td>
+            <td><span class="status" [class]="'status status--' + p.status.toLowerCase()">{{ p.status }}</span></td>
+            <td class="right">
+              <button class="btn btn--sm" type="button" (click)="open(p)" [disabled]="openingId() === p.id">
+                {{ openingId() === p.id ? 'Opening…' : (opened()?.id === p.id ? 'Close' : 'Review') }}
+              </button>
+            </td>
+          </tr>
+
+          @if (opened(); as d) {
+            @if (d.id === p.id) {
+              <tr class="detail-row">
+                <td colspan="6">
+                  <div class="detail">
+                    <div class="detail__top">
+                      @if (d.images.length) {
+                        <img class="detail__img" [src]="imageUrl(d.images[0].mediaId)" [alt]="d.name" />
+                      }
+                      <div class="detail__meta">
+                        <p class="detail__name">{{ d.name }}</p>
+                        @if (d.brand) { <p class="muted">{{ d.brand }}</p> }
+                        @if (d.shortDescription) { <p>{{ d.shortDescription }}</p> }
+                        @if (d.description) { <p class="muted small">{{ d.description }}</p> }
+                      </div>
+                    </div>
+
+                    <h3 class="detail__h">Variants</h3>
+                    <table class="table inner">
+                      <thead><tr><th>SKU</th><th>Options</th><th>Price</th><th>Was</th><th>Stock</th></tr></thead>
+                      <tbody>
+                        @for (v of d.variants; track v.id) {
+                          <tr>
+                            <td class="muted">{{ v.sku }}</td>
+                            <td>
+                              @for (o of v.options | keyvalue; track o.key) {
+                                <span class="opt">{{ o.key }}: {{ o.value }}</span>
+                              }
+                            </td>
+                            <td class="nowrap">{{ v.price }} {{ v.currency }}</td>
+                            <td class="muted nowrap">{{ v.compareAtPrice || '—' }}</td>
+                            <td>{{ v.stockQuantity }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+
+                    @if (d.attributes && (d.attributes | keyvalue).length) {
+                      <h3 class="detail__h">Details</h3>
+                      <ul class="attrs">
+                        @for (a of d.attributes | keyvalue; track a.key) {
+                          <li><span class="muted">{{ a.key }}</span> {{ a.value }}</li>
+                        }
+                      </ul>
+                    }
+
+                    <label class="field">
+                      <span class="field__label">Note to the vendor (required to reject or take down)</span>
+                      <textarea rows="2" name="note" [(ngModel)]="note"
+                                placeholder="What is wrong, and what would make it acceptable."></textarea>
+                    </label>
+
+                    <div class="detail__actions">
+                      @if (d.status === 'PendingReview') {
+                        <button class="btn btn--primary" type="button" [disabled]="working() === d.id"
+                                (click)="moderate(d.id, true)">
+                          {{ working() === d.id ? 'Working…' : 'Publish' }}
+                        </button>
+                        <button class="btn btn--danger" type="button" [disabled]="working() === d.id"
+                                (click)="moderate(d.id, false)">Reject</button>
+                      } @else if (d.status === 'Published') {
+                        <button class="btn btn--danger" type="button" [disabled]="working() === d.id"
+                                (click)="takedown(d.id)">Take down</button>
+                      }
+                      @if (d.moderationNote) {
+                        <p class="muted note">Last note: {{ d.moderationNote }}</p>
+                      }
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+}

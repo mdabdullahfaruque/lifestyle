@@ -1,0 +1,40 @@
+<div class="layout">
+  <aside class="side" [class.side--open]="menuOpen()">
+    <div class="side__head">
+      <p class="side__brand">Lifestyle</p>
+      <p class="side__surface muted">Admin Console</p>
+    </div>
+
+    <nav class="nav">
+      <a routerLink="/vendors" routerLinkActive="is-active" (click)="menuOpen.set(false)">
+        Vendor applications
+      </a>
+      <a routerLink="/moderation" routerLinkActive="is-active" (click)="menuOpen.set(false)">
+        Catalogue moderation
+      </a>
+    </nav>
+
+    <div class="side__foot">
+      @if (auth.user(); as user) {
+        <p class="side__user">{{ user.fullName }}</p>
+        <p class="side__email muted">{{ user.email }}</p>
+      }
+      <button class="btn btn--sm" type="button" (click)="signOut()">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="bar">
+      <button class="burger" type="button" (click)="menuOpen.set(!menuOpen())" aria-label="Menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
+      <span class="bar__shop">Platform administration</span>
+    </header>
+
+    <div class="content">
+      <router-outlet />
+    </div>
+  </div>
+</div>

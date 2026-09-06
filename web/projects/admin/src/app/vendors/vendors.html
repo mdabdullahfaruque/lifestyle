@@ -1,0 +1,99 @@
+<header class="head">
+  <h1>Vendor applications</h1>
+</header>
+
+@if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+@if (notice(); as message) { <p class="alert alert--ok" role="status">{{ message }}</p> }
+
+<div class="filters">
+  @for (f of filters; track f.label) {
+    <button type="button" class="chip" [class.chip--on]="status() === f.value" (click)="setStatus(f.value)">
+      {{ f.label }}
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else if (!items().length) {
+  <section class="card empty">
+    <h2>Queue is clear</h2>
+    <p class="muted">No applications with this status.</p>
+  </section>
+} @else {
+  <section class="card list">
+    <table class="table">
+      <thead>
+        <tr><th>Shop</th><th>Legal name</th><th>Submitted</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (v of items(); track v.id) {
+          <tr>
+            <td class="cell-name">{{ v.displayName }}<span class="muted slug"> /{{ v.slug }}</span></td>
+            <td class="muted">{{ v.legalName }}</td>
+            <td class="muted nowrap">{{ v.submittedAt ? (v.submittedAt | date: 'd MMM y') : '—' }}</td>
+            <td><span class="status" [class]="'status status--' + v.status.toLowerCase()">{{ v.status }}</span></td>
+            <td class="right">
+              <button class="btn btn--sm" type="button" (click)="open(v)" [disabled]="openingId() === v.id">
+                {{ openingId() === v.id ? 'Opening…' : (opened()?.id === v.id ? 'Close' : 'Review') }}
+              </button>
+            </td>
+          </tr>
+
+          @if (opened(); as detail) {
+            @if (detail.id === v.id) {
+              <tr class="detail-row">
+                <td colspan="5">
+                  <div class="detail">
+                    <div class="detail__grid">
+                      <div><span class="k muted">Contact</span><span>{{ detail.contactEmail }}</span></div>
+                      <div><span class="k muted">Phone</span><span>{{ detail.contactPhone }}</span></div>
+                      <div><span class="k muted">Registration</span><span>{{ detail.registrationNumber || '—' }}</span></div>
+                      <div><span class="k muted">Shop address</span><span>{{ detail.slug }}.mylifestylemart.com</span></div>
+                    </div>
+
+                    <h3 class="detail__h">Verification documents</h3>
+                    @if (!detail.documents.length) {
+                      <p class="muted">No documents attached.</p>
+                    } @else {
+                      <ul class="docs">
+                        @for (d of detail.documents; track d.id) {
+                          <li>
+                            <span>{{ d.kind }} — {{ d.fileName }}</span>
+                            <a class="btn btn--sm" [href]="documentUrl(d.mediaId)" target="_blank" rel="noopener">Open</a>
+                          </li>
+                        }
+                      </ul>
+                      <p class="muted tiny">
+                        These are private files, served only to reviewers through an authorised endpoint.
+                      </p>
+                    }
+
+                    @if (detail.status === 'PendingReview') {
+                      <label class="field">
+                        <span class="field__label">Reason (required to reject)</span>
+                        <textarea rows="2" name="reason" [(ngModel)]="rejectionReason"
+                                  placeholder="What the applicant needs to correct."></textarea>
+                      </label>
+
+                      <div class="detail__actions">
+                        <button class="btn btn--primary" type="button" [disabled]="working() === detail.id"
+                                (click)="review(detail.id, true)">
+                          {{ working() === detail.id ? 'Working…' : 'Approve' }}
+                        </button>
+                        <button class="btn btn--danger" type="button" [disabled]="working() === detail.id"
+                                (click)="review(detail.id, false)">Reject</button>
+                      </div>
+                    } @else if (detail.statusReason) {
+                      <p class="muted"><strong>Reason on file:</strong> {{ detail.statusReason }}</p>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+}

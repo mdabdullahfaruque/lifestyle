@@ -1,0 +1,36 @@
+:host { display: block; }
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.head h1 { font-size: 1.3rem; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.9rem; }
+
+.chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.chip--on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.block { height: 180px; }
+.empty { max-width: 460px; }
+.empty h2 { font-size: 1.05rem; margin-bottom: 0.3rem; }
+.empty p { margin: 0 0 1rem; }
+
+.card { overflow-x: auto; padding: 0.4rem; }
+.cell-name { font-weight: 600; }
+.nowrap { white-space: nowrap; }
+.right { text-align: right; }
+.low { color: var(--danger); font-weight: 700; }

@@ -1,0 +1,113 @@
+<header class="head">
+  <h1>Apply for a shop</h1>
+  @if (shop.vendor(); as v) {
+    <span class="status" [class]="'status status--' + v.status.toLowerCase()">{{ v.status }}</span>
+  }
+</header>
+
+@if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+@if (notice(); as message) { <p class="alert alert--ok" role="status">{{ message }}</p> }
+
+@if (shop.stage() === 'pending') {
+  <section class="card">
+    <h2>With our review team</h2>
+    <p class="muted">
+      Nothing more to do for now. We check the documents against the business details you gave, and
+      you will see the shop unlock here once it is approved.
+    </p>
+  </section>
+} @else if (shop.stage() === 'approved') {
+  <section class="card">
+    <h2>Approved</h2>
+    <p class="muted">Your shop is live. Manage it from Products and Shop settings.</p>
+  </section>
+}
+
+@if (editable()) {
+  <form class="card" (ngSubmit)="saveApplication()">
+    <h2>Business details</h2>
+
+    <label class="field">
+      <span class="field__label">Registered legal name</span>
+      <input name="legalName" required [(ngModel)]="form.legalName" [disabled]="busy()" />
+      <span class="field__hint">Exactly as it appears on your trade licence.</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Shop name</span>
+      <input name="displayName" required [(ngModel)]="form.displayName" [disabled]="busy()" />
+      <span class="field__hint">What buyers see on the marketplace.</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Shop address</span>
+      <input name="desiredSlug" [(ngModel)]="form.desiredSlug" [disabled]="busy()"
+             placeholder="your-shop" />
+      <span class="field__hint">
+        Becomes your shop's web address. Lowercase letters, numbers and hyphens; leave blank and we
+        will pick one from your shop name.
+      </span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Contact email</span>
+      <input name="contactEmail" type="email" required [(ngModel)]="form.contactEmail" [disabled]="busy()" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Contact phone</span>
+      <input name="contactPhone" required [(ngModel)]="form.contactPhone" [disabled]="busy()"
+             placeholder="+8801XXXXXXXXX" />
+      <span class="field__hint">Full international format.</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Registration number</span>
+      <input name="registrationNumber" [(ngModel)]="form.registrationNumber" [disabled]="busy()" />
+    </label>
+
+    <button class="btn btn--primary" type="submit" [disabled]="busy()">
+      {{ busy() ? 'Saving…' : (shop.vendor() ? 'Save details' : 'Save and continue') }}
+    </button>
+  </form>
+}
+
+@if (shop.vendor()) {
+  <section class="card">
+    <h2>Verification documents</h2>
+    <p class="muted docs__note">
+      These are stored privately and are never served on a public URL — only you and our review
+      team can open them.
+    </p>
+
+    @for (doc of requiredDocs; track doc.kind) {
+      <div class="doc">
+        <div class="doc__text">
+          <p class="doc__label">
+            {{ doc.label }}
+            @if (attached().has(doc.kind)) { <span class="doc__tick">uploaded</span> }
+          </p>
+          <p class="muted doc__hint">{{ doc.hint }}</p>
+        </div>
+
+        @if (editable()) {
+          <label class="btn btn--sm doc__btn">
+            {{ uploading() === doc.kind ? 'Uploading…' : (attached().has(doc.kind) ? 'Replace' : 'Upload') }}
+            <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden
+                   [disabled]="uploading() !== null" (change)="uploadDocument(doc.kind, $event)" />
+          </label>
+        }
+      </div>
+    }
+
+    @if (editable()) {
+      <button class="btn btn--primary submit" type="button" [disabled]="!canSubmit() || busy()"
+              (click)="submit()">
+        {{ busy() ? 'Submitting…' : 'Submit for review' }}
+      </button>
+      @if (!canSubmit()) {
+        <p class="muted field__hint">Both documents are needed before you can submit.</p>
+      }
+    }
+  </section>
+}

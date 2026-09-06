@@ -1,0 +1,16 @@
+:host { display: block; max-width: 560px; }
+
+.head { margin-bottom: 1rem; }
+.head h1 { font-size: 1.3rem; }
+.head p { margin: 0.2rem 0 0; font-size: 0.88rem; }
+
+.colour { display: flex; align-items: center; gap: 0.6rem; }
+.colour input { flex: 1; }
+
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  flex: none;
+}

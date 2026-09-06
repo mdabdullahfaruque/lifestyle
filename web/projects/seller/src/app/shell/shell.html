@@ -1,0 +1,51 @@
+<div class="layout">
+  <aside class="side" [class.side--open]="menuOpen()">
+    <div class="side__head">
+      <p class="side__brand">Lifestyle</p>
+      <p class="side__surface muted">Seller Console</p>
+    </div>
+
+    <nav class="nav">
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"
+         (click)="menuOpen.set(false)">Overview</a>
+
+      <!-- Products and settings only mean anything once a shop is approved; showing them earlier
+           routes the seller straight into a 403. -->
+      @if (shop.canSell()) {
+        <a routerLink="/products" routerLinkActive="is-active" (click)="menuOpen.set(false)">Products</a>
+        <a routerLink="/settings" routerLinkActive="is-active" (click)="menuOpen.set(false)">Shop settings</a>
+      } @else {
+        <a routerLink="/apply" routerLinkActive="is-active" (click)="menuOpen.set(false)">Apply for a shop</a>
+      }
+    </nav>
+
+    <div class="side__foot">
+      @if (auth.user(); as user) {
+        <p class="side__user">{{ user.fullName }}</p>
+        <p class="side__email muted">{{ user.email }}</p>
+      }
+      <button class="btn btn--sm" type="button" (click)="signOut()">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="bar">
+      <button class="burger" type="button" (click)="menuOpen.set(!menuOpen())" aria-label="Menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
+
+      @if (shop.vendor(); as v) {
+        <span class="bar__shop">{{ v.displayName }}</span>
+        <span class="status" [class]="'status status--' + v.status.toLowerCase()">{{ v.status }}</span>
+      } @else if (shop.isLoaded()) {
+        <span class="bar__shop muted">No shop yet</span>
+      }
+    </header>
+
+    <div class="content">
+      <router-outlet />
+    </div>
+  </div>
+</div>
