@@ -28,4 +28,20 @@ public sealed class IdentityModuleOptions
 
     [Range(8, 128)]
     public int MinimumPasswordLength { get; init; } = 10;
+
+    /// <summary>
+    /// Whether the admin surface refuses an account that has not enrolled in TOTP (FRD §4.2).
+    /// <para>
+    /// Defaults to <c>true</c>, which is the intended production posture: a platform admin can
+    /// approve vendors, moderate the catalogue and take shops down, so a stolen admin password
+    /// alone must not be enough to do any of it. Setting this to <c>false</c> is a deliberate,
+    /// temporary convenience for a deployment that holds no real vendor or buyer data yet, and
+    /// must be turned back on before it does.
+    /// </para>
+    /// <para>
+    /// This governs the mandatory-enrolment gate, not two-factor itself: an account that has
+    /// enrolled is still asked for its code either way.
+    /// </para>
+    /// </summary>
+    public bool RequireTwoFactorOnAdmin { get; init; } = true;
 }

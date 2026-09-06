@@ -23,10 +23,12 @@ export class Login {
   protected readonly error = signal<string | null>(null);
 
   /**
-   * Always shown here. Two-factor is mandatory on the admin surface (FRD §4.2), so hiding the
-   * field until the server asks for it would just add a round trip to every single sign-in.
+   * Whether two-factor applies here is a deployment setting
+   * (Identity:RequireTwoFactorOnAdmin), so the client cannot know up front. Show the field only
+   * once the server asks for a code — that keeps the form to two fields where 2FA is off, and
+   * costs one extra round trip where it is on.
    */
-  protected readonly needsTotp = signal(true);
+  protected readonly needsTotp = signal(false);
 
   protected async submit(): Promise<void> {
     if (this.busy()) return;

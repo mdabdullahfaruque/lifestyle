@@ -2,7 +2,7 @@
   <form class="auth__card" (ngSubmit)="submit()">
     <p class="auth__brand">Lifestyle</p>
     <h1 class="auth__title">Admin Console</h1>
-    <p class="auth__sub">Platform administration. Two-factor is required.</p>
+    <p class="auth__sub">Platform administration.</p>
 
     @if (error(); as message) {
       <p class="alert" role="alert">{{ message }}</p>
@@ -33,7 +33,7 @@
     </button>
 
     <p class="auth__foot">
-      Codes come from the authenticator app enrolled on this account, and change every 30 seconds.
+      If this account has two-factor enabled, you will be asked for a code next.
     </p>
   </form>
 </div>

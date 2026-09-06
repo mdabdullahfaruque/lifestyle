@@ -92,23 +92,34 @@ internal static class Login
             if (!access.HasAccess)
                 return Error.Forbidden("identity.surface_not_permitted", "This account cannot sign in on this surface.");
 
-            // 2FA is mandatory on admin, and on seller for anyone who has enabled it (FRD §4.2).
-            if (user.TwoFactorEnabled)
-            {
-                if (string.IsNullOrWhiteSpace(request.TotpCode))
-                    return Error.Validation("identity.totp_required", "A two-factor code is required.");
+            // A deployment can opt the admin surface out of two-factor entirely
+            // (Identity:RequireTwoFactorOnAdmin). That covers both halves of the gate — the
+            // mandatory enrolment AND the code itself — because leaving the code required would
+            // still lock out an account that had already enrolled, which is the situation the
+            // opt-out exists to relieve. Every other surface is unaffected: a user who has turned
+            // two-factor on is still asked for a code there.
+            var adminWithoutTwoFactor = request.Surface == Surfaces.Admin && !_options.RequireTwoFactorOnAdmin;
 
-                if (!totp.Verify(user.TwoFactorSecret!, request.TotpCode))
-                {
-                    user.RecordFailedLogin(now);
-                    await db.SaveChangesAsync(ct);
-                    return Error.Unauthorized("identity.totp_invalid", "The two-factor code is incorrect.");
-                }
-            }
-            else if (request.Surface == Surfaces.Admin)
+            if (!adminWithoutTwoFactor)
             {
-                return Error.Forbidden("identity.totp_enrolment_required",
-                    "Two-factor authentication must be enabled before signing in to the admin surface.");
+                // 2FA is mandatory on admin, and on seller for anyone who has enabled it (FRD §4.2).
+                if (user.TwoFactorEnabled)
+                {
+                    if (string.IsNullOrWhiteSpace(request.TotpCode))
+                        return Error.Validation("identity.totp_required", "A two-factor code is required.");
+
+                    if (!totp.Verify(user.TwoFactorSecret!, request.TotpCode))
+                    {
+                        user.RecordFailedLogin(now);
+                        await db.SaveChangesAsync(ct);
+                        return Error.Unauthorized("identity.totp_invalid", "The two-factor code is incorrect.");
+                    }
+                }
+                else if (request.Surface == Surfaces.Admin)
+                {
+                    return Error.Forbidden("identity.totp_enrolment_required",
+                        "Two-factor authentication must be enabled before signing in to the admin surface.");
+                }
             }
 
             user.RecordSuccessfulLogin(now);
