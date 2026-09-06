@@ -158,7 +158,6 @@ A placeholder comment marks the spot in the api site file.
 | **G1** | **No off-host backup.** `BACKUP_RSYNC_TARGET` is blank and no cron is installed. `backup.sh` and `restore-test.sh` both pass by hand. The media bind mount (item 2) is not in the dump either. | Losing the host loses everything. docs/03 §10.1 calls this the single most important gap. **Do before the first real vendor.** |
 | **G2** | **No monitoring.** No uptime check on `/v1/internal/health`, no disk alert. | You learn of outages from vendors. |
 | **G3** | **nginx site files are not in the repo.** They live only on the server; the repo still carries only `deploy/Caddyfile`. | A host rebuild loses them. Copy them into `deploy/nginx/` and reference them from docs/05. |
-| **G4** | **No seller/admin login UI merged yet.** `AuthStore` works; `app.routes.ts` is empty in both SPAs. | Both panels are shells — the only way in is `curl`. |
 | **G5** | **Three PropertyMart certificates use `authenticator = standalone`**, which needs port 80 free — nginx holds it. Not Lifestyle's, but on the same box. | Those renewals will likely fail. Convert them to `--webroot`. |
 | **G7** | **`ProductListItem` carries no `compareAtPrice`**, so the marketplace grid cannot badge deals without fetching every product — an N+1 that looks fine at 11 products and dies at 1000. The grid therefore shows price only, while the design calls for "Was ৳2,900 / SAVE 16%" on the card. | The home page under-sells the value-retail direction. Add a `compareAtPriceMin` to the list projection. |
 | **G8** | **The image URL layout is duplicated in the client.** Catalog responses return a bare `mediaId` and no URL, so `web/projects/storefront/src/app/media.ts` reproduces the media pipeline's key layout (`{first2}/{id}/{variant}.png`). | If the server changes that layout, images break silently rather than failing a build. Return URLs from the catalog. |
@@ -166,12 +165,32 @@ A placeholder comment marks the spot in the api site file.
 
 ---
 
+---
+
+## Console coverage — what the portals do and do not do
+
+Built 2026-09-06. Both consoles are real applications now, but neither is complete:
+
+**Seller** — sign in, apply for a shop, upload KYC, submit, see review status, list products,
+create a product (category → attribute set → variants), submit for review, edit shop settings.
+**Not built:** editing an existing product, stock adjustment (`adjustStock` exists in the service
+and is unused), image reordering, logo/banner upload, staff management.
+
+**Admin** — sign in with TOTP, work the vendor queue (approve/reject with reason, open KYC
+documents), work the moderation queue (publish, reject, take down). **Not built:** vendor
+suspension (`setSuspension` exists in the service and is unused), category management, the audit
+log at `/v1/admin/audit`, and any paging beyond the first 100 rows.
+
+Neither console has automated tests.
+
 ## Credentials and one-time values
 
 Held outside this file, in the user's hands:
 
-- Admin account `naimelias45@gmail.com` — password generated on the server; `SEED_SUPERADMIN_PASSWORD`
-  is blanked in `deploy/.env`.
-- Admin **TOTP secret** — enrolled 2026-09-06; the API will not show it again. Must be in the
-  user's authenticator app.
+- **Two** super-admin accounts now exist: `naimelias45@gmail.com` (generated password) and
+  `admin@mylifestylemart.com`. Both are TOTP-enrolled and both are full super-admins — decide
+  whether the first should stay.
+- **TOTP secrets** were shown once at enrolment and the API will not show them again. They must be
+  in the user's authenticator app.
+- `SEED_SUPERADMIN_PASSWORD` is blanked in `deploy/.env`.
 - Two Cloudflare API tokens were used (DNS edit, Pages edit). **Revoke both** once this work settles.
