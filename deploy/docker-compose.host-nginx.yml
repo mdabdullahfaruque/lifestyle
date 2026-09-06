@@ -11,13 +11,9 @@
 #
 # So this override:
 #   - parks `caddy` behind a compose profile, so it never starts unless explicitly asked for;
-#   - publishes the API on the host so the existing proxy (or, until a domain exists, the public
-#     internet) can reach it;
+#   - publishes the API on a host port for the existing proxy to reach;
+#   - moves uploaded media to a host path the existing proxy can serve;
 #   - names containers `lifestyle-<deployment>-*`, matching the box's convention.
-#
-# ⚠ While API_BIND is 0.0.0.0 the API is served over PLAIN HTTP with no proxy in front of it.
-# That is a deliberate interim state until a domain is pointed at this server; then set
-# API_BIND=127.0.0.1, add an nginx site + certbot certificate, and reload nginx.
 
 services:
   caddy:
@@ -28,7 +24,15 @@ services:
   api:
     container_name: lifestyle-${DEPLOYMENT:-my-prod}-api
     ports:
+      # 127.0.0.1 once a proxy fronts the API. 0.0.0.0 publishes it to the internet in the clear.
       - "${API_BIND:-127.0.0.1}:${API_HOST_PORT:-5600}:8080"
+    volumes:
+      # Replaces the stock `api-storage` named volume at this mount point. Caddy used to serve
+      # that volume; with Caddy parked, host nginx serves media instead — and nginx cannot read a
+      # Docker named volume, because /var/lib/docker is not traversable by www-data. A bind mount
+      # under /var/data/<app>/<env>/uploads is what the other stacks on this host already do.
+      # The directory must be owned by uid 64198 (the image's `lifestyle` user) and world-readable.
+      - ${MEDIA_HOST_PATH:?set MEDIA_HOST_PATH in deploy/.env}:/app/.storage
 
   postgres:
     container_name: lifestyle-${DEPLOYMENT:-my-prod}-db
