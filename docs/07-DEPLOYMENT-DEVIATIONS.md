@@ -72,11 +72,11 @@ replace the static `location /` with `proxy_pass http://127.0.0.1:4000` (the blo
 
 ---
 
-## 4. Apex holding page — **T**
+## 4. Apex holding page — **superseded 2026-09-06**
 
-`mylifestylemart.com` and `www` serve a static "coming soon" page from
-`/var/www/lifestyle-coming-soon/`, `noindex`, `Cache-Control: no-store` — the nginx equivalent of
-the Caddyfile's `coming_soon` snippet. Superseded by item 3 as soon as the storefront lands there.
+The apex briefly served a static "coming soon" page from `/var/www/lifestyle-coming-soon/`. It now
+serves the storefront (item 3) from `/var/www/lifestyle-storefront/`. The old directory is still on
+the host and can be deleted.
 
 The apex also proxies `/v1/*` to the API. That is **deliberate and permanent**: the refresh token is
 a `SameSite=Strict` cookie, so a storefront served from this host must call the API same-origin or
@@ -92,6 +92,18 @@ real records *by construction* — that was the point, but it is also the risk.
 
 **Every demo record is identifiable by its `demo-` slug prefix and `@demo.mylifestylemart.com`
 contact email.** Do not rely on memory: query before deleting.
+
+**What exists**, created 2026-09-06 — 3 shops, 11 products, 31 variants, all `Published`:
+
+| Shop | Slug | Vendor id |
+|---|---|---|
+| Arunima Boutique | `demo-arunima` | `01a07709-4e6e-7def-8a6b-c23baef27881` |
+| StepUp Footwear | `demo-stepup` | `01a07709-65d4-7f11-8532-f5b6d36290d0` |
+| GadgetHub BD | `demo-gadgethub` | `01a07709-783f-7b59-b3ce-98218ec738a2` |
+
+Their login accounts are `demo-<key>@demo.mylifestylemart.com`. The WhatsApp numbers
+(`+88017110001xx`) are test ranges, not anyone's real line. Product imagery is generated
+placeholder art — gradient silhouettes, not photographs — so nothing here carries a licence.
 
 **Revert trigger:** before the first real vendor is onboarded. Remove demo vendors and their
 products, or reset the database entirely — no real data exists yet, so a clean re-`migrate` +
@@ -148,6 +160,8 @@ A placeholder comment marks the spot in the api site file.
 | **G3** | **nginx site files are not in the repo.** They live only on the server; the repo still carries only `deploy/Caddyfile`. | A host rebuild loses them. Copy them into `deploy/nginx/` and reference them from docs/05. |
 | **G4** | **No seller/admin login UI merged yet.** `AuthStore` works; `app.routes.ts` is empty in both SPAs. | Both panels are shells — the only way in is `curl`. |
 | **G5** | **Three PropertyMart certificates use `authenticator = standalone`**, which needs port 80 free — nginx holds it. Not Lifestyle's, but on the same box. | Those renewals will likely fail. Convert them to `--webroot`. |
+| **G7** | **`ProductListItem` carries no `compareAtPrice`**, so the marketplace grid cannot badge deals without fetching every product — an N+1 that looks fine at 11 products and dies at 1000. The grid therefore shows price only, while the design calls for "Was ৳2,900 / SAVE 16%" on the card. | The home page under-sells the value-retail direction. Add a `compareAtPriceMin` to the list projection. |
+| **G8** | **The image URL layout is duplicated in the client.** Catalog responses return a bare `mediaId` and no URL, so `web/projects/storefront/src/app/media.ts` reproduces the media pipeline's key layout (`{first2}/{id}/{variant}.png`). | If the server changes that layout, images break silently rather than failing a build. Return URLs from the catalog. |
 | **G6** | **The server login password was briefly written into two nginx files** by a `sudo -S` stdin mistake, then overwritten. It is also in this session's shell history. | Rotate the `deploy` password. |
 
 ---
