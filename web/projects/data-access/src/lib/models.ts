@@ -61,6 +61,16 @@ export interface ProductImage {
   position: number;
 }
 
+/** The seller, as a buyer sees them on a product page. Public product endpoint only. */
+export interface ProductShop {
+  id: string;
+  displayName: string;
+  slug: string;
+  whatsAppNumber: string | null;
+  accentColour: string | null;
+  logoMediaId: string | null;
+}
+
 export interface Product {
   id: string;
   vendorId: string;
@@ -79,6 +89,8 @@ export interface Product {
   variants: Variant[];
   images: ProductImage[];
   attributes: Record<string, string>;
+  /** Null on the vendor's own views — there the caller already knows which shop they are. */
+  shop: ProductShop | null;
 }
 
 export interface Category {

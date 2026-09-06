@@ -1,4 +1,5 @@
 using Lifestyle.Modules.Catalog.Domain;
+using Lifestyle.Modules.Vendors.Contracts;
 using Lifestyle.Modules.Catalog.Internal;
 using Lifestyle.Modules.Catalog.Persistence;
 using Lifestyle.SharedKernel.Abstractions;
@@ -121,7 +122,7 @@ internal static class BrowseProducts
 /// </summary>
 internal static class GetPublicProduct
 {
-    internal sealed class Handler(ICatalogDbContext db, ITenantContext tenant)
+    internal sealed class Handler(ICatalogDbContext db, ITenantContext tenant, IVendorsModule vendors)
         : IHandler<Handler.Query, Result<ProductResponse>>
     {
         internal sealed record Query(Guid VendorId, string ProductSlug);
@@ -141,7 +142,20 @@ internal static class GetPublicProduct
                                           && p.Slug == query.ProductSlug
                                           && p.Status == ProductStatus.Published, ct);
 
-            return product is null ? Error.NotFound("catalog.product_not_found") : product.ToResponse();
+            if (product is null) return Error.NotFound("catalog.product_not_found");
+
+            // The shop rides along with the product. A buyer cannot order without the seller's
+            // WhatsApp number, and the alternative — a second lookup keyed by a slug this response
+            // does not carry — is a round trip the client has no way to make.
+            var shop = await vendors.GetAsync(product.VendorId, ct);
+
+            return product.ToResponse() with
+            {
+                Shop = shop is null
+                    ? null
+                    : new ProductShopResponse(shop.Id, shop.DisplayName, shop.Slug,
+                        shop.WhatsAppNumber, shop.AccentColour, shop.LogoMediaId),
+            };
         }
     }
 

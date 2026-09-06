@@ -23,7 +23,23 @@ public sealed record ProductResponse(
     int TotalStock,
     IReadOnlyList<VariantResponse> Variants,
     IReadOnlyList<ProductImageResponse> Images,
-    IReadOnlyDictionary<string, string> Attributes);
+    IReadOnlyDictionary<string, string> Attributes,
+    /// <summary>
+    /// The shop that sells this product. Populated on the public product endpoint only — a buyer
+    /// needs the shop's name and WhatsApp number to place an order, and without it the client would
+    /// have to look the vendor up by a slug the product response does not carry. Null on the
+    /// vendor's own views, where the caller already knows which shop they are.
+    /// </summary>
+    ProductShopResponse? Shop = null);
+
+/// <summary>The seller, as a buyer needs to see them on a product page.</summary>
+public sealed record ProductShopResponse(
+    Guid Id,
+    string DisplayName,
+    string Slug,
+    string? WhatsAppNumber,
+    string? AccentColour,
+    string? LogoMediaId);
 
 public sealed record MoneyRange(string Min, string Max, string Currency);
 

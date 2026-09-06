@@ -1,0 +1,156 @@
+.hero {
+  padding-top: 1rem;
+}
+
+.hero__card {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, #fff), var(--tile));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 1.6rem 1.4rem;
+}
+
+.hero__kicker {
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  color: var(--deal);
+}
+
+.hero__title {
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+}
+
+.hero__sub {
+  margin: 0;
+  color: var(--muted);
+  max-width: 46ch;
+  font-size: 0.94rem;
+}
+
+.rail {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-top: 1rem;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail .pill {
+  flex: none;
+}
+
+.sec {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.6rem 0 0.9rem;
+}
+
+.sec__title {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.sec__count {
+  font-size: 0.85rem;
+}
+
+.state {
+  color: var(--muted);
+  padding: 2rem 0 3rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 0.75rem;
+}
+
+@media (min-width: 560px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 860px) {
+  .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4rem 1rem; }
+}
+
+.card {
+  display: block;
+  min-width: 0;
+}
+
+.card__media {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--tile);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  margin-bottom: 0.55rem;
+}
+
+.card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.card:hover .card__media img {
+  transform: scale(1.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card__media img { transition: none; }
+  .card:hover .card__media img { transform: none; }
+}
+
+.band {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.band--low {
+  color: var(--deal);
+  border-color: color-mix(in srgb, var(--deal) 35%, #fff);
+}
+
+.card__price {
+  margin: 0 0 0.15rem;
+}
+
+.card__name {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card__line {
+  height: 12px;
+  margin-bottom: 6px;
+}
+
+.card__line--short {
+  width: 60%;
+}

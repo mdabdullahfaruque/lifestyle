@@ -10,6 +10,7 @@ import { API_BASE_URL, SURFACE, authInterceptor } from 'auth';
 
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
+import { MEDIA_BASE_URL } from './media';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,6 +31,7 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
 
     { provide: API_BASE_URL, useValue: environment.apiBaseUrl },
+    { provide: MEDIA_BASE_URL, useValue: environment.mediaBaseUrl },
     { provide: SURFACE, useValue: 'buyer' as const },
   ],
 };
