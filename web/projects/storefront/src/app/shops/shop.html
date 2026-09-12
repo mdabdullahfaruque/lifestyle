@@ -47,6 +47,16 @@
               @if (p.primaryImageMediaId; as id) {
                 <img [src]="media.url(id, 'card')" [alt]="p.name" loading="lazy"
                      (error)="media.fallbackToOriginal($event, id)" />
+              } @else {
+                <!-- Should never render: the domain refuses to publish a product without an image,
+                     or to strip the last one from a live product. An empty tile reads as broken. -->
+                <span class="card__noimage" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="34" height="34">
+                    <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                    <circle cx="8.5" cy="10" r="1.6" fill="currentColor"/>
+                    <path d="M5 17l4.5-5 3 3.2L16 12l3 4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                  </svg>
+                </span>
               }
               @if (saving(p); as pct) { <span class="save">{{ i18n.t('price.save', { percent: i18n.formatNumber(pct) }) }}</span> }
             </div>

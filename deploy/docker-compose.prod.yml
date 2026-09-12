@@ -59,6 +59,10 @@ services:
       # Defaults to true. See IdentityModuleOptions — turning it off is temporary, and must be
       # reversed before this deployment holds real vendor or buyer data.
       Identity__RequireTwoFactorOnAdmin: ${REQUIRE_ADMIN_2FA:-true}
+      # Google OAuth web client id. Public by nature — it ships in the browser bundle — but it must
+      # be exact: a token minted for a different Google app is still validly signed by Google.
+      # Blank disables Google sign-in rather than half-enabling it.
+      Identity__GoogleClientId: ${GOOGLE_CLIENT_ID:-}
       Storage__Provider: ${STORAGE_PROVIDER}
       Storage__BucketName: ${STORAGE_BUCKET}
       Storage__ServiceUrl: ${STORAGE_SERVICE_URL}

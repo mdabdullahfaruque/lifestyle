@@ -722,7 +722,6 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .HasColumnName("locked_out_until");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("password_hash");
@@ -777,6 +776,46 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .HasFilter("phone_number IS NOT NULL AND deleted_at IS NULL");
 
                     b.ToTable("users", "identity");
+                });
+
+            modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.UserExternalLogin", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("LinkedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("linked_at");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("subject");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_external_logins");
+
+                    b.HasIndex("Provider", "Subject")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_external_logins_provider_subject");
+
+                    b.HasIndex("UserId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_external_logins_user_id_provider");
+
+                    b.ToTable("user_external_logins", "identity");
                 });
 
             modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.UserRole", b =>
@@ -1369,6 +1408,16 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_refresh_tokens_user_user_id");
                 });
 
+            modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.UserExternalLogin", b =>
+                {
+                    b.HasOne("Lifestyle.Modules.Identity.Domain.User", null)
+                        .WithMany("ExternalLogins")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_external_logins_users_user_id");
+                });
+
             modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.UserRole", b =>
                 {
                     b.HasOne("Lifestyle.Modules.Identity.Domain.Role", "Role")
@@ -1434,6 +1483,8 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Lifestyle.Modules.Identity.Domain.User", b =>
                 {
+                    b.Navigation("ExternalLogins");
+
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("Roles");

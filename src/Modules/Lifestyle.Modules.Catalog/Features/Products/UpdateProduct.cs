@@ -117,14 +117,14 @@ internal static class SetProductImages
             var desired = command.Request.Images;
             var desiredIds = desired.Select(i => i.MediaId).ToList();
 
-            foreach (var existing in product.Images.Select(i => i.MediaId).Except(desiredIds, StringComparer.Ordinal).ToList())
-                product.RemoveImage(existing, now);
+            // Replace the set in one go rather than removing then adding. Doing it piecemeal passes
+            // through a moment with zero images, which would trip the "a live product needs an
+            // image" rule on a perfectly good swap of one photo for another. The request order is
+            // the display order, so there is no separate reorder call to forget.
+            var replaced = product.ReplaceImages(
+                [.. desired.Select(i => (i.MediaId, i.AltText))], now);
 
-            foreach (var image in desired)
-                product.AddImage(image.MediaId, image.AltText, now);
-
-            // The request order is the display order — no separate reorder call to forget.
-            product.ReorderImages(desiredIds, now);
+            if (replaced.IsFailure) return replaced.Error;
 
             await db.SaveChangesAsync(ct);
 

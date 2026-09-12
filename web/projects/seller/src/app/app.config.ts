@@ -5,7 +5,7 @@ import {
   provideZoneChangeDetection,
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { API_BASE_URL, SURFACE, authInterceptor } from 'auth';
+import { API_BASE_URL, GOOGLE_CLIENT_ID, SURFACE, authInterceptor } from 'auth';
 
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
@@ -21,5 +21,6 @@ export const appConfig: ApplicationConfig = {
 
     { provide: API_BASE_URL, useValue: environment.apiBaseUrl },
     { provide: SURFACE, useValue: 'seller' as const },
+    { provide: GOOGLE_CLIENT_ID, useValue: environment.googleClientId || null },
   ],
 };

@@ -1,0 +1,93 @@
+<header class="head">
+  <div>
+    <h1>Audit log</h1>
+    <p class="muted">Every administrative action, oldest preserved. Read-only by design.</p>
+  </div>
+  @if (!loading()) { <span class="muted count">{{ total() }} entries</span> }
+</header>
+
+<form class="card filters" (ngSubmit)="apply()">
+  <label class="field">
+    <span class="field__label">Action</span>
+    <input name="action" [(ngModel)]="filters.action" placeholder="vendor.approved" />
+  </label>
+  <label class="field">
+    <span class="field__label">Entity type</span>
+    <input name="entityType" [(ngModel)]="filters.entityType" placeholder="Vendor" />
+  </label>
+  <label class="field">
+    <span class="field__label">From</span>
+    <input name="from" type="date" [(ngModel)]="filters.from" />
+  </label>
+  <label class="field">
+    <span class="field__label">To</span>
+    <input name="to" type="date" [(ngModel)]="filters.to" />
+  </label>
+  <div class="filters__actions">
+    <button class="btn btn--primary btn--sm" type="submit">Filter</button>
+    <button class="btn btn--sm" type="button" (click)="clear()">Clear</button>
+  </div>
+</form>
+
+@if (failed()) {
+  <p class="alert" role="alert">Could not load the audit log.</p>
+} @else if (loading() && !entries().length) {
+  <div class="skeleton block"></div>
+} @else if (!entries().length) {
+  <section class="card empty">
+    <h2>Nothing recorded</h2>
+    <p class="muted">No entries match these filters.</p>
+  </section>
+} @else {
+  <section class="card list">
+    <table class="table">
+      <thead>
+        <tr><th>When</th><th>Action</th><th>Entity</th><th>Actor</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (e of entries(); track e.id) {
+          <tr>
+            <td class="nowrap muted">{{ e.occurredAt | date: 'd MMM y, HH:mm' }}</td>
+            <td><span class="action">{{ e.action }}</span></td>
+            <td class="muted">
+              {{ e.entityType }}
+              @if (e.entityId) { <span class="id">{{ e.entityId.slice(0, 8) }}</span> }
+            </td>
+            <td class="muted">
+              @if (e.actorUserId) { <span class="id">{{ e.actorUserId.slice(0, 8) }}</span> } @else { system }
+              @if (e.impersonatedBy) { <span class="impersonated">impersonated</span> }
+            </td>
+            <td class="right">
+              @if (e.data) {
+                <button class="btn btn--sm" type="button" (click)="toggle(e.id)">
+                  {{ expanded() === e.id ? 'Hide' : 'Details' }}
+                </button>
+              }
+            </td>
+          </tr>
+
+          @if (expanded() === e.id) {
+            <tr class="detail-row">
+              <td colspan="5">
+                <dl class="meta">
+                  @if (e.ipAddress) { <div><dt class="muted">IP</dt><dd>{{ e.ipAddress }}</dd></div> }
+                  @if (e.correlationId) { <div><dt class="muted">Correlation</dt><dd>{{ e.correlationId }}</dd></div> }
+                  @if (e.vendorId) { <div><dt class="muted">Vendor</dt><dd>{{ e.vendorId }}</dd></div> }
+                </dl>
+                <pre class="data">{{ formatData(e.data) }}</pre>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+
+  @if (hasMore()) {
+    <div class="more">
+      <button class="btn" type="button" [disabled]="loading()" (click)="more()">
+        {{ loading() ? 'Loading…' : 'Load more' }}
+      </button>
+    </div>
+  }
+}

@@ -1,0 +1,118 @@
+<header class="head">
+  <div>
+    <h1>Categories</h1>
+    <p class="muted">The catalogue tree every product hangs off. A leaf carries the attribute set.</p>
+  </div>
+  <button class="btn btn--primary" type="button" (click)="startCreate()">Add category</button>
+</header>
+
+@if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+@if (notice(); as message) { <p class="alert alert--ok" role="status">{{ message }}</p> }
+
+@if (creating()) {
+  <form class="card new" (ngSubmit)="saveCreate()">
+    <h2>New category</h2>
+    <div class="grid">
+      <label class="field">
+        <span class="field__label">Name</span>
+        <input name="newName" required [(ngModel)]="create.name" />
+      </label>
+      <label class="field">
+        <span class="field__label">Parent</span>
+        <select name="newParent" [(ngModel)]="create.parentId">
+          <option value="">Top level</option>
+          @for (r of parents(); track r.category.id) {
+            <option [value]="r.category.id">{{ r.category.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">
+        <span class="field__label">Sort order</span>
+        <input name="newSort" type="number" min="0" [(ngModel)]="create.sortOrder" />
+      </label>
+      <label class="field">
+        <span class="field__label">Attribute set</span>
+        <select name="newSet" [(ngModel)]="create.attributeSetId">
+          <option value="">None (parent category)</option>
+          @for (s of attributeSets(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+        </select>
+        <span class="field__hint">Only a leaf needs one — it decides the product's fields.</span>
+      </label>
+    </div>
+    <div class="row-actions">
+      <button class="btn btn--primary" type="submit" [disabled]="busy() !== null">
+        {{ busy() === 'new' ? 'Adding…' : 'Add category' }}
+      </button>
+      <button class="btn" type="button" (click)="creating.set(false)">Cancel</button>
+    </div>
+  </form>
+}
+
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else {
+  <section class="card list">
+    <table class="table">
+      <thead>
+        <tr><th>Category</th><th>Attribute set</th><th>Order</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (r of rows(); track r.category.id) {
+          <tr [class.inactive]="!r.category.isActive">
+            <td [style.padding-left]="indent(r.depth)">
+              <span class="name">{{ r.category.name }}</span>
+              <span class="muted slug">/{{ r.category.slug }}</span>
+              @if (r.category.isLeaf) { <span class="leaf">leaf</span> }
+            </td>
+            <td class="muted">{{ r.category.attributeSetId ? setName(r.category.attributeSetId) : '—' }}</td>
+            <td>{{ r.category.sortOrder }}</td>
+            <td>
+              <span class="status" [class.status--approved]="r.category.isActive">
+                {{ r.category.isActive ? 'Active' : 'Hidden' }}
+              </span>
+            </td>
+            <td class="right">
+              <button class="btn btn--sm" type="button" (click)="startEdit(r.category)">Edit</button>
+            </td>
+          </tr>
+
+          @if (editingId() === r.category.id) {
+            <tr class="edit-row">
+              <td colspan="5">
+                <form class="edit" (ngSubmit)="saveEdit(r.category.id)">
+                  <div class="grid">
+                    <label class="field">
+                      <span class="field__label">Name</span>
+                      <input name="editName" required [(ngModel)]="edit.name" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">Sort order</span>
+                      <input name="editSort" type="number" min="0" [(ngModel)]="edit.sortOrder" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">Attribute set</span>
+                      <select name="editSet" [(ngModel)]="edit.attributeSetId">
+                        <option value="">None</option>
+                        @for (s of attributeSets(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+                      </select>
+                    </label>
+                    <label class="field field--check">
+                      <input type="checkbox" name="editActive" [(ngModel)]="edit.isActive" />
+                      <span>Visible to buyers</span>
+                    </label>
+                  </div>
+                  <div class="row-actions">
+                    <button class="btn btn--primary btn--sm" type="submit" [disabled]="busy() !== null">
+                      {{ busy() === r.category.id ? 'Saving…' : 'Save' }}
+                    </button>
+                    <button class="btn btn--sm" type="button" (click)="editingId.set(null)">Cancel</button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+}

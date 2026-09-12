@@ -43,3 +43,57 @@
     {{ busy() ? 'Saving…' : 'Save settings' }}
   </button>
 </form>
+
+<section class="card">
+  <h2>Branding</h2>
+  <p class="muted hint">
+    Your logo appears next to your shop name across the marketplace. The banner sits at the top of
+    your shop page. Both are public images, so keep anything private out of them.
+  </p>
+
+  <div class="brand">
+    <div class="brand__item">
+      <span class="field__label">Logo</span>
+      <div class="brand__preview brand__preview--logo">
+        @if (shop.vendor()?.logoMediaId; as id) {
+          <img [src]="imageUrl(id, 'thumb')" alt="Shop logo" />
+        } @else {
+          <span class="brand__empty">No logo</span>
+        }
+      </div>
+      <div class="brand__tools">
+        <label class="btn btn--sm">
+          {{ uploading() === 'logo' ? 'Uploading…' : (shop.vendor()?.logoMediaId ? 'Replace' : 'Upload') }}
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden
+                 [disabled]="uploading() !== null || busy()" (change)="uploadBranding('logo', $event)" />
+        </label>
+        @if (shop.vendor()?.logoMediaId) {
+          <button class="btn btn--sm" type="button" [disabled]="uploading() !== null"
+                  (click)="removeBranding('logo')">Remove</button>
+        }
+      </div>
+    </div>
+
+    <div class="brand__item brand__item--wide">
+      <span class="field__label">Banner</span>
+      <div class="brand__preview brand__preview--banner">
+        @if (shop.vendor()?.bannerMediaId; as id) {
+          <img [src]="imageUrl(id)" alt="Shop banner" />
+        } @else {
+          <span class="brand__empty">No banner</span>
+        }
+      </div>
+      <div class="brand__tools">
+        <label class="btn btn--sm">
+          {{ uploading() === 'banner' ? 'Uploading…' : (shop.vendor()?.bannerMediaId ? 'Replace' : 'Upload') }}
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden
+                 [disabled]="uploading() !== null || busy()" (change)="uploadBranding('banner', $event)" />
+        </label>
+        @if (shop.vendor()?.bannerMediaId) {
+          <button class="btn btn--sm" type="button" [disabled]="uploading() !== null"
+                  (click)="removeBranding('banner')">Remove</button>
+        }
+      </div>
+    </div>
+  </div>
+</section>

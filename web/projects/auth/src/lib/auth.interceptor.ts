@@ -5,7 +5,13 @@ import { AuthStore } from './auth.store';
 import { API_BASE_URL } from './surface';
 
 /** Endpoints that must never carry a bearer token, or trigger a refresh when they fail. */
-const ANONYMOUS_PATHS = ['/v1/auth/login', '/v1/auth/register', '/v1/auth/refresh', '/v1/auth/logout'];
+const ANONYMOUS_PATHS = [
+  '/v1/auth/login',
+  '/v1/auth/google',
+  '/v1/auth/register',
+  '/v1/auth/refresh',
+  '/v1/auth/logout',
+];
 
 /**
  * Attaches the access token, and on a 401 exchanges the refresh cookie once and replays the request.

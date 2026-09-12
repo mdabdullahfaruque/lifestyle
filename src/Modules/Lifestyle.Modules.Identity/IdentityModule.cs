@@ -30,6 +30,12 @@ public static class IdentityModule
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<ITotpService, TotpService>();
 
+        // Google's signing keys are fetched over HTTP and cached in memory. A named client keeps
+        // the timeout tight: a sign-in must not hang because Google is slow.
+        services.AddMemoryCache();
+        services.AddHttpClient(nameof(GoogleTokenValidator), c => c.Timeout = TimeSpan.FromSeconds(10));
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+
         services.AddValidatorsFromAssembly(typeof(IdentityModule).Assembly, includeInternalTypes: true);
         services.AddHandlersFromAssembly(typeof(IdentityModule).Assembly);
 
@@ -42,6 +48,7 @@ public static class IdentityModule
         var auth = app.MapGroup("/v1/auth").WithTags("Auth").RequireRateLimiting(RateLimitPolicies.Auth);
         Register.Map(auth);
         Login.Map(auth);
+        GoogleSignIn.Map(auth);
         RefreshSession.Map(auth);
         Logout.Map(auth);
         EnrolTwoFactor.Map(auth);

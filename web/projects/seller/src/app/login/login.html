@@ -32,6 +32,10 @@
       {{ busy() ? 'Signing in…' : 'Sign in' }}
     </button>
 
+    <div class="or"><span>or</span></div>
+
+    <lib-google-button (credential)="signInWithGoogle($event)" />
+
     <p class="auth__foot">
       Not selling yet? Sign in with your marketplace account and you can apply for a shop here.
     </p>

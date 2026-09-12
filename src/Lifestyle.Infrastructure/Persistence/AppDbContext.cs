@@ -48,11 +48,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     internal DbSet<Role> Roles => Set<Role>();
     internal DbSet<UserRole> UserRoles => Set<UserRole>();
     internal DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    internal DbSet<UserExternalLogin> UserExternalLogins => Set<UserExternalLogin>();
 
     DbSet<User> IIdentityDbContext.Users => Users;
     DbSet<Role> IIdentityDbContext.Roles => Roles;
     DbSet<UserRole> IIdentityDbContext.UserRoles => UserRoles;
     DbSet<RefreshToken> IIdentityDbContext.RefreshTokens => RefreshTokens;
+    DbSet<UserExternalLogin> IIdentityDbContext.UserExternalLogins => UserExternalLogins;
 
     // ── vendors ──
     internal DbSet<Vendor> Vendors => Set<Vendor>();

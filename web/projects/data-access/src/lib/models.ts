@@ -200,3 +200,18 @@ export interface ProblemDetails {
   traceId?: string;
   errors?: Record<string, string[]>;
 }
+
+/** One recorded administrative action. Append-only — audit rows are never edited or deleted. */
+export interface AuditEntry {
+  id: string;
+  occurredAt: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  actorUserId: string | null;
+  impersonatedBy: string | null;
+  vendorId: string | null;
+  ipAddress: string | null;
+  correlationId: string | null;
+  data: string | null;
+}

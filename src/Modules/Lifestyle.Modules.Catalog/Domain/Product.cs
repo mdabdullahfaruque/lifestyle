@@ -168,11 +168,52 @@ internal sealed class Product : AggregateRoot, ISoftDeletable
         UpdatedAt = now;
     }
 
-    public void RemoveImage(string mediaId, DateTimeOffset now)
+    /// <summary>
+    /// Removing the last image from a live product is refused.
+    /// <para>
+    /// <see cref="SubmitForReview"/> already guarantees a published product had an image when it
+    /// went live, but nothing stopped the vendor deleting it afterwards — which would leave an
+    /// empty tile in the marketplace grid, indistinguishable from a broken page. The rule belongs
+    /// here rather than in the endpoint because it is an invariant of "a product fit to be seen",
+    /// and the endpoint is not the only way images change.
+    /// </para>
+    /// </summary>
+    public Result RemoveImage(string mediaId, DateTimeOffset now)
     {
+        if (!_images.Any(i => i.MediaId == mediaId)) return Result.Success();
+
+        if (Status == ProductStatus.Published && _images.Count == 1)
+        {
+            return Error.Validation("catalog.last_image_required",
+                "A live product needs at least one image. Add another first, or take the product off the storefront.");
+        }
+
         _images.RemoveAll(i => i.MediaId == mediaId);
         Reindex();
         UpdatedAt = now;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces the whole image set. Same rule as <see cref="RemoveImage"/>: a live product may not
+    /// end up with none.
+    /// </summary>
+    public Result ReplaceImages(IReadOnlyList<(string MediaId, string? AltText)> images, DateTimeOffset now)
+    {
+        if (Status == ProductStatus.Published && images.Count == 0)
+        {
+            return Error.Validation("catalog.last_image_required",
+                "A live product needs at least one image. Take it off the storefront first if you want to remove them all.");
+        }
+
+        _images.Clear();
+        for (var i = 0; i < images.Count; i++)
+        {
+            _images.Add(ProductImage.Create(Id, images[i].MediaId, images[i].AltText, i));
+        }
+
+        UpdatedAt = now;
+        return Result.Success();
     }
 
     /// <summary>Reorders images to match the given media ids. Unknown ids are ignored.</summary>

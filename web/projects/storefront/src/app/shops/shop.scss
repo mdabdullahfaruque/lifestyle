@@ -87,3 +87,12 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.card__noimage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--border);
+  background: var(--tile);
+}

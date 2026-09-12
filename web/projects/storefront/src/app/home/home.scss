@@ -228,3 +228,14 @@
 
 .more__count { margin: 0; font-size: 0.85rem; }
 .more .pill:disabled { opacity: 0.6; }
+
+/* Fallback tile for a product with no image. Should never appear — the domain forbids it — but
+   an empty box in a retail grid reads as broken rather than as minimal. */
+.card__noimage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--border);
+  background: var(--tile);
+}

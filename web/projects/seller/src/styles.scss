@@ -187,3 +187,21 @@ img { max-width: 100%; display: block; }
 .auth__sub { margin: 0 0 1.25rem; color: var(--muted); font-size: 0.9rem; }
 .auth__card .btn { width: 100%; margin-top: 0.35rem; }
 .auth__foot { margin: 1rem 0 0; color: var(--muted); font-size: 0.82rem; }
+
+/* Divider between the password form and the external sign-in options. */
+.or {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1rem 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.or::before,
+.or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}

@@ -65,6 +65,25 @@ export class AuthStore {
   }
 
   /**
+   * Exchanges a Google ID token for a session.
+   *
+   * The browser never sees our own credentials here: Google Identity Services hands the page a
+   * signed ID token, and the server verifies it against Google's public keys. The admin surface
+   * refuses this endpoint outright, so an admin console calling it gets a 403 by design.
+   */
+  async loginWithGoogle(idToken: string, vendorId?: string): Promise<void> {
+    const response = await firstValueFrom(
+      this.http.post<AuthResponse>(
+        `${this.baseUrl}/v1/auth/google`,
+        { idToken, surface: this.surface, vendorId },
+        { withCredentials: true },
+      ),
+    );
+
+    this.apply(response);
+  }
+
+  /**
    * Exchanges the refresh cookie for a fresh access token. Called on app start and by the
    * interceptor after a 401. Resolves to false when there is no valid session, which is the normal
    * state for a first-time visitor rather than an error.

@@ -14,3 +14,31 @@
   border: 1px solid var(--border);
   flex: none;
 }
+
+.card { margin-top: 1rem; }
+.card h2 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+.hint { font-size: 0.85rem; margin: 0 0 1rem; }
+
+.brand { display: grid; gap: 1.2rem; }
+
+@media (min-width: 560px) {
+  .brand { grid-template-columns: auto 1fr; align-items: start; }
+}
+
+.brand__item { display: grid; gap: 0.45rem; min-width: 0; }
+
+.brand__preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--tile);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.brand__preview--logo { width: 96px; height: 96px; }
+.brand__preview--banner { height: 96px; }
+.brand__preview img { width: 100%; height: 100%; object-fit: cover; }
+.brand__empty { color: var(--muted); font-size: 0.78rem; }
+.brand__tools { display: flex; gap: 0.4rem; }
+.brand__tools .btn { cursor: pointer; }

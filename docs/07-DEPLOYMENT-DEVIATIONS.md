@@ -111,16 +111,23 @@ products, or reset the database entirely — no real data exists yet, so a clean
 
 ---
 
-## 6. Google sign-in gated on absent configuration — **T**
+## 6. Google sign-in — **built 2026-09-13**
 
-Being built for the **buyer and seller surfaces only**; admin stays password + TOTP deliberately, so
-a compromised Google account cannot become a compromised platform admin. Accounts auto-link to an
-existing password account when Google asserts `email_verified`.
+Live on the **buyer and seller** surfaces. The admin console refuses it outright — in the validator
+and again in the handler — because an admin can approve vendors, moderate the catalogue and take
+shops down, and a second way in means a compromised Google account is a compromised platform.
 
-Dormant until `Identity__Google__ClientId` is set in `deploy/.env` — the endpoint returns
-`identity.google_not_configured` and the SPA hides the button. **Owed by the user:** a Google Cloud
-OAuth 2.0 Client ID with `https://seller.mylifestylemart.com` and `https://mylifestylemart.com` as
-authorised JavaScript origins.
+An account resolves by Google's immutable `sub` first, then by matching verified email, then by
+creating one. Linking on email is safe **only** because the validator rejects a token whose
+`email_verified` is false; without that check this would be an account-takeover primitive.
+
+Enabled by `GOOGLE_CLIENT_ID` in `deploy/.env`. Blank disables it — the endpoint answers
+`identity.google_not_configured` and the button does not render, rather than half-working.
+
+**Owed:** the client id must be listed in Google Cloud with `https://seller.mylifestylemart.com`
+(and the marketplace origin, once buyers can sign in there) as authorised JavaScript origins, or
+Google refuses to render the button. **A Google-only account cannot set a password** —
+`ChangePassword` answers `identity.password_not_set`; a first-password flow is not built.
 
 ---
 
@@ -204,12 +211,13 @@ Built 2026-09-06. Both consoles are real applications now, but neither is comple
 create a product (category → attribute set → variants), submit for review, edit shop settings.
 Product editing now works: details, per-variant price and visibility, stock as a delta, image
 add/reorder/remove, submit, unpublish and delete. Editing is refused while a product is with a
-moderator. **Not built:** shop logo/banner upload, staff management, bulk CSV import.
+moderator. Shop logo and banner upload now work. **Not built:** staff management, bulk CSV import.
 
 **Admin** — sign in with TOTP, work the vendor queue (approve/reject with reason, open KYC
 documents, suspend and reinstate a shop), work the moderation queue (publish, reject, take down).
-**Not built:** category management, the audit log at `/v1/admin/audit`, and any paging beyond the
-first 100 rows.
+Category management (create, rename, reorder, show/hide, assign attribute set) and the audit log
+(filterable, paged, read-only) are now built. **Not built:** paging beyond the first 100 rows on
+the vendor and moderation queues.
 
 Neither console has automated tests.
 

@@ -11,6 +11,7 @@ internal sealed class User : AggregateRoot, ISoftDeletable
 {
     private readonly List<UserRole> _roles = [];
     private readonly List<RefreshToken> _refreshTokens = [];
+    private readonly List<UserExternalLogin> _externalLogins = [];
 
     private User() { }
 
@@ -18,7 +19,12 @@ internal sealed class User : AggregateRoot, ISoftDeletable
     public bool EmailVerified { get; private set; }
     public string? PhoneNumber { get; private set; }
     public bool PhoneVerified { get; private set; }
-    public string PasswordHash { get; private set; } = null!;
+    /// <summary>
+    /// Null for an account that has only ever signed in through an external provider. Password
+    /// login checks for null and refuses with the same generic error as a wrong password, so the
+    /// response cannot be used to discover which accounts are Google-only.
+    /// </summary>
+    public string? PasswordHash { get; private set; }
     public string FullName { get; private set; } = null!;
     public UserStatus Status { get; private set; } = UserStatus.Active;
 
@@ -35,6 +41,10 @@ internal sealed class User : AggregateRoot, ISoftDeletable
 
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
+    public IReadOnlyCollection<UserExternalLogin> ExternalLogins => _externalLogins.AsReadOnly();
+
+    /// <summary>True when this account can be signed into with a password at all.</summary>
+    public bool HasPassword => !string.IsNullOrEmpty(PasswordHash);
 
     public static User Register(string email, string passwordHash, string fullName, string? phoneNumber, DateTimeOffset now)
     {
@@ -50,6 +60,50 @@ internal sealed class User : AggregateRoot, ISoftDeletable
 
         user.Raise(new UserRegistered(user.Id, user.Email, user.FullName, now));
         return user;
+    }
+
+    /// <summary>
+    /// An account created by signing in with an external provider. It has no password — the
+    /// provider is the only way in until the owner sets one.
+    /// </summary>
+    public static User RegisterExternal(
+        string email, string fullName, string provider, string subject, bool emailVerified, DateTimeOffset now)
+    {
+        var user = new User
+        {
+            Email = email.Trim().ToLowerInvariant(),
+            PasswordHash = null,
+            FullName = fullName.Trim(),
+            EmailVerified = emailVerified,
+            Status = UserStatus.Active,
+            CreatedAt = now
+        };
+
+        user._externalLogins.Add(UserExternalLogin.Create(user.Id, provider, subject, now));
+        user.Raise(new UserRegistered(user.Id, user.Email, user.FullName, now));
+        return user;
+    }
+
+    /// <summary>
+    /// Links an external identity to an existing account. Idempotent, so signing in twice does not
+    /// accumulate duplicates.
+    /// </summary>
+    public void LinkExternalLogin(string provider, string subject, DateTimeOffset now)
+    {
+        if (_externalLogins.Any(l => l.Provider == provider && l.Subject == subject)) return;
+        _externalLogins.Add(UserExternalLogin.Create(Id, provider, subject, now));
+        UpdatedAt = now;
+    }
+
+    /// <summary>
+    /// An external provider asserting a verified email is proof of control of that address, which
+    /// is the same thing an email confirmation loop proves.
+    /// </summary>
+    public void MarkEmailVerifiedByProvider(DateTimeOffset now)
+    {
+        if (EmailVerified) return;
+        EmailVerified = true;
+        UpdatedAt = now;
     }
 
     public void AssignRole(Guid roleId, Guid? scopeId, DateTimeOffset now)

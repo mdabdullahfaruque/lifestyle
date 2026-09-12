@@ -44,4 +44,16 @@ public sealed class IdentityModuleOptions
     /// </para>
     /// </summary>
     public bool RequireTwoFactorOnAdmin { get; init; } = true;
+
+    /// <summary>
+    /// Google OAuth 2.0 **web client id**, the audience every Google ID token we accept must carry.
+    /// Blank disables Google sign-in entirely: the endpoint answers
+    /// <c>identity.google_not_configured</c> rather than half-working.
+    /// <para>
+    /// Public by nature — it ships in the browser bundle — so it is configuration, not a secret.
+    /// It still must be exact: accepting a token minted for a different Google app would let that
+    /// app's owner sign in as any of our users.
+    /// </para>
+    /// </summary>
+    public string? GoogleClientId { get; init; }
 }

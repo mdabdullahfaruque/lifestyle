@@ -53,3 +53,6 @@ TestResults/
 # ── OS ──────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# Claude Code — personal settings only; settings.json and skills/ are shared
+.claude/settings.local.json

@@ -13,6 +13,7 @@ internal interface IIdentityDbContext
     DbSet<Role> Roles { get; }
     DbSet<UserRole> UserRoles { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<UserExternalLogin> UserExternalLogins { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

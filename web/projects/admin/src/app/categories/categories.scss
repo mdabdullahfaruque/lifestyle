@@ -1,0 +1,47 @@
+:host { display: block; }
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.head h1 { font-size: 1.3rem; }
+.head p { margin: 0.2rem 0 0; font-size: 0.88rem; }
+
+.block { height: 220px; }
+.card { margin-bottom: 1rem; }
+.new h2 { font-size: 1.05rem; margin-bottom: 0.7rem; }
+.list { overflow-x: auto; padding: 0.4rem; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.7rem;
+}
+
+@media (min-width: 720px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.field--check { display: flex; align-items: center; gap: 0.45rem; margin-top: 1.5rem; font-size: 0.9rem; }
+.field--check input { width: auto; }
+
+.row-actions { display: flex; gap: 0.5rem; }
+.name { font-weight: 600; }
+.slug { font-size: 0.8rem; margin-left: 0.35rem; }
+
+.leaf {
+  margin-left: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+}
+
+.inactive { opacity: 0.55; }
+.right { text-align: right; }
+.edit-row td { background: var(--tile); }
+.edit { padding: 0.5rem 0.2rem; }

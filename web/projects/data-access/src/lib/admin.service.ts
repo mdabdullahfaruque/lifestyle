@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { API_BASE_URL } from 'auth';
 import { Observable } from 'rxjs';
-import { Paged, Product, ProductListItem, Vendor, VendorStatus } from './models';
+import { AuditEntry, Category, Paged, Product, ProductListItem, Vendor, VendorStatus } from './models';
 
 /** The row shape the vendor queue returns — narrower than a full Vendor. */
 export interface VendorListItem {
@@ -82,6 +82,51 @@ export class AdminService {
     return this.http.post<Product>(`${this.baseUrl}/v1/admin/catalog/products/${productId}/moderate`, {
       approve,
       note: note ?? null,
+    });
+  }
+
+  // ── Categories ──
+
+  createCategory(request: {
+    name: string;
+    parentId?: string | null;
+    sortOrder: number;
+    attributeSetId?: string | null;
+    iconMediaId?: string | null;
+  }): Observable<Category> {
+    return this.http.post<Category>(`${this.baseUrl}/v1/admin/catalog/categories`, request);
+  }
+
+  updateCategory(
+    categoryId: string,
+    request: {
+      name: string;
+      sortOrder: number;
+      isActive: boolean;
+      attributeSetId?: string | null;
+      iconMediaId?: string | null;
+    },
+  ): Observable<Category> {
+    return this.http.put<Category>(`${this.baseUrl}/v1/admin/catalog/categories/${categoryId}`, request);
+  }
+
+  // ── Audit ──
+
+  /** Append-only record of administrative actions. Read-only by design. */
+  auditEntries(
+    query: {
+      action?: string;
+      entityType?: string;
+      entityId?: string;
+      actorUserId?: string;
+      from?: string;
+      to?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ): Observable<Paged<AuditEntry>> {
+    return this.http.get<Paged<AuditEntry>>(`${this.baseUrl}/v1/admin/audit`, {
+      params: this.params(query),
     });
   }
 

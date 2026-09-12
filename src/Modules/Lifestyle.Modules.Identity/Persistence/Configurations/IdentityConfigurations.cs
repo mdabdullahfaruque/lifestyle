@@ -18,7 +18,8 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(u => u.PhoneNumber).HasMaxLength(32);
         b.HasIndex(u => u.PhoneNumber).IsUnique().HasFilter("phone_number IS NOT NULL AND deleted_at IS NULL");
 
-        b.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
+        // Nullable: an account created through an external provider has never had a password.
+        b.Property(u => u.PasswordHash).HasMaxLength(256);
         b.Property(u => u.FullName).HasMaxLength(200).IsRequired();
         b.Property(u => u.Status).HasConversion<int>();
         b.Property(u => u.TwoFactorSecret).HasMaxLength(128);
@@ -28,6 +29,11 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         b.HasMany(u => u.Roles)
             .WithOne()
             .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.HasMany(u => u.ExternalLogins)
+            .WithOne()
+            .HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
         b.HasMany(u => u.RefreshTokens)
@@ -105,4 +111,23 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
 internal static class IdentitySchema
 {
     public const string Name = "identity";
+}
+
+internal sealed class UserExternalLoginConfiguration : IEntityTypeConfiguration<UserExternalLogin>
+{
+    public void Configure(EntityTypeBuilder<UserExternalLogin> b)
+    {
+        b.ToTable("user_external_logins", IdentitySchema.Name);
+        b.HasKey(l => l.Id);
+
+        b.Property(l => l.Provider).HasMaxLength(32).IsRequired();
+        b.Property(l => l.Subject).HasMaxLength(256).IsRequired();
+
+        // One account per provider identity, enforced by the database rather than by remembering
+        // to check: two users sharing a Google subject would mean either could sign in as the other.
+        b.HasIndex(l => new { l.Provider, l.Subject }).IsUnique();
+
+        // A user links a given provider at most once.
+        b.HasIndex(l => new { l.UserId, l.Provider }).IsUnique();
+    }
 }

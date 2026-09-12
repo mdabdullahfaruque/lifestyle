@@ -52,7 +52,16 @@ internal static class ChangePassword
 
             if (user is null) return Error.NotFound("identity.user_not_found");
 
-            if (passwords.Verify(user.PasswordHash, request.CurrentPassword) == PasswordVerificationResult.Failed)
+            // This account signed up through an external provider and has never had a password, so
+            // there is no current one to verify. Setting a first password from here is not built —
+            // recorded in docs/07 — and silently accepting any "current password" would be worse.
+            if (!user.HasPassword)
+            {
+                return Error.Validation("identity.password_not_set",
+                    "This account signs in with Google and has no password to change.");
+            }
+
+            if (passwords.Verify(user.PasswordHash!, request.CurrentPassword) == PasswordVerificationResult.Failed)
                 return Error.Validation("identity.current_password_invalid", "Your current password is incorrect.");
 
             // SetPasswordHash also revokes every active refresh token — changing a password is how

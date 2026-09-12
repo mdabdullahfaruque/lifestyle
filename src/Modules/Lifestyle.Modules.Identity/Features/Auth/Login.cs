@@ -71,7 +71,12 @@ internal static class Login
             if (user.Status == UserStatus.Suspended)
                 return Error.Forbidden("identity.account_suspended", "This account has been suspended.");
 
-            var verification = passwords.Verify(user.PasswordHash, request.Password);
+            // A Google-only account has no password. Answering with the same generic error as a
+            // wrong password keeps the response from revealing which accounts those are.
+            if (!user.HasPassword)
+                return Error.Unauthorized("identity.invalid_credentials", "Email or password is incorrect.");
+
+            var verification = passwords.Verify(user.PasswordHash!, request.Password);
             if (verification == PasswordVerificationResult.Failed)
             {
                 user.RecordFailedLogin(now);

@@ -2,12 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthStore } from 'auth';
+import { AuthStore, GoogleButton } from 'auth';
 import { ProblemDetails } from 'data-access';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule],
+  imports: [FormsModule, GoogleButton],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -24,6 +24,26 @@ export class Login {
 
   /** Shown only once the server says this account has 2FA — asking everyone up front is noise. */
   protected readonly needsTotp = signal(false);
+
+  /**
+   * Google hands us a signed ID token; the server does every check that matters. A failure here is
+   * shown in the same place as a password failure, because to the seller it is the same event:
+   * "I tried to sign in and could not."
+   */
+  protected async signInWithGoogle(credential: string): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      await this.auth.loginWithGoogle(credential);
+      await this.router.navigateByUrl('/');
+    } catch (err) {
+      this.handle(err);
+    } finally {
+      this.busy.set(false);
+    }
+  }
 
   protected async submit(): Promise<void> {
     if (this.busy()) return;
@@ -58,6 +78,17 @@ export class Login {
         return;
       case 'identity.totp_enrolment_required':
         this.error.set('This account must set up two-factor authentication before signing in.');
+        return;
+      case 'identity.google_not_configured':
+        this.error.set('Google sign-in is not switched on for this deployment yet.');
+        return;
+      case 'identity.google_token_invalid':
+        this.error.set('That Google sign-in could not be verified. Please try again.');
+        return;
+      case 'identity.google_email_unverified':
+        this.error.set(
+          "This Google account's email address is not verified, so it cannot be used to sign in.",
+        );
         return;
       case 'identity.invalid_credentials':
         this.error.set('Email or password is incorrect.');
