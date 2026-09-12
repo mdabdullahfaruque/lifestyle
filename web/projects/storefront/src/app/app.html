@@ -1,7 +1,9 @@
 <!-- Search-first chrome: the value-retail direction puts search in the header, not behind an icon. -->
 <header class="top">
   <div class="shell top__inner">
-    <a routerLink="/" class="brand display">{{ i18n.t('brand.name') }}</a>
+    <a routerLink="/" class="brand" [attr.aria-label]="i18n.t('brand.name')">
+      <lib-brand-logo [height]="40" [label]="''" />
+    </a>
 
     <form class="search" role="search" (ngSubmit)="submitSearch()">
       <svg class="search__icon" viewBox="0 0 20 20" aria-hidden="true">
@@ -39,7 +41,7 @@
 <footer class="foot">
   <div class="shell foot__inner">
     <div>
-      <p class="foot__brand display">{{ i18n.t('brand.name') }}</p>
+      <lib-brand-logo class="foot__brand" [height]="34" [eager]="false" />
       <p class="muted foot__note">{{ i18n.t('footer.note') }}</p>
     </div>
     <nav class="foot__links" aria-label="Footer">

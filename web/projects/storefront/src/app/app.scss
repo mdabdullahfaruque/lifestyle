@@ -8,12 +8,19 @@
   :host { padding-bottom: 0; }
 }
 
+/* White header, not cobalt.
+ *
+ * The logo is dark-blue-and-orange on white, so on a cobalt bar it reads as a white rectangle
+ * pasted onto the header. A white ground lets the mark carry the brand colour itself, and cobalt
+ * stays where the direction sheet actually puts it — the CTAs, the active nav, the search button.
+ */
 .top {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--accent);
-  color: #fff;
+  background: #fff;
+  color: var(--ink);
+  border-bottom: 1px solid var(--border);
 }
 
 .top__inner {
@@ -25,11 +32,15 @@
 }
 
 .brand {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.02em;
   flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 520px) {
+  /* Below this the lockup and the search field fight for the row; the search field wins, because
+     the value-retail direction is search-first. */
+  .brand lib-brand-logo { height: 32px; }
 }
 
 .search {
@@ -38,9 +49,15 @@
   align-items: center;
   gap: 0.5rem;
   background: #fff;
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  padding: 0.5rem 0.9rem;
+  padding: 0.45rem 0.5rem 0.45rem 0.9rem;
   min-width: 0;
+}
+
+.search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .search__icon {
@@ -76,18 +93,19 @@
   color: #fff;
   border: 0;
   border-radius: var(--radius-pill);
-  padding: 0.32rem 0.85rem;
+  padding: 0.42rem 1rem;
   font-weight: 700;
   font-size: 0.85rem;
-  margin-right: -0.5rem;
 }
 
 .top__shops {
   flex: none;
-  color: #fff;
+  color: var(--ink);
   font-weight: 700;
   font-size: 0.92rem;
 }
+
+.top__shops:hover { color: var(--accent); }
 
 @media (max-width: 620px) {
   .top__shops { display: none; }
@@ -123,8 +141,8 @@
 .foot__links a:hover { color: var(--accent); }
 
 .foot__brand {
-  font-size: 1.05rem;
-  margin-bottom: 0.35rem;
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
 .foot__note {
@@ -174,7 +192,8 @@
   flex: none;
   display: flex;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--tile);
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   padding: 2px;
 }
@@ -182,7 +201,7 @@
 .lang__btn {
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--muted);
   font-weight: 700;
   font-size: 0.78rem;
   padding: 0.22rem 0.55rem;
@@ -191,6 +210,6 @@
 }
 
 .lang__btn--on {
-  background: #fff;
-  color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }

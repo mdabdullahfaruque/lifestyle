@@ -205,3 +205,8 @@ img { max-width: 100%; display: block; }
   height: 1px;
   background: var(--border);
 }
+
+/* The brand lockup replaces what used to be a typed wordmark, in both the sidebar and the
+   login card. Sizing comes from the component's height input; these only handle spacing. */
+.side__brand { display: block; margin-bottom: 0.15rem; }
+.auth__brand { display: block; margin-bottom: 1rem; }

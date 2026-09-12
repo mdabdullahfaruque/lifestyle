@@ -3,11 +3,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthStore, GoogleButton } from 'auth';
+import { BrandLogo } from 'ui';
 import { ProblemDetails } from 'data-access';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, GoogleButton],
+  imports: [FormsModule, GoogleButton, BrandLogo],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

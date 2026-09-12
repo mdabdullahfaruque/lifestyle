@@ -2,13 +2,14 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { I18nStore, Locale } from 'i18n';
+import { BrandLogo } from 'ui';
 import { filter } from 'rxjs';
 
 import { ShellStore } from './shell';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, BrandLogo],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

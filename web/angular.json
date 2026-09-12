@@ -30,6 +30,16 @@
               {
                 "glob": "**/*",
                 "input": "projects/storefront/public"
+              },
+              {
+                "glob": "**/*",
+                "input": "assets/brand",
+                "output": "brand",
+                "ignore": [
+                  "logo-source.png",
+                  "generate.mjs",
+                  "README.md"
+                ]
               }
             ],
             "styles": [
@@ -102,6 +112,16 @@
               {
                 "glob": "**/*",
                 "input": "projects/storefront/public"
+              },
+              {
+                "glob": "**/*",
+                "input": "assets/brand",
+                "output": "brand",
+                "ignore": [
+                  "logo-source.png",
+                  "generate.mjs",
+                  "README.md"
+                ]
               }
             ],
             "styles": [
@@ -135,6 +155,16 @@
               {
                 "glob": "**/*",
                 "input": "projects/seller/public"
+              },
+              {
+                "glob": "**/*",
+                "input": "assets/brand",
+                "output": "brand",
+                "ignore": [
+                  "logo-source.png",
+                  "generate.mjs",
+                  "README.md"
+                ]
               }
             ],
             "styles": [
@@ -199,6 +229,16 @@
               {
                 "glob": "**/*",
                 "input": "projects/seller/public"
+              },
+              {
+                "glob": "**/*",
+                "input": "assets/brand",
+                "output": "brand",
+                "ignore": [
+                  "logo-source.png",
+                  "generate.mjs",
+                  "README.md"
+                ]
               }
             ],
             "styles": [
@@ -232,6 +272,16 @@
               {
                 "glob": "**/*",
                 "input": "projects/admin/public"
+              },
+              {
+                "glob": "**/*",
+                "input": "assets/brand",
+                "output": "brand",
+                "ignore": [
+                  "logo-source.png",
+                  "generate.mjs",
+                  "README.md"
+                ]
               }
             ],
             "styles": [
@@ -296,6 +346,16 @@
               {
                 "glob": "**/*",
                 "input": "projects/admin/public"
+              },
+              {
+                "glob": "**/*",
+                "input": "assets/brand",
+                "output": "brand",
+                "ignore": [
+                  "logo-source.png",
+                  "generate.mjs",
+                  "README.md"
+                ]
               }
             ],
             "styles": [

@@ -1,10 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthStore } from 'auth';
+import { BrandLogo } from 'ui';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, BrandLogo],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
