@@ -90,11 +90,52 @@ const square = await sharp({
 
 await sharp(square).resize(512, 512).png({ compressionLevel: 9 }).toFile(join(OUT, "logo-mark.png"));
 
-// 3. Favicons. 32px is what a browser tab actually renders; 180px is the iOS home-screen icon.
+// 3. Horizontal lockup — mark beside wordmark, for slim chrome.
+//
+// The supplied lockup is stacked: cart above wordmark above tagline, roughly 2:1. Constrained to a
+// 40px-tall header that leaves the wordmark about six pixels high and unreadable. Re-composing the
+// same two pieces side by side gives roughly 4.5:1, so at the same height the name is legible.
+// Still derived from the one source — not a separately drawn asset that could drift.
+const wordTop = Math.round(t.height * 0.635);
+const wordmark = await sharp(trimmed)
+  // Down to the baseline of the wordmark: the tagline is too small to survive header sizing and
+  // only makes the lockup taller.
+  .extract({ left: 0, top: wordTop, width: t.width, height: Math.round(t.height * 0.235) })
+  .trim({ threshold: 10 })
+  .toBuffer();
+
+const w = await sharp(wordmark).metadata();
+const markH = Math.round(w.height * 2.1);        // the cart reads as the taller element
+const markW = Math.round((m.width / m.height) * markH);
+const gap = Math.round(markH * 0.16);
+const padY = Math.round(markH * 0.08);
+
+await sharp({
+  create: {
+    width: markW + gap + w.width,
+    height: markH + padY * 2,
+    channels: 4,
+    background: { r: 255, g: 255, b: 255, alpha: 0 },
+  },
+})
+  .composite([
+    { input: await sharp(mark).resize({ height: markH }).toBuffer(), left: 0, top: padY },
+    {
+      input: wordmark,
+      left: markW + gap,
+      top: padY + Math.round((markH - w.height) / 2),
+    },
+  ])
+  .png({ compressionLevel: 9 })
+  .toFile(join(OUT, 'logo-horizontal.png'));
+
+console.log(`horizontal lockup: ${markW + gap + w.width}x${markH + padY * 2}`);
+
+// 4. Favicons. 32px is what a browser tab actually renders; 180px is the iOS home-screen icon.
 await sharp(square).resize(32, 32).png().toFile(join(OUT, "favicon-32.png"));
 await sharp(square).resize(180, 180).png().toFile(join(OUT, "apple-touch-icon.png"));
 
-// 4. Social preview. 1200x630 is the size every scraper expects; the lockup is centred on white
+// 5. Social preview. 1200x630 is the size every scraper expects; the lockup is centred on white
 //    rather than stretched, so it is never distorted by the aspect change.
 await sharp({
   create: { width: 1200, height: 630, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
@@ -105,4 +146,4 @@ await sharp({
   .png({ compressionLevel: 9 })
   .toFile(join(OUT, "og-image.png"));
 
-console.log('wrote logo.png, logo-mark.png, favicon-32.png, apple-touch-icon.png, og-image.png');
+console.log('wrote logo.png, logo-horizontal.png, logo-mark.png, favicon-32.png, apple-touch-icon.png, og-image.png');

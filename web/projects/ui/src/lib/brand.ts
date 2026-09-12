@@ -4,12 +4,17 @@ import { Component, InjectionToken, computed, inject, input } from '@angular/cor
  * Where the brand assets are served from, and what they are called.
  *
  * Every app provides this once, so changing the logo is changing one file on disk
- * (`web/assets/brand/logo.png`) — or, if a deployment needs a different brand entirely, overriding
+ * (`web/assets/brand/logo-source.png`) — or, if a deployment needs a different brand entirely, overriding
  * this token in that app's `app.config.ts`. Nothing else in the codebase names a logo file.
  */
 export interface BrandAssets {
-  /** Full lockup: mark plus wordmark. Used wherever there is horizontal room. */
+  /** Stacked lockup: mark over wordmark over tagline. For a login card or a hero. */
   logo: string;
+  /**
+   * Mark beside wordmark. For slim chrome — a header constrains height, and the stacked lockup
+   * at 40px leaves the name about six pixels tall and unreadable.
+   */
+  horizontal: string;
   /** The mark alone. Used where the lockup would be illegible — a tight header, an avatar. */
   mark: string;
   /** Accessible name. Not decorative: the logo is usually also the link home. */
@@ -20,6 +25,7 @@ export const BRAND_ASSETS = new InjectionToken<BrandAssets>('lifestyle.brand', {
   providedIn: 'root',
   factory: () => ({
     logo: '/brand/logo.png',
+    horizontal: '/brand/logo-horizontal.png',
     mark: '/brand/logo-mark.png',
     name: 'MyLifestyleMart',
   }),
@@ -56,8 +62,11 @@ export const BRAND_ASSETS = new InjectionToken<BrandAssets>('lifestyle.brand', {
 export class BrandLogo {
   private readonly assets = inject(BRAND_ASSETS);
 
-  /** `full` is the lockup; `mark` is the cart on its own. */
-  readonly variant = input<'full' | 'mark'>('full');
+  /**
+   * `horizontal` for chrome, `full` for a login card or hero, `mark` where even the name will
+   * not fit — a favicon-sized slot or an avatar.
+   */
+  readonly variant = input<'horizontal' | 'full' | 'mark'>('horizontal');
   readonly height = input(36);
   readonly eager = input(true);
 
@@ -68,9 +77,16 @@ export class BrandLogo {
    */
   readonly label = input<string | null>(null);
 
-  protected readonly src = computed(() =>
-    this.variant() === 'mark' ? this.assets.mark : this.assets.logo,
-  );
+  protected readonly src = computed(() => {
+    switch (this.variant()) {
+      case 'mark':
+        return this.assets.mark;
+      case 'full':
+        return this.assets.logo;
+      default:
+        return this.assets.horizontal;
+    }
+  });
 
   protected readonly alt = computed(() => this.label() ?? this.assets.name);
 }
