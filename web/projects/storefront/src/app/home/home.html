@@ -17,7 +17,7 @@
   </button>
   @for (c of filters(); track c.id) {
     <button type="button" class="pill" [class.pill--selected]="activeCategory() === c.id" (click)="selectCategory(c.id)">
-      {{ c.name }}
+      {{ categoryName(c) }}
     </button>
   }
 </nav>

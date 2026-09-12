@@ -77,6 +77,25 @@ export class I18nStore {
     );
   }
 
+  /**
+   * Translation with an explicit fallback, for text that comes from the server.
+   *
+   * Platform-owned names — category labels, say — can be translated here because the set is small
+   * and we own it. Vendor-supplied text (product names, shop descriptions) cannot: it is whatever
+   * the seller typed, in whatever language they typed it, and inventing a translation key for it
+   * would either show the raw key or silently mistranslate a seller's own words.
+   */
+  tOr(key: string, fallback: string, params?: Record<string, string | number>): string {
+    const locale = this.current();
+    const hit = this.catalogues[locale]?.[key] ?? this.catalogues.en?.[key];
+    if (hit === undefined) return fallback;
+    return params
+      ? hit.replace(/\{(\w+)\}/g, (whole, name: string) =>
+          params[name] === undefined ? whole : String(params[name]),
+        )
+      : hit;
+  }
+
   /** Digits in the reader's script: ৳১,৮৯০ rather than ৳1,890 for a Bangla reader. */
   formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
     return value.toLocaleString(this.bcp47(), options);

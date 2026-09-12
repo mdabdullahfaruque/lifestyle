@@ -59,7 +59,10 @@ export class Home {
   });
 
   protected readonly activeCategoryName = computed(
-    () => this.filters().find((c) => c.id === this.activeCategory())?.name ?? null,
+    () => {
+      const hit = this.filters().find((c) => c.id === this.activeCategory());
+      return hit ? this.categoryName(hit) : null;
+    },
   );
 
   protected readonly isFiltered = computed(() => !!this.search().trim() || !!this.activeCategory());
@@ -74,6 +77,14 @@ export class Home {
       this.page.set(1);
       void this.load(false);
     });
+  }
+
+  /**
+   * Category labels are platform-owned, so they are translated; the fallback is the API's own name
+   * so a category added later shows correctly in English rather than as a raw key.
+   */
+  protected categoryName(c: Category): string {
+    return this.i18n.tOr(`category.${c.slug}`, c.name);
   }
 
   protected countLabel(): string {

@@ -33,6 +33,16 @@ const en: Messages = {
   'home.heroTitle': 'The Festive Edit',
   'home.heroSub': 'Shops across Bangladesh, one place. Order straight from the seller on WhatsApp.',
   'home.all': 'All',
+
+  // Platform categories, keyed by slug. Seeded by CatalogSeeder, so the set is ours and fixed —
+  // unlike product names, which are whatever a vendor typed.
+  'category.fashion': 'Fashion',
+  'category.ladies-dresses': "Ladies' Dresses",
+  'category.ladies-bags': "Ladies' Bags",
+  'category.shoes': 'Shoes',
+  'category.electronics': 'Electronics',
+  'category.mobile-accessories': 'Mobile Accessories',
+
   'home.freshThisWeek': 'Fresh this week',
   'home.resultsFor': 'Results for “{term}”',
   'home.itemCount': '{count} items',
@@ -110,6 +120,14 @@ const bn: Messages = {
   'home.heroTitle': 'উৎসব সংগ্রহ',
   'home.heroSub': 'সারা বাংলাদেশের শপ, এক জায়গায়। সরাসরি বিক্রেতার কাছ থেকে হোয়াটসঅ্যাপে অর্ডার করুন।',
   'home.all': 'সব',
+
+  'category.fashion': 'ফ্যাশন',
+  'category.ladies-dresses': 'নারীদের পোশাক',
+  'category.ladies-bags': 'নারীদের ব্যাগ',
+  'category.shoes': 'জুতা',
+  'category.electronics': 'ইলেকট্রনিক্স',
+  'category.mobile-accessories': 'মোবাইল এক্সেসরিজ',
+
   'home.freshThisWeek': 'এই সপ্তাহের নতুন',
   'home.resultsFor': '“{term}” এর ফলাফল',
   'home.itemCount': '{count}টি পণ্য',

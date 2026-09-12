@@ -155,7 +155,7 @@ A placeholder comment marks the spot in the api site file.
 
 | # | Gap | Consequence |
 |---|---|---|
-| **G1** | **No off-host backup.** `BACKUP_RSYNC_TARGET` is blank and no cron is installed. `backup.sh` and `restore-test.sh` both pass by hand. The media bind mount (item 2) is not in the dump either. | Losing the host loses everything. docs/03 §10.1 calls this the single most important gap. **Do before the first real vendor.** |
+| **G1** | **Backups never leave the host.** A nightly dump + media archive and a weekly restore test are now on cron (2am / 4am Sunday), and the dump now carries the uploads alongside it — but `BACKUP_RSYNC_TARGET` and `BACKUP_S3_BUCKET` are still empty, so every copy sits on the same disk as the data. | Losing the host still loses everything. docs/03 §10.1 calls this the single most important gap. **Needs a second machine or an S3 bucket from the user — it cannot be closed from here.** |
 | **G2** | **No monitoring.** No uptime check on `/v1/internal/health`, no disk alert. | You learn of outages from vendors. |
 | **G3** | **nginx site files are not in the repo.** They live only on the server; the repo still carries only `deploy/Caddyfile`. | A host rebuild loses them. Copy them into `deploy/nginx/` and reference them from docs/05. |
 | **G5** | **Three PropertyMart certificates use `authenticator = standalone`**, which needs port 80 free — nginx holds it. Not Lifestyle's, but on the same box. | Those renewals will likely fail. Convert them to `--webroot`. |
@@ -165,6 +165,22 @@ A placeholder comment marks the spot in the api site file.
 
 ---
 
+## Localisation
+
+The storefront is **bilingual (English + Bangla)**, locale remembered per visitor, defaulting from
+the browser. Prices render in the reader's numerals — ৳১,৮৯০ for a Bangla reader — via `Intl` on a
+`bn-BD` tag. Platform category names are translated by slug; the WhatsApp order message is composed
+in the buyer's language, since it is read by a Bangladeshi seller.
+
+**Not localised, deliberately:** vendor-supplied text — product names, descriptions, shop
+`about` — is whatever the seller typed, in whatever language they typed it. Translating it would
+either invent content or mistranslate a seller's own words. Per-locale vendor content is a schema
+feature, not a UI one, and is not built.
+
+**The seller and admin consoles are English-only.** The i18n mechanism is shared and ready, so
+translating them is mechanical, but their strings are not in a catalogue yet. That is a real gap
+for Bangladeshi sellers and should not be left indefinitely.
+
 ## Storefront coverage — what the marketplace does and does not do
 
 Brought to demo standard 2026-09-12. Working: search (query-string driven, so a filtered grid
@@ -172,8 +188,8 @@ survives a reload and can be shared), category filter, sort, deal badges with st
 availability bands, the shop directory, a shop profile in the vendor's own accent, and the product
 page with variant pills and the WhatsApp order deep link.
 
-**Not built:** paging (the grid takes the first 48 and stops), buyer accounts, saved items, cart or
-checkout — v1 ordering is WhatsApp by design (Plan §6.2) — reviews, and vendor custom domains.
+**Not built:** buyer accounts, saved items, cart or checkout — v1 ordering is WhatsApp by design
+(Plan §6.2) — reviews, and vendor custom domains. Paging now works (24 at a time, with a count).
 
 **Product imagery is drawn, not photographed.** `scratchpad/art.mjs` renders flat SVG
 illustrations per product type and colourway, rasterised to PNG. They read as catalogue art rather
@@ -186,13 +202,14 @@ Built 2026-09-06. Both consoles are real applications now, but neither is comple
 
 **Seller** — sign in, apply for a shop, upload KYC, submit, see review status, list products,
 create a product (category → attribute set → variants), submit for review, edit shop settings.
-**Not built:** editing an existing product, stock adjustment (`adjustStock` exists in the service
-and is unused), image reordering, logo/banner upload, staff management.
+Product editing now works: details, per-variant price and visibility, stock as a delta, image
+add/reorder/remove, submit, unpublish and delete. Editing is refused while a product is with a
+moderator. **Not built:** shop logo/banner upload, staff management, bulk CSV import.
 
 **Admin** — sign in with TOTP, work the vendor queue (approve/reject with reason, open KYC
-documents), work the moderation queue (publish, reject, take down). **Not built:** vendor
-suspension (`setSuspension` exists in the service and is unused), category management, the audit
-log at `/v1/admin/audit`, and any paging beyond the first 100 rows.
+documents, suspend and reinstate a shop), work the moderation queue (publish, reject, take down).
+**Not built:** category management, the audit log at `/v1/admin/audit`, and any paging beyond the
+first 100 rows.
 
 Neither console has automated tests.
 
