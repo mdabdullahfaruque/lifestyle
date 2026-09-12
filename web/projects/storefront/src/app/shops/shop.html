@@ -1,8 +1,8 @@
 @if (failed()) {
   <div class="shell state">
-    <h1>Shop not found</h1>
-    <p class="muted">It may have closed, or the link is wrong.</p>
-    <a class="pill pill--primary" routerLink="/shops">All shops</a>
+    <h1>{{ i18n.t('shop.notFound') }}</h1>
+    <p class="muted">{{ i18n.t('shop.notFoundBody') }}</p>
+    <a class="pill pill--primary" routerLink="/shops">{{ i18n.t('shop.allShops') }}</a>
   </div>
 } @else if (loading()) {
   <div class="shell">
@@ -25,8 +25,8 @@
       <div class="banner__text">
         <h1 class="banner__name">{{ s.displayName }}</h1>
         <p class="banner__meta">
-          <span class="verified">Verified seller</span>
-          <span class="muted">· {{ products().length }} {{ products().length === 1 ? 'product' : 'products' }}</span>
+          <span class="verified">{{ i18n.t('product.verifiedSeller') }}</span>
+          <span class="muted">· {{ productCountLabel() }}</span>
         </p>
       </div>
     </div>
@@ -38,7 +38,7 @@
     }
 
     @if (!products().length) {
-      <p class="state">This shop has not published anything yet.</p>
+      <p class="state">{{ i18n.t('shop.nothingPublished') }}</p>
     } @else {
       <div class="grid">
         @for (p of products(); track p.id) {
@@ -48,7 +48,7 @@
                 <img [src]="media.url(id, 'card')" [alt]="p.name" loading="lazy"
                      (error)="media.fallbackToOriginal($event, id)" />
               }
-              @if (saving(p); as pct) { <span class="save">SAVE {{ pct }}%</span> }
+              @if (saving(p); as pct) { <span class="save">{{ i18n.t('price.save', { percent: i18n.formatNumber(pct) }) }}</span> }
             </div>
             <p class="card__prices">
               <span class="price-now">{{ label(p) }}</span>

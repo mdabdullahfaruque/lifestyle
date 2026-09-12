@@ -96,6 +96,59 @@ export class VendorService {
     return this.http.post<Product>(`${this.baseUrl}/v1/vendor/products`, request);
   }
 
+  /** Basics only. Variants, images and stock each have their own endpoint. */
+  updateProduct(
+    productId: string,
+    request: {
+      categoryId: string;
+      name: string;
+      description?: string | null;
+      shortDescription?: string | null;
+      brand?: string | null;
+      attributes?: Record<string, string>;
+    },
+  ): Observable<Product> {
+    return this.http.put<Product>(`${this.baseUrl}/v1/vendor/products/${productId}`, request);
+  }
+
+  /** Request order is display order — the first image is what the grid shows. */
+  setProductImages(
+    productId: string,
+    images: { mediaId: string; altText?: string | null }[],
+  ): Observable<Product> {
+    return this.http.put<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/images`, { images });
+  }
+
+  addVariant(productId: string, variant: VariantInput): Observable<Product> {
+    return this.http.post<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/variants`, variant);
+  }
+
+  updateVariant(
+    productId: string,
+    variantId: string,
+    variant: { price: number; compareAtPrice?: number | null; isActive: boolean },
+  ): Observable<Product> {
+    return this.http.put<Product>(
+      `${this.baseUrl}/v1/vendor/products/${productId}/variants/${variantId}`,
+      variant,
+    );
+  }
+
+  removeVariant(productId: string, variantId: string): Observable<Product> {
+    return this.http.delete<Product>(
+      `${this.baseUrl}/v1/vendor/products/${productId}/variants/${variantId}`,
+    );
+  }
+
+  /** Pulls a live product off the storefront without deleting it. */
+  unpublishProduct(productId: string): Observable<Product> {
+    return this.http.post<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/unpublish`, {});
+  }
+
+  deleteProduct(productId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/v1/vendor/products/${productId}`);
+  }
+
   submitProduct(productId: string): Observable<Product> {
     return this.http.post<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/submit`, {});
   }

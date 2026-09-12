@@ -3,17 +3,17 @@
 @if (!isFiltered()) {
   <section class="hero shell">
     <div class="hero__card">
-      <p class="hero__kicker">UP TO 25% OFF</p>
-      <h1 class="hero__title">The Festive Edit</h1>
-      <p class="hero__sub">Shops across Bangladesh, one place. Order straight from the seller on WhatsApp.</p>
+      <p class="hero__kicker">{{ i18n.t('home.heroKicker') }}</p>
+      <h1 class="hero__title">{{ i18n.t('home.heroTitle') }}</h1>
+      <p class="hero__sub">{{ i18n.t('home.heroSub') }}</p>
     </div>
   </section>
 }
 
-<nav class="rail shell" aria-label="Categories">
+<nav class="rail shell" [attr.aria-label]="i18n.t('nav.browse')">
   <button type="button" class="pill" [class.pill--selected]="activeCategory() === null && !search()"
           (click)="selectCategory(null)">
-    All
+    {{ i18n.t('home.all') }}
   </button>
   @for (c of filters(); track c.id) {
     <button type="button" class="pill" [class.pill--selected]="activeCategory() === c.id" (click)="selectCategory(c.id)">
@@ -27,27 +27,27 @@
     <div class="sec__left">
       <h2 class="sec__title">
         @if (search()) {
-          Results for “{{ search() }}”
+          {{ i18n.t('home.resultsFor', { term: search() }) }}
         } @else if (activeCategoryName(); as name) {
           {{ name }}
         } @else {
-          Fresh this week
+          {{ i18n.t('home.freshThisWeek') }}
         }
       </h2>
       @if (!loading() && !failed()) {
-        <span class="muted sec__count">{{ total() }} {{ total() === 1 ? 'item' : 'items' }}</span>
+        <span class="muted sec__count">{{ countLabel() }}</span>
       }
     </div>
 
     <div class="sec__right">
       @if (isFiltered()) {
-        <button type="button" class="linkish" (click)="clearFilters()">Clear</button>
+        <button type="button" class="linkish" (click)="clearFilters()">{{ i18n.t('home.clear') }}</button>
       }
       <label class="sort">
-        <span class="visually-hidden">Sort by</span>
+        <span class="visually-hidden">{{ i18n.t('home.sortBy') }}</span>
         <select [value]="sort()" (change)="changeSort($any($event.target).value)">
           @for (s of sorts; track s.value) {
-            <option [value]="s.value">{{ s.label }}</option>
+            <option [value]="s.value">{{ i18n.t(s.key) }}</option>
           }
         </select>
       </label>
@@ -55,7 +55,7 @@
   </header>
 
   @if (failed()) {
-    <p class="state">Could not reach the catalogue just now. Please refresh.</p>
+    <p class="state">{{ i18n.t('home.loadFailed') }}</p>
   } @else if (loading()) {
     <div class="grid">
       @for (s of skeletons; track s) {
@@ -68,15 +68,17 @@
     </div>
   } @else if (!products().length) {
     <div class="state">
-      <p class="state__title">Nothing matched.</p>
+      <p class="state__title">{{ i18n.t('home.nothingMatched') }}</p>
       <p class="muted">
         @if (search()) {
-          No products found for “{{ search() }}”. Try a shorter word, or browse a category.
+          {{ i18n.t('home.noResultsFor', { term: search() }) }}
         } @else {
-          Nothing published in this category yet.
+          {{ i18n.t('home.nothingInCategory') }}
         }
       </p>
-      <button type="button" class="pill pill--primary" (click)="clearFilters()">Browse everything</button>
+      <button type="button" class="pill pill--primary" (click)="clearFilters()">
+        {{ i18n.t('home.browseEverything') }}
+      </button>
     </div>
   } @else {
     <div class="grid">
@@ -88,7 +90,7 @@
                    (error)="media.fallbackToOriginal($event, id)" />
             }
             @if (saving(p); as pct) {
-              <span class="save">SAVE {{ pct }}%</span>
+              <span class="save">{{ i18n.t('price.save', { percent: i18n.formatNumber(pct) }) }}</span>
             }
             @if (stockBand(p); as band) {
               <span class="band" [class.band--low]="band.low">{{ band.text }}</span>
@@ -105,5 +107,19 @@
         </a>
       }
     </div>
+
+    @if (hasMore()) {
+      <div class="more">
+        <p class="muted more__count">
+          {{ i18n.t('home.showingOf', {
+            shown: i18n.formatNumber(products().length),
+            total: i18n.formatNumber(total())
+          }) }}
+        </p>
+        <button type="button" class="pill pill--primary" [disabled]="loadingMore()" (click)="loadMore()">
+          {{ loadingMore() ? '…' : i18n.t('home.loadMore') }}
+        </button>
+      </div>
+    }
   }
 </section>

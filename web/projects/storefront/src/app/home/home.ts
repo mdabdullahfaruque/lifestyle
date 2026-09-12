@@ -1,12 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CatalogService, Category, ProductListItem } from 'data-access';
+import { I18nStore } from 'i18n';
 import { firstValueFrom } from 'rxjs';
 
 import { useMedia } from '../media';
 import { formatMoney } from '../price';
 
 type Sort = '' | 'price_asc' | 'price_desc' | 'name';
+
+const PAGE_SIZE = 24;
 
 @Component({
   selector: 'app-home',
@@ -19,12 +22,15 @@ export class Home {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly media = useMedia();
+  protected readonly i18n = inject(I18nStore);
 
   protected readonly loading = signal(true);
+  protected readonly loadingMore = signal(false);
   protected readonly failed = signal(false);
   protected readonly products = signal<ProductListItem[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly total = signal(0);
+  private readonly page = signal(1);
 
   protected readonly activeCategory = signal<string | null>(null);
   protected readonly search = signal('');
@@ -32,12 +38,14 @@ export class Home {
 
   protected readonly skeletons = [0, 1, 2, 3, 4, 5, 6, 7];
 
-  protected readonly sorts: { value: Sort; label: string }[] = [
-    { value: '', label: 'Newest' },
-    { value: 'price_asc', label: 'Price: low to high' },
-    { value: 'price_desc', label: 'Price: high to low' },
-    { value: 'name', label: 'Name' },
+  protected readonly sorts: { value: Sort; key: string }[] = [
+    { value: '', key: 'home.sortNewest' },
+    { value: 'price_asc', key: 'home.sortPriceAsc' },
+    { value: 'price_desc', key: 'home.sortPriceDesc' },
+    { value: 'name', key: 'home.sortName' },
   ];
+
+  protected readonly hasMore = computed(() => this.products().length < this.total());
 
   /** Leaf categories only — parents carry no attribute set and are not selectable filters. */
   protected readonly filters = computed(() => {
@@ -54,7 +62,6 @@ export class Home {
     () => this.filters().find((c) => c.id === this.activeCategory())?.name ?? null,
   );
 
-  /** Anything the grid is narrowed by, so the heading can say so rather than lying "Fresh this week". */
   protected readonly isFiltered = computed(() => !!this.search().trim() || !!this.activeCategory());
 
   constructor() {
@@ -64,19 +71,28 @@ export class Home {
       this.search.set(params.get('q') ?? '');
       this.activeCategory.set(params.get('category'));
       this.sort.set((params.get('sort') as Sort) ?? '');
-      void this.load();
+      this.page.set(1);
+      void this.load(false);
     });
   }
 
+  protected countLabel(): string {
+    const n = this.total();
+    return n === 1
+      ? this.i18n.t('home.itemCountOne')
+      : this.i18n.t('home.itemCount', { count: this.i18n.formatNumber(n) });
+  }
+
   protected label(p: ProductListItem): string {
+    const bcp = this.i18n.bcp47();
     return p.price.min === p.price.max
-      ? formatMoney(p.price.min, p.price.currency)
-      : `${formatMoney(p.price.min, p.price.currency)}+`;
+      ? formatMoney(p.price.min, p.price.currency, bcp)
+      : `${formatMoney(p.price.min, p.price.currency, bcp)}+`;
   }
 
   /** The struck-through "was", shown only when the API says there is a real saving. */
   protected wasLabel(p: ProductListItem): string | null {
-    return p.compareAtPrice ? formatMoney(p.compareAtPrice, p.price.currency) : null;
+    return p.compareAtPrice ? formatMoney(p.compareAtPrice, p.price.currency, this.i18n.bcp47()) : null;
   }
 
   /** Rounded down, so a badge can never overstate the discount. */
@@ -90,17 +106,13 @@ export class Home {
 
   /** Availability bands, never counts — seller-maintained stock drifts, a band does not lie. */
   protected stockBand(p: ProductListItem): { text: string; low: boolean } | null {
-    if (p.totalStock <= 0) return { text: 'Out of stock', low: true };
-    if (p.totalStock <= 5) return { text: 'Only a few left', low: true };
+    if (p.totalStock <= 0) return { text: this.i18n.t('stock.outOfStock'), low: true };
+    if (p.totalStock <= 5) return { text: this.i18n.t('stock.onlyAFewLeft'), low: true };
     return null;
   }
 
   protected selectCategory(id: string | null): void {
     void this.navigate({ category: id });
-  }
-
-  protected applySearch(term: string): void {
-    void this.navigate({ q: term.trim() || null, category: null });
   }
 
   protected changeSort(value: string): void {
@@ -111,6 +123,12 @@ export class Home {
     void this.router.navigate([], { queryParams: {} });
   }
 
+  protected async loadMore(): Promise<void> {
+    if (this.loadingMore() || !this.hasMore()) return;
+    this.page.update((p) => p + 1);
+    await this.load(true);
+  }
+
   private navigate(patch: Record<string, string | null>): Promise<boolean> {
     return this.router.navigate([], {
       relativeTo: this.route,
@@ -119,14 +137,17 @@ export class Home {
     });
   }
 
-  private async load(): Promise<void> {
-    this.loading.set(true);
+  private async load(append: boolean): Promise<void> {
+    if (append) this.loadingMore.set(true);
+    else this.loading.set(true);
     this.failed.set(false);
+
     try {
       const [page, cats] = await Promise.all([
         firstValueFrom(
           this.catalog.browse({
-            pageSize: 48,
+            page: this.page(),
+            pageSize: PAGE_SIZE,
             categoryId: this.activeCategory() ?? undefined,
             search: this.search().trim() || undefined,
             sort: (this.sort() || undefined) as never,
@@ -136,13 +157,16 @@ export class Home {
           ? Promise.resolve(this.categories())
           : firstValueFrom(this.catalog.categories()),
       ]);
-      this.products.set(page.items ?? []);
-      this.total.set(page.page?.totalCount ?? page.items?.length ?? 0);
+
+      const items = page.items ?? [];
+      this.products.update((current) => (append ? [...current, ...items] : items));
+      this.total.set(page.page?.totalCount ?? items.length);
       this.categories.set(cats as Category[]);
     } catch {
       this.failed.set(true);
     } finally {
       this.loading.set(false);
+      this.loadingMore.set(false);
     }
   }
 }

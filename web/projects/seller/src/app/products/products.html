@@ -31,11 +31,12 @@
       <tbody>
         @for (p of items(); track p.id) {
           <tr>
-            <td class="cell-name">{{ p.name }}</td>
+            <td class="cell-name"><a [routerLink]="['/products', p.id]">{{ p.name }}</a></td>
             <td class="nowrap">{{ p.price.min }}<span class="muted"> {{ p.price.currency }}</span></td>
             <td [class.low]="p.totalStock <= 5">{{ p.totalStock }}</td>
             <td><span class="status" [class]="'status status--' + p.status.toLowerCase()">{{ p.status }}</span></td>
             <td class="right">
+              <a class="btn btn--sm" [routerLink]="['/products', p.id]">Edit</a>
               @if (p.status === 'Draft' || p.status === 'Rejected') {
                 <button class="btn btn--sm" type="button" [disabled]="working() === p.id"
                         (click)="submitForReview(p)">

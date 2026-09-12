@@ -84,8 +84,33 @@
                         <button class="btn btn--danger" type="button" [disabled]="working() === detail.id"
                                 (click)="review(detail.id, false)">Reject</button>
                       </div>
-                    } @else if (detail.statusReason) {
-                      <p class="muted"><strong>Reason on file:</strong> {{ detail.statusReason }}</p>
+                    } @else {
+                      @if (detail.statusReason) {
+                        <p class="muted"><strong>Reason on file:</strong> {{ detail.statusReason }}</p>
+                      }
+
+                      @if (detail.status === 'Approved' || detail.status === 'Suspended') {
+                        <label class="field">
+                          <span class="field__label">Reason (required to suspend)</span>
+                          <textarea rows="2" name="suspendReason" [(ngModel)]="rejectionReason"
+                                    placeholder="Why this shop is being suspended."></textarea>
+                        </label>
+
+                        <div class="detail__actions">
+                          @if (detail.status === 'Approved') {
+                            <button class="btn btn--danger" type="button" [disabled]="working() === detail.id"
+                                    (click)="setSuspension(detail.id, true)">
+                              {{ working() === detail.id ? 'Working…' : 'Suspend shop' }}
+                            </button>
+                            <span class="muted tiny">Removes their products from the storefront immediately.</span>
+                          } @else {
+                            <button class="btn btn--primary" type="button" [disabled]="working() === detail.id"
+                                    (click)="setSuspension(detail.id, false)">
+                              {{ working() === detail.id ? 'Working…' : 'Reinstate shop' }}
+                            </button>
+                          }
+                        </div>
+                      }
                     }
                   </div>
                 </td>

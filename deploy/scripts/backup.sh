@@ -40,6 +40,20 @@ SIZE=$(stat -c%s "${LOCAL_DIR}/${NAME}")
 
 echo "Local dump: ${LOCAL_DIR}/${NAME} ($(numfmt --to=iec "${SIZE}"))"
 
+# ── Uploaded media ──────────────────────────────────────────────────────────
+# The database dump does not contain the files. Restoring only the dump would give you a catalogue
+# of products whose every image 404s — technically "restored", commercially useless.
+#
+# Only when media lives on a host path (MEDIA_HOST_PATH, set where the host's own proxy serves it).
+# With the stock Caddy stack the files are in a Docker volume and this is skipped.
+MEDIA_NAME=""
+if [[ -n "${MEDIA_HOST_PATH:-}" && -d "${MEDIA_HOST_PATH}" ]]; then
+    MEDIA_NAME="${DEPLOYMENT}-${STAMP}-${LABEL}-media.tar.gz"
+    tar -czf "${LOCAL_DIR}/${MEDIA_NAME}" -C "${MEDIA_HOST_PATH}" . 2>/dev/null
+    MEDIA_SIZE=$(stat -c%s "${LOCAL_DIR}/${MEDIA_NAME}")
+    echo "Local media: ${LOCAL_DIR}/${MEDIA_NAME} ($(numfmt --to=iec "${MEDIA_SIZE}"))"
+fi
+
 # ── Off-host copy — the entire point of this script ─────────────────────────
 if [[ -n "${BACKUP_RSYNC_TARGET:-}" ]]; then
     # Any second machine with SSH. Use a dedicated key restricted to this path, and prefer an
@@ -60,4 +74,4 @@ fi
 
 # Local retention only — the bucket's own lifecycle policy governs the off-host copies, so a
 # compromised host cannot delete history.
-find "${LOCAL_DIR}" -name '*.dump' -mtime "+${BACKUP_RETENTION_DAYS:-30}" -delete
+find "${LOCAL_DIR}" \( -name '*.dump' -o -name '*-media.tar.gz' \) -mtime "+${BACKUP_RETENTION_DAYS:-30}" -delete

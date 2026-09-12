@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { CatalogService, Product, ProductShop, Variant } from 'data-access';
+import { I18nStore } from 'i18n';
 import { firstValueFrom } from 'rxjs';
 
 import { useMedia } from '../media';
@@ -14,6 +15,7 @@ import { formatMoney } from '../price';
 export class ProductPage implements OnInit {
   private readonly catalog = inject(CatalogService);
   protected readonly media = useMedia();
+  protected readonly i18n = inject(I18nStore);
 
   /** Bound from the route by withComponentInputBinding(). */
   readonly vendorId = input.required<string>();
@@ -69,10 +71,13 @@ export class ProductPage implements OnInit {
     const nowNum = Number(now);
     const wasNum = was === null ? null : Number(was);
     const hasSaving = wasNum !== null && Number.isFinite(wasNum) && wasNum > nowNum;
+    const bcp = this.i18n.bcp47();
 
     return {
-      now: !v && p.price.min !== p.price.max ? `${formatMoney(now, currency)}+` : formatMoney(now, currency),
-      was: hasSaving ? formatMoney(String(wasNum), currency) : null,
+      now: !v && p.price.min !== p.price.max
+        ? `${formatMoney(now, currency, bcp)}+`
+        : formatMoney(now, currency, bcp),
+      was: hasSaving ? formatMoney(String(wasNum), currency, bcp) : null,
       // Rounded down so the badge can never overstate the discount.
       saving: hasSaving ? Math.floor(((wasNum - nowNum) / wasNum) * 100) : null,
     };
@@ -82,9 +87,9 @@ export class ProductPage implements OnInit {
   protected readonly stock = computed(() => {
     const v = this.selected();
     const qty = v ? v.stockQuantity : (this.product()?.totalStock ?? 0);
-    if (qty <= 0) return { text: 'Out of stock', low: true, sellable: false };
-    if (qty <= 5) return { text: 'Only a few left', low: true, sellable: true };
-    return { text: 'In stock', low: false, sellable: true };
+    if (qty <= 0) return { text: this.i18n.t('stock.outOfStock'), low: true, sellable: false };
+    if (qty <= 5) return { text: this.i18n.t('stock.onlyAFewLeft'), low: true, sellable: true };
+    return { text: this.i18n.t('stock.inStock'), low: false, sellable: true };
   });
 
   /**
@@ -111,12 +116,12 @@ export class ProductPage implements OnInit {
       .join(', ');
 
     const message = [
-      `Hi ${this.shop()?.displayName ?? ''}, I would like to order:`,
+      this.i18n.t('product.whatsAppGreeting', { shop: this.shop()?.displayName ?? '' }),
       '',
       p.name,
       picks || null,
-      this.price()?.now ? `Price: ${this.price()!.now}` : null,
-      `Ref: ${this.reference()}`,
+      this.price()?.now ? this.i18n.t('product.whatsAppPrice', { price: this.price()!.now }) : null,
+      this.i18n.t('product.whatsAppRef', { code: this.reference() }),
     ]
       .filter((line) => line !== null)
       .join('\n');

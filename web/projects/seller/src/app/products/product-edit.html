@@ -1,0 +1,200 @@
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else if (product(); as p) {
+  <header class="head">
+    <div>
+      <h1>{{ p.name }}</h1>
+      <p class="muted">
+        <span class="status" [class]="'status status--' + p.status.toLowerCase()">{{ p.status }}</span>
+        <span class="sep">·</span>{{ p.variants.length }} variants
+        <span class="sep">·</span>{{ p.totalStock }} in stock
+      </p>
+    </div>
+    <a class="btn btn--ghost" routerLink="/products">Back</a>
+  </header>
+
+  @if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }
+  @if (notice(); as message) { <p class="alert alert--ok" role="status">{{ message }}</p> }
+
+  @if (!canEdit()) {
+    <p class="alert alert--ok">
+      This product is with a moderator. You can look, but changes are locked until they decide —
+      otherwise they would approve something other than what they read.
+    </p>
+  }
+
+  @if (p.moderationNote) {
+    <div class="card note">
+      <h2>Moderator note</h2>
+      <p>{{ p.moderationNote }}</p>
+    </div>
+  }
+
+  <!-- ── Basics ─────────────────────────────────────────────────────── -->
+  <form class="card" (ngSubmit)="saveBasics()">
+    <h2>Details</h2>
+
+    <label class="field">
+      <span class="field__label">Product name</span>
+      <input name="name" required [(ngModel)]="form.name" [disabled]="!canEdit() || busy() !== null" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Brand</span>
+      <input name="brand" [(ngModel)]="form.brand" [disabled]="!canEdit() || busy() !== null" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Short description</span>
+      <input name="shortDescription" [(ngModel)]="form.shortDescription"
+             [disabled]="!canEdit() || busy() !== null" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Description</span>
+      <textarea name="description" rows="4" [(ngModel)]="form.description"
+                [disabled]="!canEdit() || busy() !== null"></textarea>
+    </label>
+
+    @for (a of productAttributes(); track a.code) {
+      <label class="field">
+        <span class="field__label">{{ a.name }}@if (a.isRequired) { <span class="req">*</span> }</span>
+        @if (a.allowedValues.length) {
+          <select [name]="a.code" [(ngModel)]="attributes[a.code]" [disabled]="!canEdit() || busy() !== null">
+            <option value="">{{ a.isRequired ? 'Choose…' : 'Not specified' }}</option>
+            @for (v of a.allowedValues; track v) { <option [value]="v">{{ v }}</option> }
+          </select>
+        } @else {
+          <input [name]="a.code" [(ngModel)]="attributes[a.code]" [disabled]="!canEdit() || busy() !== null" />
+        }
+      </label>
+    }
+
+    <button class="btn btn--primary" type="submit" [disabled]="!canEdit() || busy() !== null">
+      {{ busy() === 'basics' ? 'Saving…' : 'Save details' }}
+    </button>
+  </form>
+
+  <!-- ── Variants: price and stock ───────────────────────────────────── -->
+  <section class="card">
+    <h2>Variants</h2>
+    <p class="muted hint">
+      Stock moves as a change, not a total — enter <strong>+5</strong> to add five, <strong>-2</strong>
+      to remove two. Two people restocking at once then both apply.
+    </p>
+
+    <div class="variants">
+      @for (v of p.variants; track v.id) {
+        <div class="variant" [class.variant--off]="!v.isActive">
+          <div class="variant__head">
+            <span class="variant__opts">{{ optionSummary(v.options) }}</span>
+            <span class="muted variant__sku">{{ v.sku }}</span>
+          </div>
+
+          <div class="variant__row">
+            <label class="field field--sm">
+              <span class="field__label">Price</span>
+              <input [name]="'price-' + v.id" type="number" min="0" step="0.01" #price
+                     [value]="v.price" [disabled]="!canEdit() || busy() !== null" />
+            </label>
+
+            <label class="field field--sm">
+              <span class="field__label">Was</span>
+              <input [name]="'was-' + v.id" type="number" min="0" step="0.01" #was
+                     [value]="v.compareAtPrice" [disabled]="!canEdit() || busy() !== null" />
+            </label>
+
+            <label class="field field--sm">
+              <span class="field__label">In stock</span>
+              <input [value]="v.stockQuantity" disabled />
+            </label>
+
+            <label class="field field--sm">
+              <span class="field__label">Add / remove</span>
+              <input [name]="'delta-' + v.id" type="number" step="1" placeholder="+5"
+                     [(ngModel)]="stockDelta[v.id]" [disabled]="!canEdit() || busy() !== null" />
+            </label>
+          </div>
+
+          <div class="variant__actions">
+            <button class="btn btn--sm" type="button" [disabled]="!canEdit() || busy() !== null"
+                    (click)="savePrice(v.id, price.valueAsNumber, was.value === '' ? null : was.valueAsNumber, v.isActive)">
+              {{ busy() === v.id ? 'Saving…' : 'Save price' }}
+            </button>
+            <button class="btn btn--sm" type="button" [disabled]="!canEdit() || busy() !== null"
+                    (click)="savePrice(v.id, price.valueAsNumber, was.value === '' ? null : was.valueAsNumber, !v.isActive)">
+              {{ v.isActive ? 'Hide' : 'Show' }}
+            </button>
+            <button class="btn btn--sm danger" type="button" [disabled]="!canEdit() || busy() !== null"
+                    (click)="removeVariant(v.id)">Remove</button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <button class="btn btn--primary" type="button" [disabled]="!canEdit() || busy() !== null"
+            (click)="applyStock()">
+      {{ busy() === 'stock' ? 'Updating…' : 'Apply stock changes' }}
+    </button>
+  </section>
+
+  <!-- ── Images ──────────────────────────────────────────────────────── -->
+  <section class="card">
+    <h2>Images</h2>
+    <p class="muted hint">The first image is the one buyers see in the grid.</p>
+
+    <div class="images">
+      @for (img of p.images; track img.mediaId; let i = $index) {
+        <figure class="thumb">
+          <img [src]="imageUrl(img.mediaId)" [alt]="img.altText || p.name" />
+          @if (i === 0) { <figcaption class="thumb__main">Main</figcaption> }
+          <div class="thumb__tools">
+            <button type="button" [disabled]="i === 0 || busy() !== null"
+                    (click)="moveImage(img.mediaId, -1)" aria-label="Move earlier">‹</button>
+            <button type="button" [disabled]="i === p.images.length - 1 || busy() !== null"
+                    (click)="moveImage(img.mediaId, 1)" aria-label="Move later">›</button>
+            <button type="button" [disabled]="busy() !== null"
+                    (click)="removeImage(img.mediaId)" aria-label="Remove">×</button>
+          </div>
+        </figure>
+      }
+
+      @if (canEdit()) {
+        <label class="upload">
+          {{ busy() === 'image' ? 'Working…' : '+ Add' }}
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden
+                 [disabled]="busy() !== null" (change)="uploadImage($event)" />
+        </label>
+      }
+    </div>
+  </section>
+
+  <!-- ── Publishing ──────────────────────────────────────────────────── -->
+  <section class="card">
+    <h2>Publishing</h2>
+    <div class="actions">
+      @if (p.status === 'Draft' || p.status === 'Rejected' || p.status === 'Unpublished') {
+        <button class="btn btn--primary" type="button" [disabled]="busy() !== null"
+                (click)="submitForReview()">
+          {{ busy() === 'submit' ? 'Sending…' : 'Submit for review' }}
+        </button>
+        <span class="muted hint">A moderator checks it before buyers see it.</span>
+      } @else if (p.status === 'Published') {
+        <button class="btn" type="button" [disabled]="busy() !== null" (click)="unpublish()">
+          {{ busy() === 'unpublish' ? 'Working…' : 'Take off storefront' }}
+        </button>
+        <span class="muted hint">Hides it from buyers. It stays here as a draft.</span>
+      } @else {
+        <span class="muted hint">Waiting on a moderator.</span>
+      }
+    </div>
+
+    <div class="danger-zone">
+      <button class="btn btn--danger btn--sm" type="button" [disabled]="busy() !== null"
+              (click)="deleteProduct()">
+        {{ busy() === 'delete' ? 'Deleting…' : 'Delete product' }}
+      </button>
+      <span class="muted hint">Permanent.</span>
+    </div>
+  </section>
+}

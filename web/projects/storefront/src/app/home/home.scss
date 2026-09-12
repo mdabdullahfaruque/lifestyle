@@ -216,3 +216,15 @@
 
 .state__title { margin: 0 0 0.25rem; font-weight: 700; color: var(--ink); }
 .state .pill { margin-top: 0.9rem; }
+
+/* ── Load more ───────────────────────────────────────────────────────── */
+
+.more {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 1.8rem 0 0.5rem;
+}
+
+.more__count { margin: 0; font-size: 0.85rem; }
+.more .pill:disabled { opacity: 0.6; }

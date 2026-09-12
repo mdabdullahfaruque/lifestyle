@@ -1,17 +1,17 @@
 <section class="shell">
   <header class="head">
-    <h1>Shops</h1>
-    <p class="muted">Every shop on Lifestyle. Each one runs its own storefront.</p>
+    <h1>{{ i18n.t('shops.title') }}</h1>
+    <p class="muted">{{ i18n.t('shops.subtitle') }}</p>
   </header>
 
   @if (failed()) {
-    <p class="state">Could not load the shop directory just now. Please refresh.</p>
+    <p class="state">{{ i18n.t('shops.loadFailed') }}</p>
   } @else if (loading()) {
     <div class="grid">
       @for (s of skeletons; track s) { <div class="skeleton tile"></div> }
     </div>
   } @else if (!shops().length) {
-    <p class="state">No shops are open yet.</p>
+    <p class="state">{{ i18n.t('shops.none') }}</p>
   } @else {
     <div class="grid">
       @for (s of shops(); track s.id) {

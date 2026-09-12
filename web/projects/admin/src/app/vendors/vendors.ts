@@ -63,6 +63,40 @@ export class Vendors {
     }
   }
 
+  /**
+   * Suspending pulls the shop and everything it sells off the storefront (Catalog listens for
+   * VendorSuspendedEvent). Always needs a reason — the vendor is shown it, and "your shop
+   * disappeared" with no explanation is how a marketplace loses sellers.
+   */
+  protected async setSuspension(vendorId: string, suspend: boolean): Promise<void> {
+    if (suspend && !this.rejectionReason.trim()) {
+      this.error.set('Give a reason for suspending — the vendor is shown it.');
+      return;
+    }
+
+    this.working.set(vendorId);
+    this.error.set(null);
+    this.notice.set(null);
+
+    try {
+      const updated = await firstValueFrom(
+        this.admin.setSuspension(vendorId, suspend, suspend ? this.rejectionReason.trim() : null),
+      );
+      this.notice.set(
+        suspend
+          ? `${updated.displayName} suspended. Their products are no longer visible to buyers.`
+          : `${updated.displayName} reinstated.`,
+      );
+      this.opened.set(null);
+      await this.load();
+    } catch (err) {
+      const problem = err instanceof HttpErrorResponse ? (err.error as ProblemDetails | null) : null;
+      this.error.set(problem?.detail ?? 'That change could not be recorded.');
+    } finally {
+      this.working.set(null);
+    }
+  }
+
   protected async review(vendorId: string, approve: boolean): Promise<void> {
     // A rejection without a reason is useless to the vendor, and the API refuses it anyway.
     if (!approve && !this.rejectionReason.trim()) {

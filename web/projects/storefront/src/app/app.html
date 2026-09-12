@@ -1,7 +1,7 @@
 <!-- Search-first chrome: the value-retail direction puts search in the header, not behind an icon. -->
 <header class="top">
   <div class="shell top__inner">
-    <a routerLink="/" class="brand display">Lifestyle</a>
+    <a routerLink="/" class="brand display">{{ i18n.t('brand.name') }}</a>
 
     <form class="search" role="search" (ngSubmit)="submitSearch()">
       <svg class="search__icon" viewBox="0 0 20 20" aria-hidden="true">
@@ -9,15 +9,26 @@
         <path d="M13.5 13.5 L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
       <input type="search" name="q" [(ngModel)]="term"
-             placeholder="Search everything on Lifestyle"
-             aria-label="Search everything on Lifestyle" />
+             [placeholder]="i18n.t('nav.searchPlaceholder')"
+             [attr.aria-label]="i18n.t('nav.searchLabel')" />
       @if (searching()) {
-        <button type="button" class="search__clear" (click)="clearSearch()" aria-label="Clear search">×</button>
+        <button type="button" class="search__clear" (click)="clearSearch()"
+                [attr.aria-label]="i18n.t('nav.clearSearch')">×</button>
       }
-      <button type="submit" class="search__go">Search</button>
+      <button type="submit" class="search__go">{{ i18n.t('nav.search') }}</button>
     </form>
 
-    <a class="top__shops" routerLink="/shops">Shops</a>
+    <a class="top__shops" routerLink="/shops">{{ i18n.t('nav.shops') }}</a>
+
+    <!-- Language is a two-option toggle rather than a dropdown: with exactly two languages a
+         select costs an extra tap and hides the alternative. -->
+    <div class="lang" role="group" [attr.aria-label]="i18n.t('nav.language')">
+      @for (l of i18n.locales; track l.code) {
+        <button type="button" class="lang__btn" [class.lang__btn--on]="i18n.locale() === l.code"
+                [attr.aria-pressed]="i18n.locale() === l.code" [attr.lang]="l.code"
+                (click)="switchLocale(l.code)">{{ l.short }}</button>
+      }
+    </div>
   </div>
 </header>
 
@@ -28,16 +39,13 @@
 <footer class="foot">
   <div class="shell foot__inner">
     <div>
-      <p class="foot__brand display">Lifestyle</p>
-      <p class="muted foot__note">
-        A marketplace for Bangladeshi shops. Ordering happens over WhatsApp with the seller —
-        no checkout in this version.
-      </p>
+      <p class="foot__brand display">{{ i18n.t('brand.name') }}</p>
+      <p class="muted foot__note">{{ i18n.t('footer.note') }}</p>
     </div>
     <nav class="foot__links" aria-label="Footer">
-      <a routerLink="/">Browse</a>
-      <a routerLink="/shops">Shops</a>
-      <a href="https://seller.mylifestylemart.com">Sell on Lifestyle</a>
+      <a routerLink="/">{{ i18n.t('nav.browse') }}</a>
+      <a routerLink="/shops">{{ i18n.t('nav.shops') }}</a>
+      <a href="https://seller.mylifestylemart.com">{{ i18n.t('nav.sellOnLifestyle') }}</a>
     </nav>
   </div>
 </footer>
@@ -46,14 +54,14 @@
 <nav class="bottom" aria-label="Primary">
   <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-    <span>Home</span>
+    <span>{{ i18n.t('nav.home') }}</span>
   </a>
   <a routerLink="/shops" routerLinkActive="is-active">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1 12H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-    <span>Shops</span>
+    <span>{{ i18n.t('nav.shops') }}</span>
   </a>
   <a href="https://seller.mylifestylemart.com">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 20v-6h6v6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-    <span>Sell</span>
+    <span>{{ i18n.t('nav.sell') }}</span>
   </a>
 </nav>

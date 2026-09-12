@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { I18nStore, Locale } from 'i18n';
 import { filter } from 'rxjs';
 
 import { ShellStore } from './shell';
@@ -13,6 +14,7 @@ import { ShellStore } from './shell';
 })
 export class App {
   protected readonly shell = inject(ShellStore);
+  protected readonly i18n = inject(I18nStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -39,5 +41,9 @@ export class App {
   protected clearSearch(): void {
     this.term = '';
     void this.router.navigate(['/'], { queryParams: {} });
+  }
+
+  protected switchLocale(code: string): void {
+    this.i18n.setLocale(code as Locale);
   }
 }

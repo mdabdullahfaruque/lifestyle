@@ -28,6 +28,11 @@ export const routes: Routes = [
         title: 'New product · Seller Console',
       },
       {
+        path: 'products/:productId',
+        loadComponent: () => import('./products/product-edit').then((m) => m.ProductEdit),
+        title: 'Edit product · Seller Console',
+      },
+      {
         path: 'settings',
         loadComponent: () => import('./settings/settings').then((m) => m.Settings),
         title: 'Shop settings · Seller Console',

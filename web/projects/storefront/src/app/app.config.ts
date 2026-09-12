@@ -7,10 +7,12 @@ import {
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { API_BASE_URL, SURFACE, authInterceptor } from 'auth';
+import { LOCALE_MESSAGES } from 'i18n';
 
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { MEDIA_BASE_URL } from './media';
+import { STOREFRONT_MESSAGES } from './messages';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -32,6 +34,7 @@ export const appConfig: ApplicationConfig = {
 
     { provide: API_BASE_URL, useValue: environment.apiBaseUrl },
     { provide: MEDIA_BASE_URL, useValue: environment.mediaBaseUrl },
+    { provide: LOCALE_MESSAGES, useValue: STOREFRONT_MESSAGES },
     { provide: SURFACE, useValue: 'buyer' as const },
   ],
 };

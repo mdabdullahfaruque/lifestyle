@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogService, ProductListItem, Storefront } from 'data-access';
+import { I18nStore } from 'i18n';
 import { firstValueFrom } from 'rxjs';
 
 import { useMedia } from '../media';
@@ -15,6 +16,7 @@ import { formatMoney } from '../price';
 export class ShopPage implements OnInit {
   private readonly catalog = inject(CatalogService);
   protected readonly media = useMedia();
+  protected readonly i18n = inject(I18nStore);
 
   readonly slug = input.required<string>();
 
@@ -42,13 +44,22 @@ export class ShopPage implements OnInit {
   }
 
   protected label(p: ProductListItem): string {
+    const bcp = this.i18n.bcp47();
     return p.price.min === p.price.max
-      ? formatMoney(p.price.min, p.price.currency)
-      : `${formatMoney(p.price.min, p.price.currency)}+`;
+      ? formatMoney(p.price.min, p.price.currency, bcp)
+      : `${formatMoney(p.price.min, p.price.currency, bcp)}+`;
   }
 
   protected wasLabel(p: ProductListItem): string | null {
-    return p.compareAtPrice ? formatMoney(p.compareAtPrice, p.price.currency) : null;
+    return p.compareAtPrice ? formatMoney(p.compareAtPrice, p.price.currency, this.i18n.bcp47()) : null;
+  }
+
+  /** "1 product" is a different string from "{count} products" in both languages. */
+  protected productCountLabel(): string {
+    const n = this.products().length;
+    return n === 1
+      ? this.i18n.t('shop.productCountOne')
+      : this.i18n.t('shop.productCount', { count: this.i18n.formatNumber(n) });
   }
 
   protected saving(p: ProductListItem): number | null {

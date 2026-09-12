@@ -168,3 +168,29 @@
 @media (min-width: 720px) {
   .bottom { display: none; }
 }
+
+/* Language toggle — two flat pills in the header, always showing the alternative. */
+.lang {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+}
+
+.lang__btn {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--radius-pill);
+  line-height: 1.35;
+}
+
+.lang__btn--on {
+  background: #fff;
+  color: var(--accent);
+}

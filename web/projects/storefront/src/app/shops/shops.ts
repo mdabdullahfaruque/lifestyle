@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogService, Storefront } from 'data-access';
+import { I18nStore } from 'i18n';
 import { firstValueFrom } from 'rxjs';
 
 import { useMedia } from '../media';
@@ -14,6 +15,7 @@ import { useMedia } from '../media';
 export class Shops {
   private readonly catalog = inject(CatalogService);
   protected readonly media = useMedia();
+  protected readonly i18n = inject(I18nStore);
 
   protected readonly shops = signal<Storefront[]>([]);
   protected readonly loading = signal(true);
