@@ -18,7 +18,10 @@
     <section class="gallery" aria-label="Product images">
       @if (p.images.length) {
         <div class="gallery__main">
-          <img [src]="media.url(p.images[activeImage()].mediaId, 'large')"
+          <!-- `original`, not `large`: the pipeline skips a derivative bigger than its source, so
+               asking for `large` (1600px) on a 1000px upload 404s on every product view. The
+               onerror fallback hides it, but a failed request per page view is still waste. -->
+          <img [src]="media.url(p.images[activeImage()].mediaId, 'original')"
                [alt]="p.name"
                (error)="media.fallbackToOriginal($event, p.images[activeImage()].mediaId)" />
         </div>

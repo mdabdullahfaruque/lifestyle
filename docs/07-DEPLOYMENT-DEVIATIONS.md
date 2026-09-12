@@ -93,7 +93,7 @@ real records *by construction* — that was the point, but it is also the risk.
 **Every demo record is identifiable by its `demo-` slug prefix and `@demo.mylifestylemart.com`
 contact email.** Do not rely on memory: query before deleting.
 
-**What exists**, created 2026-09-06 — 3 shops, 11 products, 31 variants, all `Published`:
+**What exists** — 3 shops and **24 products** (11 created 2026-09-06, 13 more 2026-09-12), all `Published`:
 
 | Shop | Slug | Vendor id |
 |---|---|---|
@@ -159,13 +159,26 @@ A placeholder comment marks the spot in the api site file.
 | **G2** | **No monitoring.** No uptime check on `/v1/internal/health`, no disk alert. | You learn of outages from vendors. |
 | **G3** | **nginx site files are not in the repo.** They live only on the server; the repo still carries only `deploy/Caddyfile`. | A host rebuild loses them. Copy them into `deploy/nginx/` and reference them from docs/05. |
 | **G5** | **Three PropertyMart certificates use `authenticator = standalone`**, which needs port 80 free — nginx holds it. Not Lifestyle's, but on the same box. | Those renewals will likely fail. Convert them to `--webroot`. |
-| **G7** | **`ProductListItem` carries no `compareAtPrice`**, so the marketplace grid cannot badge deals without fetching every product — an N+1 that looks fine at 11 products and dies at 1000. The grid therefore shows price only, while the design calls for "Was ৳2,900 / SAVE 16%" on the card. | The home page under-sells the value-retail direction. Add a `compareAtPriceMin` to the list projection. |
-| **G8** | **The image URL layout is duplicated in the client.** Catalog responses return a bare `mediaId` and no URL, so `web/projects/storefront/src/app/media.ts` reproduces the media pipeline's key layout (`{first2}/{id}/{variant}.png`). | If the server changes that layout, images break silently rather than failing a build. Return URLs from the catalog. |
 | **G6** | **The server login password was briefly written into two nginx files** by a `sudo -S` stdin mistake, then overwritten. It is also in this session's shell history. | Rotate the `deploy` password. |
 
 ---
 
 ---
+
+## Storefront coverage — what the marketplace does and does not do
+
+Brought to demo standard 2026-09-12. Working: search (query-string driven, so a filtered grid
+survives a reload and can be shared), category filter, sort, deal badges with struck was-prices,
+availability bands, the shop directory, a shop profile in the vendor's own accent, and the product
+page with variant pills and the WhatsApp order deep link.
+
+**Not built:** paging (the grid takes the first 48 and stops), buyer accounts, saved items, cart or
+checkout — v1 ordering is WhatsApp by design (Plan §6.2) — reviews, and vendor custom domains.
+
+**Product imagery is drawn, not photographed.** `scratchpad/art.mjs` renders flat SVG
+illustrations per product type and colourway, rasterised to PNG. They read as catalogue art rather
+than as broken images, and they carry no licence risk — but they are not photographs, and a client
+should be told that rather than left to assume. Replace them as vendors upload real product shots.
 
 ## Console coverage — what the portals do and do not do
 
