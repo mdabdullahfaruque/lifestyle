@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { CatalogService, Product, ProductShop, Variant } from 'data-access';
 import { firstValueFrom } from 'rxjs';
 
@@ -11,7 +11,7 @@ import { formatMoney } from '../price';
   templateUrl: './product.html',
   styleUrl: './product.scss',
 })
-export class ProductPage {
+export class ProductPage implements OnInit {
   private readonly catalog = inject(CatalogService);
   protected readonly media = useMedia();
 
@@ -129,7 +129,12 @@ export class ProductPage {
     return Object.entries(attrs).map(([code, value]) => ({ label: this.axisLabel(code), value }));
   });
 
-  constructor() {
+  /**
+   * Loads on init, not in the constructor: required inputs are not set until after construction,
+   * so reading vendorId()/slug() there throws NG0950 — which the load's own catch turned into a
+   * silent "Product not found" on a product that exists.
+   */
+  ngOnInit(): void {
     void this.load();
   }
 

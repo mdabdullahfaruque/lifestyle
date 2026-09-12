@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogService, ProductListItem, Storefront } from 'data-access';
 import { firstValueFrom } from 'rxjs';
@@ -12,7 +12,7 @@ import { formatMoney } from '../price';
   templateUrl: './shop.html',
   styleUrl: './shop.scss',
 })
-export class ShopPage {
+export class ShopPage implements OnInit {
   private readonly catalog = inject(CatalogService);
   protected readonly media = useMedia();
 
@@ -28,7 +28,12 @@ export class ShopPage {
   /** The vendor's own colour, applied to this page only — the design's shop-within-marketplace rule. */
   protected readonly accent = computed(() => this.shop()?.accentColour || null);
 
-  constructor() {
+  /**
+   * Loads on init, not in the constructor: a required input is not set until after construction,
+   * so reading `slug()` there throws NG0950 — which the load's own catch turned into a silent
+   * "Shop not found" on a shop that exists.
+   */
+  ngOnInit(): void {
     void this.load();
   }
 
