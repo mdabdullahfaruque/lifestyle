@@ -111,6 +111,39 @@ products, or reset the database entirely — no real data exists yet, so a clean
 
 ---
 
+## 6a. Admin two-factor is OFF — **T**, owner's decision 2026-09-13
+
+`REQUIRE_ADMIN_2FA=false` in `deploy/.env`, so `admin@mylifestylemart.com` signs in with email
+and password alone. The setting skips **both** halves of the gate — mandatory enrolment and the
+code — because leaving the code required would still lock out the account, which is already
+enrolled.
+
+Every other guard is unchanged: a wrong password is still a 401, a non-admin still gets
+`identity.surface_not_permitted`, and the seller surface still asks for a code from anyone who
+turned two-factor on.
+
+**Why it is acceptable now:** the platform holds three demo shops and no buyers, and there is
+nothing behind the admin console worth stealing. **Revert trigger:** before the first real vendor
+uploads a KYC document. An admin can approve vendors, moderate the catalogue and take shops down,
+so at that point a stolen password alone must not be enough. One line in `deploy/.env` plus a
+container recreate puts it back.
+
+## 7. Migration files are generated, never hand-edited — **P**
+
+A hand edit to a file under `Persistence/Migrations/` desynchronises the migration, its
+`.Designer.cs` and `AppDbContextModelSnapshot.cs`, and the damage surfaces later as a bogus or
+empty migration. Use `dotnet ef migrations add` / `remove`. Recorded as a rule in CLAUDE.md §8.
+
+Notes that would otherwise go in a migration file belong here. For `20260912221930_ExternalLogins`:
+it is expand-only (`password_hash` widened to nullable, new table added), but its `Down` path is
+lossy by necessity — re-tightening the column has to put something in the null rows, and EF uses an
+empty string, leaving any Google-created account with an unusable hash. Roll forward, not down.
+
+**The three migrations are not squashed.** Squashing would need either a destructive reset of the
+live database or hand-editing `__ef_migrations_history` — the second being exactly the manual
+migration surgery this rule exists to prevent. Squash at the next clean-slate moment, before real
+data exists, not while `bd-prod` is serving.
+
 ## 6. Google sign-in — **built 2026-09-13**
 
 Live on the **buyer and seller** surfaces. The admin console refuses it outright — in the validator

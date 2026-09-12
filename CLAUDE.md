@@ -58,8 +58,14 @@ dotnet test tests/Lifestyle.IntegrationTests   # real API against real PostgreSQ
 ```
 
 Integration tests use Testcontainers, fall back to `ConnectionStrings__Default`, and skip
-with an explanation when neither is available. The seeded super admin must enrol in TOTP
-before it can reach the admin surface — that is intended, not a bug.
+with an explanation when neither is available.
+
+Whether the seeded super admin must enrol in TOTP before reaching the admin surface is the
+`Identity:RequireTwoFactorOnAdmin` setting (`REQUIRE_ADMIN_2FA` in `deploy/.env`). It defaults
+to **on**, which is the intended production posture. It is **off** in `bd-prod` so the seeded
+account signs in with email and password alone — a deliberate choice recorded in
+[docs/07 §6a](docs/07-DEPLOYMENT-DEVIATIONS.md), to be revisited before the platform holds
+real vendor or buyer data.
 
 ## Architecture
 
@@ -90,7 +96,15 @@ request, validator, handler and endpoint together.
 5. **Return `Result`, don't throw**, for anything a client can cause.
 6. No `Helpers/`, `Utils/`, `Common/`. Find the owner.
 7. No `DateTime.UtcNow`, `Guid.NewGuid()` or `HttpContext` outside `Api` and `Infrastructure`.
-8. Every migration is reviewed as code and is reversible. **Nothing runs migrations on startup.**
+8. **Migration files are generated, never hand-written.** Use the EF Core CLI to add or remove
+   them — `dotnet ef migrations add <Name>` / `dotnet ef migrations remove` — and never edit a
+   file under `Persistence/Migrations/`, not even a comment. The migration, its `.Designer.cs`
+   and `AppDbContextModelSnapshot.cs` are one consistent set that EF regenerates together; a
+   hand edit desynchronises them, and the damage surfaces as a bogus or empty migration several
+   changes later. If a migration needs explaining, put the explanation in
+   [docs/07](docs/07-DEPLOYMENT-DEVIATIONS.md), not in the file.
+   Wrong shape? `remove`, fix the model, `add` again. Every migration is reviewed as code and is
+   reversible. **Nothing runs migrations on startup.**
 9. Pin every package version — central package management, no `*`.
 10. Past 300 lines, split the file before adding to it.
 

@@ -5,17 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Lifestyle.Infrastructure.Persistence.Migrations
 {
-    /// <summary>
-    /// External sign-in (Google). Expand-only, so the previous release keeps working against this
-    /// schema for the length of a rollout: <c>password_hash</c> is widened to nullable and a new
-    /// table is added — nothing existing is narrowed or dropped.
-    /// <para>
-    /// ⚠ The <c>Down</c> path is lossy by necessity: re-tightening <c>password_hash</c> has to put
-    /// something in the null rows, and EF uses an empty string. An account created through Google
-    /// would be left with an unusable empty hash rather than a real password. Roll forward rather
-    /// than down once external logins exist.
-    /// </para>
-    /// </summary>
+    /// <inheritdoc />
     public partial class ExternalLogins : Migration
     {
         /// <inheritdoc />
