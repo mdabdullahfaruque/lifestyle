@@ -1,0 +1,63 @@
+@if (failed()) {
+  <div class="shell state">
+    <h1>Shop not found</h1>
+    <p class="muted">It may have closed, or the link is wrong.</p>
+    <a class="pill pill--primary" routerLink="/shops">All shops</a>
+  </div>
+} @else if (loading()) {
+  <div class="shell">
+    <div class="skeleton banner"></div>
+    <div class="grid">
+      @for (s of skeletons; track s) { <div class="skeleton tile"></div> }
+    </div>
+  </div>
+} @else if (shop(); as s) {
+  <!-- The vendor's colour applies to this page only: their shop, inside marketplace chrome. -->
+  <header class="banner" [style.--shop]="accent() || '#1157d8'">
+    <div class="shell banner__inner">
+      <span class="banner__mark">
+        @if (s.logoMediaId; as logo) {
+          <img [src]="media.url(logo, 'card')" [alt]="s.displayName" />
+        } @else {
+          {{ initials(s.displayName) }}
+        }
+      </span>
+      <div class="banner__text">
+        <h1 class="banner__name">{{ s.displayName }}</h1>
+        <p class="banner__meta">
+          <span class="verified">Verified seller</span>
+          <span class="muted">· {{ products().length }} {{ products().length === 1 ? 'product' : 'products' }}</span>
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <section class="shell">
+    @if (s.about) {
+      <p class="about">{{ s.about }}</p>
+    }
+
+    @if (!products().length) {
+      <p class="state">This shop has not published anything yet.</p>
+    } @else {
+      <div class="grid">
+        @for (p of products(); track p.id) {
+          <a class="card" [routerLink]="['/p', p.vendorId, p.slug]">
+            <div class="card__media">
+              @if (p.primaryImageMediaId; as id) {
+                <img [src]="media.url(id, 'card')" [alt]="p.name" loading="lazy"
+                     (error)="media.fallbackToOriginal($event, id)" />
+              }
+              @if (saving(p); as pct) { <span class="save">SAVE {{ pct }}%</span> }
+            </div>
+            <p class="card__prices">
+              <span class="price-now">{{ label(p) }}</span>
+              @if (wasLabel(p); as was) { <span class="price-was">{{ was }}</span> }
+            </p>
+            <p class="card__name">{{ p.name }}</p>
+          </a>
+        }
+      </div>
+    }
+  </section>
+}

@@ -1,0 +1,37 @@
+<section class="shell">
+  <header class="head">
+    <h1>Shops</h1>
+    <p class="muted">Every shop on Lifestyle. Each one runs its own storefront.</p>
+  </header>
+
+  @if (failed()) {
+    <p class="state">Could not load the shop directory just now. Please refresh.</p>
+  } @else if (loading()) {
+    <div class="grid">
+      @for (s of skeletons; track s) { <div class="skeleton tile"></div> }
+    </div>
+  } @else if (!shops().length) {
+    <p class="state">No shops are open yet.</p>
+  } @else {
+    <div class="grid">
+      @for (s of shops(); track s.id) {
+        <a class="shop" [routerLink]="['/shop', s.slug]">
+          <span class="shop__mark" [style.background]="s.accentColour || '#1157d8'">
+            @if (s.logoMediaId; as logo) {
+              <img [src]="media.url(logo, 'thumb')" [alt]="s.displayName"
+                   (error)="media.fallbackToOriginal($event, logo)" />
+            } @else {
+              {{ initials(s.displayName) }}
+            }
+          </span>
+          <span class="shop__text">
+            <span class="shop__name">{{ s.displayName }}</span>
+            @if (s.about) {
+              <span class="shop__about muted">{{ s.about }}</span>
+            }
+          </span>
+        </a>
+      }
+    </div>
+  }
+</section>

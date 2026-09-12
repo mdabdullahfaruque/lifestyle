@@ -29,6 +29,9 @@ public static class VendorsModule
         // Public — the storefront and marketplace shop pages.
         var storefronts = app.MapGroup("/v1/catalog/storefronts").WithTags("Storefronts");
         GetCurrentStorefront.Map(storefronts);
+        // Before "/{slug}": a literal route wins over a parameter in ASP.NET's matcher regardless
+        // of order, but keeping the directory first matches how the routes read.
+        BrowseStorefronts.Map(storefronts);
         GetStorefront.Map(storefronts);
 
         // Onboarding runs on an ordinary signed-in token. The seller role is granted on approval,

@@ -55,6 +55,34 @@ export class CatalogService {
     return this.http.get<Storefront>(`${this.baseUrl}/v1/catalog/storefronts/current`);
   }
 
+  /**
+   * One shop's products, by slug. Separate from browse() on purpose: browse() takes no vendor
+   * because on a storefront host the server derives it, and a client-supplied vendor filter there
+   * would undo that guarantee. Here the shop is the address.
+   */
+  shopProducts(
+    slug: string,
+    query: { sort?: string; page?: number; pageSize?: number } = {},
+  ): Observable<Paged<ProductListItem>> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
+    }
+    return this.http.get<Paged<ProductListItem>>(
+      `${this.baseUrl}/v1/catalog/shops/${encodeURIComponent(slug)}/products`,
+      { params },
+    );
+  }
+
+  /** The marketplace shop directory. Never scoped to a host — only the marketplace calls it. */
+  storefronts(query: { search?: string; page?: number; pageSize?: number } = {}): Observable<Paged<Storefront>> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
+    }
+    return this.http.get<Paged<Storefront>>(`${this.baseUrl}/v1/catalog/storefronts`, { params });
+  }
+
   storefront(slug: string): Observable<Storefront> {
     return this.http.get<Storefront>(`${this.baseUrl}/v1/catalog/storefronts/${slug}`);
   }

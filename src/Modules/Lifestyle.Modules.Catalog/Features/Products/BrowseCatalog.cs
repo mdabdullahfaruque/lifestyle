@@ -100,7 +100,10 @@ internal static class BrowseProducts
                     p.Id, p.VendorId, p.Name, p.Slug, p.Status, p.MinPrice, p.MaxPrice, p.Currency,
                     p.TotalStock,
                     p.Images.OrderBy(i => i.Position).Select(i => i.MediaId).FirstOrDefault(),
-                    p.PublishedAt))
+                    p.PublishedAt,
+                    // Highest "was" price across active variants, so a grid card can badge the
+                    // saving without a second request per product.
+                    p.Variants.Where(v => v.IsActive).Max(v => v.CompareAtPrice)))
                 .ToListAsync(ct);
 
             return PagedResult<ProductListItemResponse>.From([.. rows.Select(r => r.ToResponse())], page, total);

@@ -1,15 +1,18 @@
-<!-- Hero. Flat, price-led, deal-badged on a white ground — the value-retail direction. -->
-<section class="hero shell">
-  <div class="hero__card">
-    <p class="hero__kicker">UP TO 25% OFF</p>
-    <h1 class="hero__title">The Festive Edit</h1>
-    <p class="hero__sub">Shops across Bangladesh, one place. Order straight from the seller on WhatsApp.</p>
-  </div>
-</section>
+<!-- The hero belongs to browsing, not to results: hide it once the grid is narrowed, or the page
+     claims to be a landing page while showing seven search hits. -->
+@if (!isFiltered()) {
+  <section class="hero shell">
+    <div class="hero__card">
+      <p class="hero__kicker">UP TO 25% OFF</p>
+      <h1 class="hero__title">The Festive Edit</h1>
+      <p class="hero__sub">Shops across Bangladesh, one place. Order straight from the seller on WhatsApp.</p>
+    </div>
+  </section>
+}
 
-<!-- Category rail. Real leaf categories from the catalog, not decoration. -->
 <nav class="rail shell" aria-label="Categories">
-  <button type="button" class="pill" [class.pill--selected]="activeCategory() === null" (click)="selectCategory(null)">
+  <button type="button" class="pill" [class.pill--selected]="activeCategory() === null && !search()"
+          (click)="selectCategory(null)">
     All
   </button>
   @for (c of filters(); track c.id) {
@@ -21,10 +24,34 @@
 
 <section class="shell">
   <header class="sec">
-    <h2 class="sec__title">Fresh this week</h2>
-    @if (!loading() && products().length) {
-      <span class="muted sec__count">{{ products().length }} items</span>
-    }
+    <div class="sec__left">
+      <h2 class="sec__title">
+        @if (search()) {
+          Results for “{{ search() }}”
+        } @else if (activeCategoryName(); as name) {
+          {{ name }}
+        } @else {
+          Fresh this week
+        }
+      </h2>
+      @if (!loading() && !failed()) {
+        <span class="muted sec__count">{{ total() }} {{ total() === 1 ? 'item' : 'items' }}</span>
+      }
+    </div>
+
+    <div class="sec__right">
+      @if (isFiltered()) {
+        <button type="button" class="linkish" (click)="clearFilters()">Clear</button>
+      }
+      <label class="sort">
+        <span class="visually-hidden">Sort by</span>
+        <select [value]="sort()" (change)="changeSort($any($event.target).value)">
+          @for (s of sorts; track s.value) {
+            <option [value]="s.value">{{ s.label }}</option>
+          }
+        </select>
+      </label>
+    </div>
   </header>
 
   @if (failed()) {
@@ -40,7 +67,17 @@
       }
     </div>
   } @else if (!products().length) {
-    <p class="state">Nothing published in this category yet.</p>
+    <div class="state">
+      <p class="state__title">Nothing matched.</p>
+      <p class="muted">
+        @if (search()) {
+          No products found for “{{ search() }}”. Try a shorter word, or browse a category.
+        } @else {
+          Nothing published in this category yet.
+        }
+      </p>
+      <button type="button" class="pill pill--primary" (click)="clearFilters()">Browse everything</button>
+    </div>
   } @else {
     <div class="grid">
       @for (p of products(); track p.id) {
@@ -50,12 +87,20 @@
               <img [src]="media.url(id, 'card')" [alt]="p.name" loading="lazy"
                    (error)="media.fallbackToOriginal($event, id)" />
             }
+            @if (saving(p); as pct) {
+              <span class="save">SAVE {{ pct }}%</span>
+            }
             @if (stockBand(p); as band) {
               <span class="band" [class.band--low]="band.low">{{ band.text }}</span>
             }
           </div>
 
-          <p class="price-now card__price">{{ label(p) }}</p>
+          <p class="card__prices">
+            <span class="price-now">{{ label(p) }}</span>
+            @if (wasLabel(p); as was) {
+              <span class="price-was">{{ was }}</span>
+            }
+          </p>
           <p class="card__name">{{ p.name }}</p>
         </a>
       }

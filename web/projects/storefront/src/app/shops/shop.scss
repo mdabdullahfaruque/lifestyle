@@ -1,0 +1,89 @@
+:host { display: block; }
+
+.state { color: var(--muted); padding: 2.5rem 0 3rem; }
+.state h1 { font-size: 1.4rem; margin-bottom: 0.3rem; color: var(--ink); }
+.state .pill { display: inline-block; margin-top: 1rem; }
+
+.banner {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--shop) 16%, #fff), #fff);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.2rem;
+}
+
+.banner__inner { display: flex; align-items: center; gap: 1rem; padding-top: 1.4rem; padding-bottom: 1.4rem; }
+
+.banner__mark {
+  width: 68px;
+  height: 68px;
+  flex: none;
+  border-radius: 18px;
+  background: var(--shop);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  overflow: hidden;
+}
+
+.banner__mark img { width: 100%; height: 100%; object-fit: cover; }
+
+.banner__name { font-size: 1.35rem; font-weight: 800; }
+.banner__meta { margin: 0.15rem 0 0; font-size: 0.88rem; }
+
+.verified { color: var(--whatsapp); font-weight: 700; }
+
+.about { margin: 0 0 1.2rem; color: var(--muted); max-width: 62ch; font-size: 0.95rem; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 0.75rem;
+  padding-bottom: 1rem;
+}
+
+@media (min-width: 560px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 860px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4rem 1rem; } }
+
+.tile { aspect-ratio: 1; }
+.banner.skeleton { height: 110px; border: 0; margin-bottom: 1.2rem; }
+
+.card { display: block; min-width: 0; }
+
+.card__media {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--tile);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  margin-bottom: 0.55rem;
+}
+
+.card__media img { width: 100%; height: 100%; object-fit: cover; }
+
+.save {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: var(--deal);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.card__prices { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; margin: 0 0 0.15rem; }
+
+.card__name {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

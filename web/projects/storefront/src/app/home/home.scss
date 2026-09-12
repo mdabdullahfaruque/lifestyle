@@ -154,3 +154,65 @@
 .card__line--short {
   width: 60%;
 }
+
+/* ── Results header ──────────────────────────────────────────────────── */
+
+.sec__left { display: flex; align-items: baseline; gap: 0.6rem; min-width: 0; }
+.sec__right { display: flex; align-items: center; gap: 0.7rem; flex: none; }
+
+.linkish {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.sort select {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 0.7rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Deal badge — the one place deal red is allowed on a card ─────────── */
+
+.save {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: var(--deal);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.card__prices {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.15rem;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+
+.state__title { margin: 0 0 0.25rem; font-weight: 700; color: var(--ink); }
+.state .pill { margin-top: 0.9rem; }

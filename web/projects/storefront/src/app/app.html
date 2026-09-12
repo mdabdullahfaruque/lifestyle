@@ -3,20 +3,21 @@
   <div class="shell top__inner">
     <a routerLink="/" class="brand display">Lifestyle</a>
 
-    <form class="search" role="search" (submit)="$event.preventDefault()">
+    <form class="search" role="search" (ngSubmit)="submitSearch()">
       <svg class="search__icon" viewBox="0 0 20 20" aria-hidden="true">
         <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2" />
         <path d="M13.5 13.5 L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
-      <input type="search" placeholder="Search everything on Lifestyle" aria-label="Search everything on Lifestyle" />
+      <input type="search" name="q" [(ngModel)]="term"
+             placeholder="Search everything on Lifestyle"
+             aria-label="Search everything on Lifestyle" />
+      @if (searching()) {
+        <button type="button" class="search__clear" (click)="clearSearch()" aria-label="Clear search">×</button>
+      }
+      <button type="submit" class="search__go">Search</button>
     </form>
 
-    <a class="top__account" routerLink="/" aria-label="Account">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2" />
-        <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-      </svg>
-    </a>
+    <a class="top__shops" routerLink="/shops">Shops</a>
   </div>
 </header>
 
@@ -25,31 +26,34 @@
 </main>
 
 <footer class="foot">
-  <div class="shell">
-    <p class="foot__brand display">Lifestyle</p>
-    <p class="muted foot__note">
-      A marketplace for Bangladeshi shops. Ordering happens over WhatsApp with the seller —
-      no checkout in this version.
-    </p>
+  <div class="shell foot__inner">
+    <div>
+      <p class="foot__brand display">Lifestyle</p>
+      <p class="muted foot__note">
+        A marketplace for Bangladeshi shops. Ordering happens over WhatsApp with the seller —
+        no checkout in this version.
+      </p>
+    </div>
+    <nav class="foot__links" aria-label="Footer">
+      <a routerLink="/">Browse</a>
+      <a routerLink="/shops">Shops</a>
+      <a href="https://seller.mylifestylemart.com">Sell on Lifestyle</a>
+    </nav>
   </div>
 </footer>
 
-<!-- Mobile bottom nav, per the Main artboard. Hidden on desktop, where the header carries nav. -->
+<!-- Mobile bottom nav. Only what exists — a dead "Saved" tab reads as a broken product. -->
 <nav class="bottom" aria-label="Primary">
   <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
     <span>Home</span>
   </a>
-  <a routerLink="/" aria-disabled="true">
+  <a routerLink="/shops" routerLinkActive="is-active">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1 12H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     <span>Shops</span>
   </a>
-  <a routerLink="/" aria-disabled="true">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.5-7 9-7 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-    <span>Saved</span>
-  </a>
-  <a routerLink="/" aria-disabled="true">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    <span>Account</span>
+  <a href="https://seller.mylifestylemart.com">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 20v-6h6v6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Sell</span>
   </a>
 </nav>

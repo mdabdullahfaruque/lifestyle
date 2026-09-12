@@ -67,7 +67,14 @@ public sealed record ProductListItemResponse(
     MoneyRange Price,
     int TotalStock,
     string? PrimaryImageMediaId,
-    DateTimeOffset? PublishedAt);
+    DateTimeOffset? PublishedAt,
+    /// <summary>
+    /// The highest compare-at price across the product's active variants, when it beats the
+    /// selling price — the "was" figure a grid card needs to badge a saving. Null when nothing is
+    /// discounted. Without it a card could only show a saving by fetching every product in the
+    /// grid, which is fine at ten products and ruinous at a thousand.
+    /// </summary>
+    string? CompareAtPrice = null);
 
 internal static class ProductMapping
 {
@@ -105,10 +112,14 @@ internal sealed record ProductListRow(
     string Currency,
     int TotalStock,
     string? PrimaryImageMediaId,
-    DateTimeOffset? PublishedAt)
+    DateTimeOffset? PublishedAt,
+    decimal? CompareAtPrice = null)
 {
     public ProductListItemResponse ToResponse() => new(
         Id, VendorId, Name, Slug, Status.ToString(),
         new MoneyRange(ProductMapping.Format(MinPrice), ProductMapping.Format(MaxPrice), Currency),
-        TotalStock, PrimaryImageMediaId, PublishedAt);
+        TotalStock, PrimaryImageMediaId, PublishedAt,
+        // Only a genuine saving is carried: a compare-at at or below the selling price is noise,
+        // and a grid badge computed from it would claim a discount that does not exist.
+        CompareAtPrice > MinPrice ? ProductMapping.Format(CompareAtPrice.Value) : null);
 }

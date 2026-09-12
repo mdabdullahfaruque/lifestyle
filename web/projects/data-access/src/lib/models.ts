@@ -40,6 +40,11 @@ export interface ProductListItem {
   totalStock: number;
   primaryImageMediaId: string | null;
   publishedAt: string | null;
+  /**
+   * Highest "was" price across active variants, when it beats the selling price. Null when
+   * nothing is discounted — so a card can badge a saving without fetching every product.
+   */
+  compareAtPrice: string | null;
 }
 
 export interface Variant {

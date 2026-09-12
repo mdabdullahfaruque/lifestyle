@@ -42,6 +42,7 @@ public static class CatalogModule
         // ── Public: the marketplace and every storefront ──
         var pub = app.MapGroup("/v1/catalog").WithTags("Catalog");
         BrowseProducts.Map(pub);
+        BrowseShopProducts.Map(pub);
         GetPublicProduct.Map(pub);
         GetCategoryTree.Map(pub);
         ListAttributeSets.Map(pub);
