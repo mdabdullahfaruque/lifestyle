@@ -27,9 +27,13 @@ fail() { printf '\n\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 [[ -f "${ENV_FILE}" ]] || fail "Missing ${ENV_FILE} — copy deploy/.env.example and fill it in."
 
-export TAG DEPLOYMENT
-
 source "${ENV_FILE}" 2>/dev/null || true
+
+# Re-applied after sourcing, not before: deploy/.env carries its own TAG — the tag currently
+# deployed — and sourcing it silently overwrote the one just asked for. The deploy then reported
+# success while rolling the release that was already running.
+TAG="${2}"
+export TAG DEPLOYMENT
 if [[ "${REGISTRY:-local}" == "local" ]]; then
     log "REGISTRY=local — skipping pull (image built on this host)"
 else

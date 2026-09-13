@@ -29,6 +29,13 @@ log "Pulling ${TAG}"
 # REGISTRY=local means the image was built on this host (docs/06 Part B4) — nothing to pull,
 # and `docker compose pull` on a local-only image would abort the whole deploy under -e.
 source "${ENV_FILE}" 2>/dev/null || true
+
+# Re-applied after sourcing: deploy/.env carries its own TAG — the tag currently deployed — and
+# sourcing it silently overwrote the one just asked for, so the deploy reported success while
+# rolling the release that was already running.
+TAG="${2}"
+export TAG
+
 if [[ "${REGISTRY:-local}" == "local" ]]; then
     log "REGISTRY=local — skipping pull (image built on this host)"
 else
