@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthStore, GoogleButton } from 'auth';
 import { BrandLogo } from 'ui';
 import { ProblemDetails } from 'data-access';
@@ -22,6 +22,12 @@ export class Login {
 
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /**
+   * Set after a password change, which signs every session out. Without it the owner arrives back
+   * at a login screen with no explanation and assumes something went wrong.
+   */
+  protected readonly changed = inject(ActivatedRoute).snapshot.queryParamMap.get('changed') === '1';
 
   /** Shown only once the server says this account has 2FA — asking everyone up front is noise. */
   protected readonly needsTotp = signal(false);

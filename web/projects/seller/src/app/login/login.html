@@ -4,6 +4,12 @@
     <h1 class="auth__title">Seller Console</h1>
     <p class="auth__sub">Sign in to manage your shop, products and stock.</p>
 
+    @if (changed) {
+      <p class="alert alert--ok" role="status">
+        Password changed. Sign in with the new one.
+      </p>
+    }
+
     @if (error(); as message) {
       <p class="alert" role="alert">{{ message }}</p>
     }

@@ -5,10 +5,11 @@ import { ProblemDetails, VendorService } from 'data-access';
 import { firstValueFrom } from 'rxjs';
 
 import { ShopStore } from '../shop.store';
+import { ChangePassword } from './change-password';
 
 @Component({
   selector: 'app-settings',
-  imports: [FormsModule],
+  imports: [FormsModule, ChangePassword],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
 })
