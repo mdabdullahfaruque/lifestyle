@@ -1,3 +1,5 @@
+using Lifestyle.SharedKernel.Results;
+
 namespace Lifestyle.Modules.Identity.Contracts;
 
 /// <summary>
@@ -22,7 +24,7 @@ public interface IIdentityModule
     /// the owner resets it rather than anyone looking it up.
     /// </para>
     /// </summary>
-    Task<CreatedUser> CreateForVendorOwnerAsync(
+    Task<Result<CreatedUser>> CreateForVendorOwnerAsync(
         string email, string fullName, string? phoneNumber, CancellationToken ct);
 
     /// <summary>Grants a vendor-scoped role. Called by Vendors when staff are added or a vendor is approved.</summary>

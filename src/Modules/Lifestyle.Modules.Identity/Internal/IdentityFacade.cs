@@ -1,6 +1,7 @@
 using Lifestyle.Modules.Identity.Contracts;
 using Lifestyle.Modules.Identity.Persistence;
 using Lifestyle.SharedKernel.Abstractions;
+using Lifestyle.SharedKernel.Results;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lifestyle.Modules.Identity.Internal;
@@ -46,15 +47,29 @@ internal sealed class IdentityFacade(IIdentityDbContext db, IClock clock, IPassw
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<CreatedUser> CreateForVendorOwnerAsync(
+    public async Task<Result<CreatedUser>> CreateForVendorOwnerAsync(
         string email, string fullName, string? phoneNumber, CancellationToken ct)
     {
+        var normalisedEmail = email.Trim().ToLowerInvariant();
+        var normalisedPhone = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim();
+
+        // Email *and* phone are unique on users. Checking both here, where the constraints are,
+        // keeps the caller from having to know that — and turns what was a bare unique violation
+        // surfacing as "conflict.duplicate" into something an admin can act on.
+        if (await db.Users.AnyAsync(u => u.Email == normalisedEmail, ct))
+            return Error.Conflict("identity.email_taken", "An account with this email already exists.");
+
+        if (normalisedPhone is not null
+            && await db.Users.AnyAsync(u => u.PhoneNumber == normalisedPhone, ct))
+        {
+            return Error.Conflict("identity.phone_taken",
+                "Another account already uses that phone number.");
+        }
+
         var now = clock.UtcNow;
         var password = TemporaryPassword.Generate();
 
-        var user = Domain.User.Register(
-            email, passwords.Hash(password), fullName,
-            string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber, now);
+        var user = Domain.User.Register(normalisedEmail, passwords.Hash(password), fullName, normalisedPhone, now);
 
         // Buyer only. The vendor-owner role is granted when the shop is approved, by the same call
         // the review queue uses — so there is one path that makes someone a seller, not two.

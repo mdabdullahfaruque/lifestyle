@@ -98,13 +98,18 @@ internal static class CreateVendorAsAdmin
 
             // Create the account only once nothing else can fail: an orphaned login for a shop
             // that was never created would be invisible and impossible to explain.
-            var created = existing is null
-                ? await identity.CreateForVendorOwnerAsync(
+            CreatedUser? created = null;
+            if (existing is null)
+            {
+                var creation = await identity.CreateForVendorOwnerAsync(
                     ownerEmail,
                     string.IsNullOrWhiteSpace(request.OwnerFullName) ? request.DisplayName : request.OwnerFullName!,
                     request.OwnerPhone,
-                    ct)
-                : null;
+                    ct);
+
+                if (creation.IsFailure) return creation.Error;
+                created = creation.Value;
+            }
 
             var ownerId = existing?.Id ?? created!.UserId;
 

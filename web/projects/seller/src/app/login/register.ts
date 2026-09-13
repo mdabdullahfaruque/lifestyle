@@ -78,6 +78,9 @@ export class Register {
         // Not an error worth a dead end: they already have an account, so send them to sign in.
         this.error.set('That email already has an account. Sign in instead — you can apply for a shop from there.');
         return;
+      case 'identity.phone_taken':
+        this.error.set('That phone number is already on another account. Use a different one, or leave it blank.');
+        return;
       case 'identity.password_too_short':
         this.error.set('Use a longer password — at least 10 characters.');
         return;

@@ -16,7 +16,7 @@ export const routes: Routes = [
       {
         path: 'vendors',
         loadComponent: () => import('./vendors/vendors').then((m) => m.Vendors),
-        title: 'Vendor applications · Admin Console',
+        title: 'Shops · Admin Console',
       },
       {
         path: 'categories',

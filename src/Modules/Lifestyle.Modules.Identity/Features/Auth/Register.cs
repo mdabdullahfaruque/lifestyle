@@ -59,7 +59,13 @@ internal static class Register
                 return Error.Conflict("identity.email_taken", "An account with this email already exists.");
             }
 
-            var user = User.Register(email, passwords.Hash(request.Password), request.FullName, request.PhoneNumber, clock.UtcNow);
+            // Phone numbers are unique too. Without this the insert fails on the index and the
+            // caller gets a bare "conflict.duplicate" that names nothing.
+            var phone = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+            if (phone is not null && await db.Users.AnyAsync(u => u.PhoneNumber == phone, ct))
+                return Error.Conflict("identity.phone_taken", "An account with this phone number already exists.");
+
+            var user = User.Register(email, passwords.Hash(request.Password), request.FullName, phone, clock.UtcNow);
             user.AssignRole(SystemRoles.BuyerId, null, clock.UtcNow);
 
             db.Users.Add(user);
