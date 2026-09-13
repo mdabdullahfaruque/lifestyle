@@ -73,15 +73,19 @@
       </label>
 
       <label class="field" [class.field--bad]="fieldErrors()['desiredSlug']">
-        <span class="field__label">Shop address</span>
+        <span class="field__label">Web address</span>
         <input name="desiredSlug" maxlength="80" [(ngModel)]="form.desiredSlug"
-               placeholder="arunima-crafts" />
+               placeholder="Leave blank to use the shop name" />
         @if (fieldErrors()['desiredSlug']; as message) {
           <span class="err" role="alert">{{ message }}</span>
         }
-        <span class="hint muted">
-          Optional — derived from the shop name, with a number appended if it is taken.
-        </span>
+        @if (addressPreview(); as preview) {
+          <span class="hint muted">The shop will be at <strong>{{ preview }}</strong></span>
+        } @else {
+          <span class="hint muted">
+            Not a street address — this is the shop's own web address on the marketplace.
+          </span>
+        }
       </label>
 
       <label class="field" [class.field--bad]="fieldErrors()['registrationNumber']">

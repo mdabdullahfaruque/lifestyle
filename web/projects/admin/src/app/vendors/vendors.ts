@@ -62,6 +62,17 @@ export class Vendors {
    */
   protected readonly fieldErrors = signal<Record<string, string>>({});
 
+  /**
+   * What the shop's web address will actually be, shown live under the field.
+   *
+   * The box takes any text and the address is derived from it, so without this the admin is
+   * guessing. Falls back to the shop name, which is what the API does when the box is empty.
+   */
+  protected addressPreview(): string {
+    const slug = Vendors.slugify(this.form.desiredSlug || this.form.displayName || '');
+    return slug ? `${slug}.mylifestylemart.com` : '';
+  }
+
   /** The vendor whose detail panel is open, with its documents. */
   protected readonly opened = signal<Vendor | null>(null);
   protected readonly openingId = signal<string | null>(null);
@@ -203,7 +214,10 @@ export class Vendors {
     const request: CreateVendorRequest = {
       legalName: form.legalName.trim() || form.displayName.trim(),
       displayName: form.displayName.trim(),
-      desiredSlug: form.desiredSlug?.trim() || null,
+      // Sent already slugified. The API would derive the same thing from the shop name, but its
+      // validator rejects a `desiredSlug` that is not already a slug — so normalising here is what
+      // lets an admin type "Uttara Crafts" in this box instead of guessing the format.
+      desiredSlug: Vendors.slugify(form.desiredSlug ?? '') || null,
       contactEmail: (form.contactEmail || form.ownerEmail).trim(),
       contactPhone: form.contactPhone.trim(),
       registrationNumber: form.registrationNumber?.trim() || null,
@@ -290,20 +304,26 @@ export class Vendors {
    */
   private static validate(form: CreateVendorRequest): Record<string, string> {
     const errors: Record<string, string> = {};
-    const email = /^[^s@]+@[^s@]+.[^s@]+$/;
 
     if (!form.displayName.trim()) errors['displayName'] = 'Give the shop a name — buyers see this one.';
     else if (form.displayName.trim().length > 200) errors['displayName'] = 'Shop name is too long (200 characters).';
 
     if ((form.legalName ?? '').trim().length > 300) errors['legalName'] = 'Legal name is too long (300 characters).';
 
-    const slug = (form.desiredSlug ?? '').trim();
-    if (slug && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
-      errors['desiredSlug'] = 'Lowercase letters, numbers and single hyphens only — like arunima-crafts.';
+    // Typed text is turned into a web address rather than rejected for not already being one —
+    // see `slugify`. The only thing left to refuse is text that contains nothing usable at all
+    // ("...", "!!!") or that survives as fewer than the three characters the API requires.
+    const typedSlug = (form.desiredSlug ?? '').trim();
+    if (typedSlug) {
+      const slug = Vendors.slugify(typedSlug);
+      if (!slug) errors['desiredSlug'] = 'That has no letters or numbers in it to build a web address from.';
+      else if (slug.length < 3) errors['desiredSlug'] = 'A web address needs at least three letters or numbers.';
     }
 
     const contactEmail = (form.contactEmail ?? '').trim();
-    if (contactEmail && !email.test(contactEmail)) errors['contactEmail'] = "That does not look like an email address.";
+    if (contactEmail && !Vendors.isEmail(contactEmail)) {
+      errors['contactEmail'] = 'That does not look like an email address.';
+    }
 
     if (!form.contactPhone.trim()) errors['contactPhone'] = 'A contact phone is required — it is how buyers reach the shop.';
     else if (form.contactPhone.trim().length > 32) errors['contactPhone'] = 'Phone number is too long (32 characters).';
@@ -314,12 +334,42 @@ export class Vendors {
 
     const ownerEmail = form.ownerEmail.trim();
     if (!ownerEmail) errors['ownerEmail'] = "The owner's email is required — it is the account they sign in with.";
-    else if (!email.test(ownerEmail)) errors['ownerEmail'] = 'That does not look like an email address.';
+    else if (!Vendors.isEmail(ownerEmail)) errors['ownerEmail'] = 'That does not look like an email address.';
 
     if ((form.ownerFullName ?? '').trim().length > 200) errors['ownerFullName'] = 'Owner name is too long (200 characters).';
     if ((form.ownerPhone ?? '').trim().length > 32) errors['ownerPhone'] = 'Phone number is too long (32 characters).';
 
     return errors;
+  }
+
+  /**
+   * Deliberately loose. A stricter pattern rejects addresses that are perfectly deliverable, and
+   * the only thing this check is for is catching a typo before a round trip — the API validates
+   * properly, and whether an address exists is something only sending to it can answer.
+   */
+  private static isEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+  }
+
+  /**
+   * The same transformation `Slug.From` applies on the server: lowercase, strip diacritics,
+   * everything that is not a letter or digit becomes a single hyphen, trimmed, capped at 80.
+   *
+   * Doing it here rather than rejecting non-slug text is the point — an admin typing "Uttara,
+   * Dhaka" has misread the field, and the useful response is to show them what the address will
+   * be, not to refuse the form.
+   */
+  private static slugify(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80)
+      .replace(/-+$/, '');
   }
 
   private static emptyForm(): CreateVendorRequest {
