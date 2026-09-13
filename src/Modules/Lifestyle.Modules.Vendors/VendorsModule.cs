@@ -53,6 +53,7 @@ public static class VendorsModule
 
         var admin = app.MapGroup("/v1/admin/vendors").WithTags("Admin · Vendors").RequireAdminSurface();
         ListVendorsForAdmin.Map(admin);
+        CreateVendorAsAdmin.Map(admin);
         GetVendorForAdmin.Map(admin);
         ReviewVendorApplication.Map(admin);
         SetVendorSuspension.Map(admin);

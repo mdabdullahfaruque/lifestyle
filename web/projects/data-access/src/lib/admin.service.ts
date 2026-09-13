@@ -4,6 +4,31 @@ import { API_BASE_URL } from 'auth';
 import { Observable } from 'rxjs';
 import { AuditEntry, Category, Paged, Product, ProductListItem, Vendor, VendorStatus } from './models';
 
+/** What an administrator fills in to create a shop on a seller's behalf. */
+export interface CreateVendorRequest {
+  legalName: string;
+  displayName: string;
+  desiredSlug?: string | null;
+  contactEmail: string;
+  contactPhone: string;
+  registrationNumber?: string | null;
+  ownerEmail: string;
+  ownerFullName?: string | null;
+  ownerPhone?: string | null;
+  /** False parks it as a draft instead; the default is to approve on the spot. */
+  approve?: boolean;
+}
+
+export interface AdminCreatedVendor {
+  vendor: Vendor;
+  ownerUserId: string;
+  ownerEmail: string;
+  /** True when this call created the login, in which case the password below is set. */
+  ownerAccountCreated: boolean;
+  /** Shown once, never retrievable. Null when the owner already had an account. */
+  temporaryPassword: string | null;
+}
+
 /** The row shape the vendor queue returns — narrower than a full Vendor. */
 export interface VendorListItem {
   id: string;
@@ -43,6 +68,17 @@ export class AdminService {
     return this.http.get<Paged<VendorListItem>>(`${this.baseUrl}/v1/admin/vendors`, {
       params: this.params(query),
     });
+  }
+
+  /**
+   * Onboard a shop directly, for a seller who will not fill in the application form themselves.
+   *
+   * Skips the review queue — it lands Approved, with the owner already able to sign in on the
+   * seller console. When the owner had no account, the response carries a one-time password that
+   * exists nowhere else: show it, and do not fetch it again expecting it to be there.
+   */
+  createVendor(request: CreateVendorRequest): Observable<AdminCreatedVendor> {
+    return this.http.post<AdminCreatedVendor>(`${this.baseUrl}/v1/admin/vendors`, request);
   }
 
   vendor(vendorId: string): Observable<Vendor> {

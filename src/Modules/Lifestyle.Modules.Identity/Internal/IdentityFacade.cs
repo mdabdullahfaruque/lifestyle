@@ -9,7 +9,7 @@ namespace Lifestyle.Modules.Identity.Internal;
 /// Implements the module's public contract. This is the only class other modules reach, and it
 /// returns DTOs — never a <c>User</c> entity (docs/04 §3.6).
 /// </summary>
-internal sealed class IdentityFacade(IIdentityDbContext db, IClock clock) : IIdentityModule
+internal sealed class IdentityFacade(IIdentityDbContext db, IClock clock, IPasswordService passwords) : IIdentityModule
 {
     public async Task<UserSummary?> GetUserAsync(Guid userId, CancellationToken ct) =>
         await db.Users
@@ -33,6 +33,38 @@ internal sealed class IdentityFacade(IIdentityDbContext db, IClock clock) : IIde
 
     public Task<bool> ExistsAsync(Guid userId, CancellationToken ct) =>
         db.Users.AnyAsync(u => u.Id == userId, ct);
+
+    public async Task<UserSummary?> FindByEmailAsync(string email, CancellationToken ct)
+    {
+        var normalised = email.Trim().ToLowerInvariant();
+
+        return await db.Users
+            .AsNoTracking()
+            .Where(u => u.Email == normalised)
+            .Select(u => new UserSummary(u.Id, u.Email, u.FullName, u.PhoneNumber, u.EmailVerified,
+                u.Status == Domain.UserStatus.Active))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<CreatedUser> CreateForVendorOwnerAsync(
+        string email, string fullName, string? phoneNumber, CancellationToken ct)
+    {
+        var now = clock.UtcNow;
+        var password = TemporaryPassword.Generate();
+
+        var user = Domain.User.Register(
+            email, passwords.Hash(password), fullName,
+            string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber, now);
+
+        // Buyer only. The vendor-owner role is granted when the shop is approved, by the same call
+        // the review queue uses — so there is one path that makes someone a seller, not two.
+        user.AssignRole(SystemRoles.BuyerId, null, now);
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync(ct);
+
+        return new CreatedUser(user.Id, password);
+    }
 
     public async Task GrantVendorRoleAsync(Guid userId, Guid vendorId, VendorRoleKind kind, CancellationToken ct)
     {

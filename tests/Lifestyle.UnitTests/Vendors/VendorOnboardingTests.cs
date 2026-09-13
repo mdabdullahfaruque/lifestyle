@@ -199,6 +199,36 @@ public sealed class VendorOnboardingTests
     }
 
     [Fact]
+    public void An_admin_created_shop_is_approved_without_passing_through_the_queue()
+    {
+        // No documents, never submitted: the administrator vouched for it instead.
+        var vendor = NewApplication();
+
+        var result = vendor.ApproveOnCreation(AdminId, Now);
+
+        result.IsSuccess.ShouldBeTrue();
+        vendor.Status.ShouldBe(VendorStatus.Approved);
+        vendor.CanSell.ShouldBeTrue();
+        vendor.ApprovedBy.ShouldBe(AdminId);
+        vendor.DomainEvents.ShouldContain(e => e is VendorEvents.VendorApproved);
+    }
+
+    [Fact]
+    public void An_application_already_in_the_queue_cannot_be_approved_on_creation()
+    {
+        // The shortcut is for a shop the admin is creating, not a way around a review someone is
+        // already waiting on.
+        var vendor = ReadyToSubmit();
+        vendor.SubmitForReview(Now).IsSuccess.ShouldBeTrue();
+
+        var result = vendor.ApproveOnCreation(AdminId, Now);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("vendors.not_draft");
+        vendor.Status.ShouldBe(VendorStatus.PendingReview);
+    }
+
+    [Fact]
     public void Staff_can_be_added_and_removed()
     {
         var vendor = ReadyToSubmit();

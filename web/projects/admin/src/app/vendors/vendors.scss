@@ -1,6 +1,13 @@
 :host { display: block; }
 
-.head { margin-bottom: 1rem; }
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .head h1 { font-size: 1.3rem; }
 
 .filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.9rem; }
@@ -59,3 +66,48 @@
 
 .tiny { font-size: 0.78rem; margin: 0 0 0.8rem; }
 .detail__actions { display: flex; gap: 0.5rem; }
+
+.create { margin-bottom: 1rem; }
+.create h2 { font-size: 1.05rem; margin-bottom: 0.3rem; }
+.create code { font-size: 0.82em; background: var(--tile); padding: 0 0.25rem; border-radius: 4px; }
+
+.create fieldset { border: 0; padding: 0; margin: 0 0 1rem; }
+
+.create legend {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0 0 0.5rem;
+}
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; }
+.grid .field { min-width: 0; margin: 0; }
+.hint { display: block; font-size: 0.78rem; margin-top: 0.25rem; }
+
+.handover { margin-bottom: 1rem; border-left: 3px solid var(--accent); }
+.handover h2 { font-size: 1.05rem; margin-bottom: 0.3rem; }
+
+.handover__creds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  background: var(--tile);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  margin: 0.8rem 0 0.6rem;
+}
+
+.handover__creds > div { display: grid; gap: 2px; min-width: 0; }
+
+/* The password is read off the screen and typed by hand — a monospace face is what makes
+   l/1 and O/0 distinguishable while that happens. */
+.mono { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.95rem; word-break: break-all; }
+
+.warn { font-size: 0.82rem; color: var(--danger); margin: 0 0 0.7rem; }
+
+@media (max-width: 700px) {
+  .grid,
+  .handover__creds { grid-template-columns: minmax(0, 1fr); }
+}

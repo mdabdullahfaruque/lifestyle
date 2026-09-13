@@ -107,6 +107,39 @@ internal sealed class Vendor : AggregateRoot, ISoftDeletable
         return Result.Success();
     }
 
+    /// <summary>
+    /// Draft → Approved in one step, for a shop an administrator creates directly.
+    /// <para>
+    /// Separate from <see cref="Approve"/> rather than a relaxation of it, because it skips the
+    /// KYC documents. That is only defensible when a person at the platform is vouching for the
+    /// shop — they onboarded it themselves — and making it its own method keeps that decision
+    /// visible in the audit trail instead of looking like an ordinary review.
+    /// </para>
+    /// <para>
+    /// A shop that arrived through the public application queue must still go through
+    /// <see cref="Approve"/>: this refuses anything already submitted, so it cannot be used to
+    /// wave a pending application past its document check.
+    /// </para>
+    /// </summary>
+    public Result ApproveOnCreation(Guid approvedBy, DateTimeOffset now)
+    {
+        if (Status != VendorStatus.Draft)
+            return Error.Conflict("vendors.not_draft", "Only a newly created shop can be approved on creation.");
+
+        if (SubmittedAt is not null)
+            return Error.Conflict("vendors.already_submitted",
+                "This shop applied through the review queue and must be approved there.");
+
+        Status = VendorStatus.Approved;
+        StatusReason = null;
+        ApprovedAt = now;
+        ApprovedBy = approvedBy;
+        UpdatedAt = now;
+
+        Raise(new VendorApproved(Id, DisplayName, Slug, OwnerUserId, now));
+        return Result.Success();
+    }
+
     public Result Approve(Guid approvedBy, DateTimeOffset now)
     {
         if (Status != VendorStatus.PendingReview)
