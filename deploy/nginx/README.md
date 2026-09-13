@@ -8,7 +8,13 @@ other products — see [docs/07 §1](../../docs/07-DEPLOYMENT-DEVIATIONS.md).
 |---|---|
 | `api.mylifestylemart.com.conf` | the API — proxies to `127.0.0.1:5600`, blocks `/v1/internal/*` except health |
 | `media.mylifestylemart.com.conf` | uploads from `/var/data/lifestyle/bd-prod/uploads`, refuses the `private/` prefix |
-| `mylifestylemart.com.conf` | apex + www — holding page today, storefront proxy at Phase 2; also proxies `/v1/*` same-origin |
+| `mylifestylemart.com.conf` | apex + www — the storefront as static files today, SSR proxy at Phase 2; also proxies `/v1/*` same-origin |
+| `seller.mylifestylemart.com.conf` | the seller console — static SPA from `/var/www/lifestyle-seller`, `noindex`, `/v1/*` same-origin |
+| `admin.mylifestylemart.com.conf` | the admin console — same shape, from `/var/www/lifestyle-admin` |
+
+The two console files exist because Cloudflare Pages could not be deployed to; they are meant to be
+temporary. `deploy/scripts/deploy-consoles.sh` installs them, and [docs/07 §9](../../docs/07-DEPLOYMENT-DEVIATIONS.md)
+carries the revert trigger.
 
 ## Installing a change
 

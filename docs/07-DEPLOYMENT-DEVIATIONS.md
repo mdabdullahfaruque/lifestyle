@@ -191,13 +191,41 @@ A placeholder comment marks the spot in the api site file.
 
 ---
 
+## 9. Seller and admin consoles are served from the host, not Cloudflare Pages — **T**
+
+The plan (docs/06 step D1) puts both consoles on Pages, and the two projects exist —
+`lifestyle` and `lifestyle-admin`. They are not what serves the live hostnames.
+
+Direct upload is refused with the Pages-scoped token on hand: `wrangler` fails its `/accounts`
+lookup with *Invalid access token*, and `GET /accounts/{id}/pages/projects/lifestyle/upload-token`
+answers `success: false, jwt: "Authentication error"`. Git-integration deploys would have built
+`origin/prod`, which is many commits behind local — so a Pages deploy could only have published a
+console *older* than the one already there. With seller sign-up blocked on getting a current
+bundle out, the consoles moved to the host that already serves the storefront.
+
+Both are static bundles under `/var/www/lifestyle-{seller,admin}`, published by
+`deploy/scripts/deploy-consoles.sh`, behind site files vendored in `deploy/nginx/`. Each proxies
+`/v1/*` same-origin the way the apex does, and carries `X-Robots-Tag: noindex`.
+
+**Cost of keeping it:** no CDN in front of the consoles, and a deploy is now a build on the VPS
+(a few hundred MB of RAM for the duration — see docs/03 on why that matters on this box) instead
+of an upload.
+
+**Revert trigger:** a Cloudflare token with `Account · Cloudflare Pages · Edit`, *and* `prod`
+pushed up to date. Then `wrangler pages deploy web/dist/<app>/browser`, re-add the custom domain
+in the Pages project, point `seller` and `admin` back at their `*.pages.dev` CNAMEs (proxied),
+`rm -rf /var/www/lifestyle-{seller,admin}`, and remove the two site files.
+
+---
+
 ## Gaps — never done, still owed
 
 | # | Gap | Consequence |
 |---|---|---|
 | **G1** | **Backups never leave the host — accepted risk, owner's decision 2026-09-13.** A nightly dump + media archive and a weekly restore test run on cron (2am / 4am Sunday), and the dump carries the uploads alongside it, but `BACKUP_RSYNC_TARGET` and `BACKUP_S3_BUCKET` are empty, so every copy sits on the same disk as the data. | Defensible **only** while the platform holds nothing real: today that is three demo shops and no buyers. It stops being defensible the moment a vendor uploads a KYC document, because losing the host then loses identity documents that cannot be re-created. **Revisit before onboarding the first real vendor** — set one of the two targets in `deploy/.env` and the existing script does the rest. |
 | **G2** | **No monitoring.** No uptime check on `/v1/internal/health`, no disk alert. | You learn of outages from vendors. |
-| **G3** | **nginx site files are not in the repo.** They live only on the server; the repo still carries only `deploy/Caddyfile`. | A host rebuild loses them. Copy them into `deploy/nginx/` and reference them from docs/05. |
+| **G3** | ~~nginx site files are not in the repo.~~ **Closed 2026-09-06** — all five live site files are vendored in `deploy/nginx/` with an install note. Keep copying a change back into the repo in the same session you make it on the server, or this reopens quietly. | — |
+| **G4** | **No `IEmailSender`.** Mailpit is in Compose with nothing sending to it. Nothing the platform does reaches a user by mail: no verification, no password reset, no approval notice, and no way to deliver the password for an account an admin created (§9 above, "Creating a shop directly"). | Every credential hand-off is manual, and an owner who loses their one-time password has no self-service route back in. Blocks real onboarding more than it blocks the demo. |
 | **G5** | **Three PropertyMart certificates use `authenticator = standalone`**, which needs port 80 free — nginx holds it. Not Lifestyle's, but on the same box. | Those renewals will likely fail. Convert them to `--webroot`. |
 | **G6** | **The server login password was briefly written into two nginx files** by a `sudo -S` stdin mistake, then overwritten. It is also in this session's shell history. | Rotate the `deploy` password. |
 
@@ -259,8 +287,19 @@ in place once the shop is approved.
 **Admin** — sign in with TOTP, work the vendor queue (approve/reject with reason, open KYC
 documents, suspend and reinstate a shop), work the moderation queue (publish, reject, take down).
 Category management (create, rename, reorder, show/hide, assign attribute set) and the audit log
-(filterable, paged, read-only) are now built. **Not built:** paging beyond the first 100 rows on
-the vendor and moderation queues.
+(filterable, paged, read-only) are now built.
+
+**Creating a shop directly** was added 2026-09-13 (`POST /v1/admin/vendors`, "New shop" on the
+Shops screen). It is for a seller signed up over the phone or in person: it finds or creates the
+owner's account, creates the shop and approves it in one transaction, and grants the seller role
+through the same Identity call the review queue uses. **It collects no KYC documents** — the
+administrator is standing in for the verification — so it is audited under its own action,
+`vendor.created_by_admin`, and `Vendor.ApproveOnCreation` refuses any shop that did reach the
+queue. When the owner had no account, the response carries a generated password shown **once**;
+there is no `IEmailSender`, so handing it over is manual. That is the part to revisit when mail
+works — see G4.
+
+**Not built:** paging beyond the first 100 rows on the vendor and moderation queues.
 
 Neither console has automated tests.
 
