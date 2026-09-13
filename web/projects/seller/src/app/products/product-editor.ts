@@ -35,6 +35,9 @@ export class ProductEditor {
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  /** Set once a save has been attempted, so the checklist appears in response to an action. */
+  protected readonly showBlockers = signal(false);
+
   protected readonly categories = signal<Category[]>([]);
   protected readonly attributeSets = signal<AttributeSet[]>([]);
 
@@ -80,16 +83,40 @@ export class ProductEditor {
     () => this.attributeSet()?.attributes.filter((a) => !a.isVariantAxis) ?? [],
   );
 
-  protected readonly canSave = computed(() => {
-    if (!this.form.categoryId || !this.form.name.trim() || !this.form.description.trim()) return false;
-    if (!this.variants().length) return false;
+  /**
+   * What is still missing, in the order a seller would fix it.
+   *
+   * This used to be a boolean that disabled the save buttons, which left a seller looking at a
+   * dead control with no way to discover that (say) one variant row had no price. The buttons are
+   * always live now; pressing one either saves or says what to do.
+   */
+  protected readonly blockers = computed<string[]>(() => {
+    const missing: string[] = [];
 
-    return this.variants().every(
-      (v) =>
-        v.price !== null && v.price > 0 &&
-        v.stockQuantity !== null && v.stockQuantity >= 0 &&
-        this.axes().every((a) => v.options[a.code]),
-    );
+    if (!this.form.categoryId) missing.push('Choose a category.');
+    if (!this.form.name.trim()) missing.push('Give the product a name.');
+    if (!this.form.description.trim()) missing.push('Write a description — buyers read this one.');
+
+    if (!this.variants().length) {
+      missing.push('Add at least one variant — that is the thing a buyer actually buys.');
+      return missing;
+    }
+
+    this.variants().forEach((v, i) => {
+      const which = this.variants().length > 1 ? ` on variant ${i + 1}` : '';
+      if (v.price === null || v.price <= 0) missing.push(`Set a price${which}.`);
+      if (v.stockQuantity === null || v.stockQuantity < 0) missing.push(`Set the stock${which}.`);
+
+      for (const axis of this.axes()) {
+        if (!v.options[axis.code]) missing.push(`Choose a ${axis.name.toLowerCase()}${which}.`);
+      }
+    });
+
+    // Not enforced by the API on a draft, but a published product must have one — so saying it
+    // here is better than letting a moderator bounce it back.
+    if (!this.imageIds().length) missing.push('Add at least one photo.');
+
+    return missing;
   });
 
   constructor() {
@@ -175,7 +202,21 @@ export class ProductEditor {
   }
 
   protected async save(submitForReview: boolean): Promise<void> {
-    if (this.busy() || !this.canSave()) return;
+    if (this.busy()) return;
+
+    const missing = this.blockers();
+    if (missing.length) {
+      this.error.set(
+        missing.length === 1
+          ? missing[0]
+          : `Before this can be saved: ${missing.map((m) => m.replace(/\.$/, '')).join('; ')}.`,
+      );
+      this.showBlockers.set(true);
+      document.querySelector('.actions')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    this.showBlockers.set(false);
     this.busy.set(true);
     this.error.set(null);
 

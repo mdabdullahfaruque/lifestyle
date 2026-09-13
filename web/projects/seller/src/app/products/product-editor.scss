@@ -96,3 +96,14 @@
 }
 
 .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
+
+/* The checklist that replaced a disabled button. Shown only after a save attempt, so it reads as
+   an answer to something the seller did rather than a page full of complaints on arrival. */
+.todo {
+  border-left: 3px solid var(--danger);
+  margin-bottom: 1rem;
+}
+
+.todo h2 { font-size: 1rem; margin-bottom: 0.4rem; }
+.todo ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; }
+.todo li { font-size: 0.88rem; }
