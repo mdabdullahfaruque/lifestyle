@@ -8,6 +8,11 @@ export const routes: Routes = [
     title: 'Sign in · Seller Console',
   },
   {
+    path: 'register',
+    loadComponent: () => import('./login/register').then((m) => m.Register),
+    title: 'Open your shop · Seller Console',
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./shell/shell').then((m) => m.Shell),

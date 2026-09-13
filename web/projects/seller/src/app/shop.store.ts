@@ -46,6 +46,8 @@ export class ShopStore {
       this.vendorSignal.set(await firstValueFrom(this.vendors.myApplication()));
     } catch {
       try {
+        // Only an approved seller holds a token this endpoint accepts. An applicant's buyer token
+        // gets a 403 here, which is the normal answer for them, not a failure.
         this.vendorSignal.set(await firstValueFrom(this.vendors.profile()));
       } catch {
         this.vendorSignal.set(null);

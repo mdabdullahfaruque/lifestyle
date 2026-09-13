@@ -11,7 +11,10 @@
 
       <!-- Products and settings only mean anything once a shop is approved; showing them earlier
            routes the seller straight into a 403. -->
-      @if (shop.canSell()) {
+      <!-- canSell() is false for an applicant, whose session is a buyer token: Products and
+           Settings would 403. Onboarding is the only thing they can do, so it is the only thing
+           offered. -->
+      @if (shop.canSell() && !auth.isProvisional()) {
         <a routerLink="/products" routerLinkActive="is-active" (click)="menuOpen.set(false)">Products</a>
         <a routerLink="/settings" routerLinkActive="is-active" (click)="menuOpen.set(false)">Shop settings</a>
       } @else {

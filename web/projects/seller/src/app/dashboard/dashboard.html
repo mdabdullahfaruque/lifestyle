@@ -44,6 +44,17 @@
     }
     <p class="muted">Your products are not visible to buyers while a shop is suspended.</p>
   </section>
+} @else if (auth.isProvisional()) {
+  <section class="card intro">
+    <h1>Your shop is approved</h1>
+    <p class="muted">
+      You are still signed in as the account that applied. Activate the shop to start adding
+      products — nothing to re-type, it uses the session you already have.
+    </p>
+    <button class="btn btn--primary" type="button" [disabled]="upgrading()" (click)="activateShop()">
+      {{ upgrading() ? 'Activating…' : 'Activate my shop' }}
+    </button>
+  </section>
 } @else {
   <header class="head">
     <div>

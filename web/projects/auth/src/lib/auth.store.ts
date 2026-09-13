@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { API_BASE_URL, SURFACE } from './surface';
+import { API_BASE_URL, SURFACE, Surface } from './surface';
 
 export interface UserProfile {
   id: string;
@@ -35,6 +35,17 @@ export class AuthStore {
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly surface = inject(SURFACE);
 
+  /**
+   * The surface this session actually holds, which is not always the app's own.
+   *
+   * A seller who has not been approved yet cannot hold a seller token — they have no vendor, so
+   * PermissionResolver refuses that surface. They still have to reach the application form, and
+   * the vendor-application endpoints accept any signed-in token precisely so approval is
+   * reachable. The console therefore signs such a user in on `buyer` and records it here, so the
+   * shell can show onboarding instead of pretending they are a seller.
+   */
+  private readonly granted = signal<Surface | null>(null);
+
   private readonly token = signal<string | null>(null);
   private readonly profile = signal<UserProfile | null>(null);
   private readonly vendor = signal<string | null>(null);
@@ -42,6 +53,12 @@ export class AuthStore {
   readonly user = this.profile.asReadonly();
   readonly vendorId = this.vendor.asReadonly();
   readonly isAuthenticated = computed(() => this.token() !== null);
+
+  /** The surface actually granted. Null when signed out. */
+  readonly activeSurface = this.granted.asReadonly();
+
+  /** True when signed in, but not on this app's own surface — onboarding, in the seller console. */
+  readonly isProvisional = computed(() => this.granted() !== null && this.granted() !== this.surface);
   readonly permissions = computed(() => new Set(this.profile()?.permissions ?? []));
 
   accessToken(): string | null {
@@ -52,11 +69,21 @@ export class AuthStore {
     return this.permissions().has(permission);
   }
 
-  async login(email: string, password: string, totpCode?: string, vendorId?: string): Promise<void> {
+  /**
+   * `surface` overrides the app's own — used by the seller console to sign a not-yet-approved
+   * applicant in on the buyer surface so they can reach the application form.
+   */
+  async login(
+    email: string,
+    password: string,
+    totpCode?: string,
+    vendorId?: string,
+    surface?: Surface,
+  ): Promise<void> {
     const response = await firstValueFrom(
       this.http.post<AuthResponse>(
         `${this.baseUrl}/v1/auth/login`,
-        { email, password, surface: this.surface, totpCode, vendorId },
+        { email, password, surface: surface ?? this.surface, totpCode, vendorId },
         { withCredentials: true },
       ),
     );
@@ -71,11 +98,11 @@ export class AuthStore {
    * signed ID token, and the server verifies it against Google's public keys. The admin surface
    * refuses this endpoint outright, so an admin console calling it gets a 403 by design.
    */
-  async loginWithGoogle(idToken: string, vendorId?: string): Promise<void> {
+  async loginWithGoogle(idToken: string, vendorId?: string, surface?: Surface): Promise<void> {
     const response = await firstValueFrom(
       this.http.post<AuthResponse>(
         `${this.baseUrl}/v1/auth/google`,
-        { idToken, surface: this.surface, vendorId },
+        { idToken, surface: surface ?? this.surface, vendorId },
         { withCredentials: true },
       ),
     );
@@ -89,11 +116,22 @@ export class AuthStore {
    * state for a first-time visitor rather than an error.
    */
   async restore(): Promise<boolean> {
+    if (await this.refreshAs(this.surface)) return true;
+
+    // An applicant mid-onboarding holds a buyer session in the seller console. Without this second
+    // attempt a page reload would sign them out of a form they are halfway through.
+    if (this.surface === 'seller' && (await this.refreshAs('buyer'))) return true;
+
+    this.clear();
+    return false;
+  }
+
+  private async refreshAs(surface: Surface): Promise<boolean> {
     try {
       const response = await firstValueFrom(
         this.http.post<AuthResponse>(
           `${this.baseUrl}/v1/auth/refresh`,
-          { surface: this.surface },
+          { surface },
           { withCredentials: true },
         ),
       );
@@ -101,9 +139,19 @@ export class AuthStore {
       this.apply(response);
       return true;
     } catch {
-      this.clear();
       return false;
     }
+  }
+
+  /** Creates an account. Does not sign in — the caller decides which surface to ask for. */
+  async register(email: string, password: string, fullName: string, phoneNumber?: string | null): Promise<void> {
+    await firstValueFrom(
+      this.http.post(
+        `${this.baseUrl}/v1/auth/register`,
+        { email, password, fullName, phoneNumber: phoneNumber || null },
+        { withCredentials: true },
+      ),
+    );
   }
 
   async logout(): Promise<void> {
@@ -118,12 +166,14 @@ export class AuthStore {
   }
 
   private apply(response: AuthResponse): void {
+    this.granted.set(response.surface as Surface);
     this.token.set(response.accessToken);
     this.profile.set(response.user);
     this.vendor.set(response.vendorId);
   }
 
   private clear(): void {
+    this.granted.set(null);
     this.token.set(null);
     this.profile.set(null);
     this.vendor.set(null);

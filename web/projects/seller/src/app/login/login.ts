@@ -1,14 +1,14 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthStore, GoogleButton } from 'auth';
 import { BrandLogo } from 'ui';
 import { ProblemDetails } from 'data-access';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, GoogleButton, BrandLogo],
+  imports: [FormsModule, RouterLink, GoogleButton, BrandLogo],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -37,8 +37,16 @@ export class Login {
     this.error.set(null);
 
     try {
-      await this.auth.loginWithGoogle(credential);
-      await this.router.navigateByUrl('/');
+      try {
+        await this.auth.loginWithGoogle(credential);
+        await this.router.navigateByUrl('/');
+      } catch (err) {
+        const problem = err instanceof HttpErrorResponse ? (err.error as ProblemDetails | null) : null;
+        if (problem?.code !== 'identity.surface_not_permitted') throw err;
+        // Same closed loop as the password path: let an applicant through to the form.
+        await this.auth.loginWithGoogle(credential, undefined, 'buyer');
+        await this.router.navigateByUrl('/apply');
+      }
     } catch (err) {
       this.handle(err);
     } finally {
@@ -52,12 +60,34 @@ export class Login {
     this.error.set(null);
 
     try {
-      await this.auth.login(this.email.trim(), this.password, this.totpCode || undefined);
-      await this.router.navigateByUrl('/');
+      await this.signIn(this.email.trim(), this.password, this.totpCode || undefined);
     } catch (err) {
       this.handle(err);
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  /**
+   * Signs in on the seller surface, falling back to buyer for an applicant.
+   *
+   * Someone who has not been approved yet holds no vendor, so PermissionResolver refuses the seller
+   * surface — and the application form that would give them one lives behind this login. Without
+   * the fallback that is a closed loop: you cannot apply because you are not a seller, and you
+   * cannot become a seller without applying. The vendor-application endpoints accept any signed-in
+   * token exactly so this is solvable here.
+   */
+  private async signIn(email: string, password: string, totpCode?: string): Promise<void> {
+    try {
+      await this.auth.login(email, password, totpCode);
+      await this.router.navigateByUrl('/');
+    } catch (err) {
+      const problem = err instanceof HttpErrorResponse ? (err.error as ProblemDetails | null) : null;
+      if (problem?.code !== 'identity.surface_not_permitted') throw err;
+
+      // Not a seller yet — sign in as themselves and take them to the application.
+      await this.auth.login(email, password, totpCode, undefined, 'buyer');
+      await this.router.navigateByUrl('/apply');
     }
   }
 
@@ -101,10 +131,9 @@ export class Login {
         this.error.set('This account has been suspended.');
         return;
       case 'identity.surface_not_permitted':
-        // The commonest confusion on this screen: a real buyer account with no shop attached.
-        this.error.set(
-          'This account cannot sign in to the seller console. If you have not applied for a shop yet, sign in to the marketplace first.',
-        );
+        // Reaching here means the buyer fallback in signIn() also failed, which is a suspended or
+        // deleted account rather than an applicant.
+        this.error.set('This account cannot sign in. Please contact support.');
         return;
       case 'identity.vendor_required':
         this.error.set('This account staffs more than one shop. Multi-shop sign-in is not built yet.');

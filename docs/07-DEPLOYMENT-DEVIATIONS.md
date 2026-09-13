@@ -244,7 +244,17 @@ Built 2026-09-06. Both consoles are real applications now, but neither is comple
 create a product (category → attribute set → variants), submit for review, edit shop settings.
 Product editing now works: details, per-variant price and visibility, stock as a delta, image
 add/reorder/remove, submit, unpublish and delete. Editing is refused while a product is with a
-moderator. Shop logo and banner upload now work. **Not built:** staff management, bulk CSV import.
+moderator. Shop logo and banner upload now work.
+
+**Seller onboarding was unreachable until 2026-09-13** and is worth recording, because the shape of
+the bug will recur. The console always signed in with `surface: 'seller'`; a new account has no
+vendor, so `PermissionResolver` refused that surface — and the application form that *creates* the
+vendor sat behind that login. There was also no registration screen at all. The API was never
+wrong: the vendor-application endpoints deliberately accept any signed-in token so approval is
+reachable. The console now registers, signs an applicant in on `buyer`, and upgrades the session
+in place once the shop is approved.
+
+**Not built:** staff management, bulk CSV import.
 
 **Admin** — sign in with TOTP, work the vendor queue (approve/reject with reason, open KYC
 documents, suspend and reinstate a shop), work the moderation queue (publish, reject, take down).

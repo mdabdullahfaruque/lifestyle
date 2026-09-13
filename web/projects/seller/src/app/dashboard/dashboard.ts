@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthStore } from 'auth';
 import { ProductListItem, VendorService } from 'data-access';
 import { firstValueFrom } from 'rxjs';
 
@@ -14,6 +15,8 @@ import { ShopStore } from '../shop.store';
 export class Dashboard {
   private readonly vendors = inject(VendorService);
   protected readonly shop = inject(ShopStore);
+  protected readonly auth = inject(AuthStore);
+  protected readonly upgrading = signal(false);
 
   protected readonly products = signal<ProductListItem[]>([]);
   protected readonly loading = signal(false);
@@ -32,6 +35,26 @@ export class Dashboard {
 
   constructor() {
     void this.load();
+  }
+
+  /**
+   * An applicant holds a buyer token — it is the only one they could get before approval. Once the
+   * shop is approved they qualify for a seller token, but the session in their browser is still the
+   * old one, so Products and Settings would 403 until they happened to reload.
+   *
+   * `restore()` asks for the seller surface first, so exchanging the refresh cookie upgrades them
+   * in place. No re-typing a password for something that already happened.
+   */
+  protected async activateShop(): Promise<void> {
+    if (this.upgrading()) return;
+    this.upgrading.set(true);
+    try {
+      await this.auth.restore();
+      await this.shop.refresh();
+      await this.load();
+    } finally {
+      this.upgrading.set(false);
+    }
   }
 
   private async load(): Promise<void> {

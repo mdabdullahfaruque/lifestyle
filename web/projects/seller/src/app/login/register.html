@@ -1,0 +1,50 @@
+<div class="auth">
+  <form class="auth__card" (ngSubmit)="submit()">
+    <lib-brand-logo class="auth__brand" variant="full" [height]="86" />
+    <h1 class="auth__title">Open your shop</h1>
+    <p class="auth__sub">
+      Create an account, then tell us about your business. A reviewer checks it before your shop
+      goes live.
+    </p>
+
+    @if (error(); as message) {
+      <p class="alert" role="alert">{{ message }}</p>
+    }
+
+    <label class="field">
+      <span class="field__label">Your name</span>
+      <input name="fullName" autocomplete="name" required [(ngModel)]="fullName" [disabled]="busy()" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Email</span>
+      <input name="email" type="email" autocomplete="email" required [(ngModel)]="email" [disabled]="busy()" />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Phone</span>
+      <input name="phoneNumber" autocomplete="tel" [(ngModel)]="phoneNumber" [disabled]="busy()"
+             placeholder="+8801XXXXXXXXX" />
+      <span class="field__hint">Optional. Your shop's ordering number is set separately.</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">Password</span>
+      <input name="password" type="password" autocomplete="new-password" required minlength="10"
+             [(ngModel)]="password" [disabled]="busy()" />
+      <span class="field__hint">At least 10 characters.</span>
+    </label>
+
+    <button class="btn btn--primary" type="submit" [disabled]="busy()">
+      {{ busy() ? 'Creating…' : 'Create account' }}
+    </button>
+
+    <div class="or"><span>or</span></div>
+
+    <lib-google-button (credential)="signUpWithGoogle($event)" />
+
+    <p class="auth__foot">
+      Already have an account? <a routerLink="/login">Sign in</a>
+    </p>
+  </form>
+</div>
