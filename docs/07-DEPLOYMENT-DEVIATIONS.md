@@ -203,13 +203,22 @@ answers `success: false, jwt: "Authentication error"`. Git-integration deploys w
 console *older* than the one already there. With seller sign-up blocked on getting a current
 bundle out, the consoles moved to the host that already serves the storefront.
 
-Both are static bundles under `/var/www/lifestyle-{seller,admin}`, published by
-`deploy/scripts/deploy-consoles.sh`, behind site files vendored in `deploy/nginx/`. Each proxies
-`/v1/*` same-origin the way the apex does, and carries `X-Robots-Tag: noindex`.
+Both are static bundles under `/var/www/lifestyle-{seller,admin}`, behind site files vendored in
+`deploy/nginx/`. Each proxies `/v1/*` same-origin the way the apex does, and carries
+`X-Robots-Tag: noindex`.
 
-**Cost of keeping it:** no CDN in front of the consoles, and a deploy is now a build on the VPS
-(a few hundred MB of RAM for the duration — see docs/03 on why that matters on this box) instead
-of an upload.
+Publishing is two steps, and the split is deliberate — **the bundle is built on the workstation,
+never on the VPS**. There is no node on that host, and an Angular build would peak past what is
+comfortable to spend on a box already running five production stacks in 12 GB:
+
+```bash
+cd web && npx ng build seller && tar -C dist/seller/browser -czf /tmp/seller.tgz .
+scp /tmp/seller.tgz deploy@94.136.186.220:/tmp/
+ssh deploy@94.136.186.220 'cd ~/lifestyle-bd-prod && ./deploy/scripts/publish-console.sh seller /tmp/seller.tgz'
+```
+
+**Cost of keeping it:** no CDN in front of the consoles, and no build-on-push — publishing is a
+manual two-step until Pages works again.
 
 **Revert trigger:** a Cloudflare token with `Account · Cloudflare Pages · Edit`, *and* `prod`
 pushed up to date. Then `wrangler pages deploy web/dist/<app>/browser`, re-add the custom domain
