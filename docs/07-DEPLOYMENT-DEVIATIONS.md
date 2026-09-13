@@ -296,7 +296,13 @@ wrong: the vendor-application endpoints deliberately accept any signed-in token 
 reachable. The console now registers, signs an applicant in on `buyer`, and upgrades the session
 in place once the shop is approved.
 
-**Not built:** staff management, bulk CSV import.
+**Changing a password** was added 2026-09-13 (Shop settings → Password). It matters because a
+shop an admin opens starts with a password that admin generated and read out; until the owner
+replaces it, two people can sign in as them. The endpoint revokes every session, so the console
+signs out afterwards and the login screen says why.
+
+**Not built:** staff management, bulk CSV import, password *reset* — there is no email sender
+(G4), so an owner who forgets theirs needs an admin to intervene, and no screen does that yet.
 
 **Admin** — sign in with TOTP, work the vendor queue (approve/reject with reason, open KYC
 documents, suspend and reinstate a shop), work the moderation queue (publish, reject, take down).
