@@ -111,3 +111,18 @@
   .grid,
   .handover__creds { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Required is marked on the label rather than signalled only by a disabled button — the button
+   stays pressable, so the form has to say what it wants before it is pressed. */
+.req {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--muted);
+  margin-left: 0.35rem;
+}
+
+.err { display: block; font-size: 0.8rem; color: var(--danger); margin-top: 0.25rem; }
+.field--bad input { border-color: var(--danger); }
+.field--bad .req { color: var(--danger); }

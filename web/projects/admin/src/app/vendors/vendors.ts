@@ -53,6 +53,15 @@ export class Vendors {
 
   protected form: CreateVendorRequest = Vendors.emptyForm();
 
+  /**
+   * Per-field messages, keyed by the input's name.
+   *
+   * The submit button is deliberately never disabled for being "invalid": a greyed-out button with
+   * no explanation is a dead end — you cannot tell which field is wrong, or even that one is.
+   * Pressing it always does something, and what it does when something is missing is say so.
+   */
+  protected readonly fieldErrors = signal<Record<string, string>>({});
+
   /** The vendor whose detail panel is open, with its documents. */
   protected readonly opened = signal<Vendor | null>(null);
   protected readonly openingId = signal<string | null>(null);
@@ -157,6 +166,7 @@ export class Vendors {
 
     if (open) {
       this.form = Vendors.emptyForm();
+      this.fieldErrors.set({});
       this.created.set(null);
       this.opened.set(null);
     }
@@ -169,11 +179,26 @@ export class Vendors {
   protected async create(): Promise<void> {
     if (this.saving()) return;
 
-    this.saving.set(true);
     this.error.set(null);
     this.notice.set(null);
     this.copied.set(false);
 
+    const problems = Vendors.validate(this.form);
+    this.fieldErrors.set(problems);
+
+    if (Object.keys(problems).length) {
+      const first = Object.keys(problems)[0];
+      this.error.set(
+        Object.keys(problems).length === 1
+          ? problems[first]
+          : `${Object.keys(problems).length} fields need attention — see the messages below.`,
+      );
+      // Put the cursor where the work is, rather than leaving it to be hunted for.
+      document.querySelector<HTMLInputElement>(`form.create [name="${first}"]`)?.focus();
+      return;
+    }
+
+    this.saving.set(true);
     const form = this.form;
     const request: CreateVendorRequest = {
       legalName: form.legalName.trim() || form.displayName.trim(),
@@ -190,6 +215,7 @@ export class Vendors {
 
     try {
       const result = await firstValueFrom(this.admin.createVendor(request));
+      this.fieldErrors.set({});
       this.created.set(result);
       this.creating.set(false);
       this.notice.set(`${result.vendor.displayName} is live at /${result.vendor.slug}.`);
@@ -226,11 +252,74 @@ export class Vendors {
     const problem = err instanceof HttpErrorResponse ? (err.error as ProblemDetails | null) : null;
 
     if (problem?.errors) {
-      this.error.set(Object.values(problem.errors).flat().join(' '));
+      // FluentValidation keys these by property name — "DisplayName". Lower-casing the first
+      // letter lands each message on the input it is about instead of in one lump at the top.
+      const byField: Record<string, string> = {};
+      for (const [key, messages] of Object.entries(problem.errors)) {
+        byField[key.charAt(0).toLowerCase() + key.slice(1)] = messages.join(' ');
+      }
+      this.fieldErrors.set(byField);
+      this.error.set('Some details were rejected — see the messages below.');
       return;
     }
 
+    // A conflict is about a field too, even though it does not arrive as a validation error.
+    switch (problem?.code) {
+      case 'identity.email_taken':
+      case 'vendors.already_owner':
+        this.fieldErrors.set({ ownerEmail: problem.detail ?? 'That owner cannot be used.' });
+        break;
+      case 'identity.phone_taken':
+        this.fieldErrors.set({ ownerPhone: problem.detail ?? 'That phone number is already in use.' });
+        break;
+      case 'vendors.slug_reserved':
+      case 'vendors.slug_invalid':
+      case 'vendors.slug_unavailable':
+        this.fieldErrors.set({ desiredSlug: problem.detail ?? 'Choose a different shop address.' });
+        break;
+      default:
+        this.fieldErrors.set({});
+    }
+
     this.error.set(problem?.detail ?? fallback);
+  }
+
+  /**
+   * The same rules the API enforces, checked here so the answer arrives immediately rather than
+   * after a round trip. The API is still the authority — this only saves a request.
+   */
+  private static validate(form: CreateVendorRequest): Record<string, string> {
+    const errors: Record<string, string> = {};
+    const email = /^[^s@]+@[^s@]+.[^s@]+$/;
+
+    if (!form.displayName.trim()) errors['displayName'] = 'Give the shop a name — buyers see this one.';
+    else if (form.displayName.trim().length > 200) errors['displayName'] = 'Shop name is too long (200 characters).';
+
+    if ((form.legalName ?? '').trim().length > 300) errors['legalName'] = 'Legal name is too long (300 characters).';
+
+    const slug = (form.desiredSlug ?? '').trim();
+    if (slug && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+      errors['desiredSlug'] = 'Lowercase letters, numbers and single hyphens only — like arunima-crafts.';
+    }
+
+    const contactEmail = (form.contactEmail ?? '').trim();
+    if (contactEmail && !email.test(contactEmail)) errors['contactEmail'] = "That does not look like an email address.";
+
+    if (!form.contactPhone.trim()) errors['contactPhone'] = 'A contact phone is required — it is how buyers reach the shop.';
+    else if (form.contactPhone.trim().length > 32) errors['contactPhone'] = 'Phone number is too long (32 characters).';
+
+    if ((form.registrationNumber ?? '').trim().length > 60) {
+      errors['registrationNumber'] = 'Registration number is too long (60 characters).';
+    }
+
+    const ownerEmail = form.ownerEmail.trim();
+    if (!ownerEmail) errors['ownerEmail'] = "The owner's email is required — it is the account they sign in with.";
+    else if (!email.test(ownerEmail)) errors['ownerEmail'] = 'That does not look like an email address.';
+
+    if ((form.ownerFullName ?? '').trim().length > 200) errors['ownerFullName'] = 'Owner name is too long (200 characters).';
+    if ((form.ownerPhone ?? '').trim().length > 32) errors['ownerPhone'] = 'Phone number is too long (32 characters).';
+
+    return errors;
   }
 
   private static emptyForm(): CreateVendorRequest {

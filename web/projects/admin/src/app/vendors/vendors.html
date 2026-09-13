@@ -43,7 +43,7 @@
 }
 
 @if (creating()) {
-  <form class="card create" (ngSubmit)="create()" #createForm="ngForm">
+  <form class="card create" novalidate (ngSubmit)="create()">
     <h2>Create a shop</h2>
     <p class="muted tiny">
       For a seller signed up in person or over the phone. It is approved immediately — you are
@@ -54,70 +54,110 @@
     <fieldset class="grid" [disabled]="saving()">
       <legend>The shop</legend>
 
-      <label class="field">
-        <span class="field__label">Shop name</span>
-        <input name="displayName" required maxlength="200" [(ngModel)]="form.displayName"
+      <label class="field" [class.field--bad]="fieldErrors()['displayName']">
+        <span class="field__label">Shop name <span class="req">required</span></span>
+        <input name="displayName" maxlength="200" [(ngModel)]="form.displayName"
                placeholder="Arunima Crafts" />
+        @if (fieldErrors()['displayName']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
       </label>
 
-      <label class="field">
+      <label class="field" [class.field--bad]="fieldErrors()['legalName']">
         <span class="field__label">Registered legal name</span>
         <input name="legalName" maxlength="300" [(ngModel)]="form.legalName"
                placeholder="Leave blank to use the shop name" />
+        @if (fieldErrors()['legalName']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
       </label>
 
-      <label class="field">
+      <label class="field" [class.field--bad]="fieldErrors()['desiredSlug']">
         <span class="field__label">Shop address</span>
         <input name="desiredSlug" maxlength="80" [(ngModel)]="form.desiredSlug"
-               pattern="[a-z0-9-]*" placeholder="arunima-crafts" />
+               placeholder="arunima-crafts" />
+        @if (fieldErrors()['desiredSlug']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
         <span class="hint muted">
           Optional — derived from the shop name, with a number appended if it is taken.
         </span>
       </label>
 
-      <label class="field">
+      <label class="field" [class.field--bad]="fieldErrors()['registrationNumber']">
         <span class="field__label">Trade licence / registration no.</span>
         <input name="registrationNumber" maxlength="60" [(ngModel)]="form.registrationNumber" />
+        @if (fieldErrors()['registrationNumber']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
+        <span class="hint muted">
+          Optional.
+        </span>
       </label>
 
-      <label class="field">
+      <label class="field" [class.field--bad]="fieldErrors()['contactEmail']">
         <span class="field__label">Shop contact email</span>
         <input name="contactEmail" type="email" maxlength="320" [(ngModel)]="form.contactEmail"
                placeholder="Leave blank to use the owner's" />
+        @if (fieldErrors()['contactEmail']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
+        <span class="hint muted">
+          Optional — the owner's email is used if this is blank.
+        </span>
       </label>
 
-      <label class="field">
-        <span class="field__label">Shop contact phone</span>
-        <input name="contactPhone" required maxlength="32" [(ngModel)]="form.contactPhone"
+      <label class="field" [class.field--bad]="fieldErrors()['contactPhone']">
+        <span class="field__label">Shop contact phone <span class="req">required</span></span>
+        <input name="contactPhone" maxlength="32" [(ngModel)]="form.contactPhone"
                placeholder="+8801700000000" />
+        @if (fieldErrors()['contactPhone']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
       </label>
     </fieldset>
 
     <fieldset class="grid" [disabled]="saving()">
       <legend>The owner</legend>
 
-      <label class="field">
-        <span class="field__label">Owner email</span>
-        <input name="ownerEmail" type="email" required maxlength="320" [(ngModel)]="form.ownerEmail" />
+      <label class="field" [class.field--bad]="fieldErrors()['ownerEmail']">
+        <span class="field__label">Owner email <span class="req">required</span></span>
+        <input name="ownerEmail" type="email" maxlength="320" [(ngModel)]="form.ownerEmail"
+               placeholder="owner@example.com" />
+        @if (fieldErrors()['ownerEmail']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
         <span class="hint muted">
           If this email already has an account it becomes the shop owner. Otherwise an account is
           created and you are given a one-time password to hand over.
         </span>
       </label>
 
-      <label class="field">
+      <label class="field" [class.field--bad]="fieldErrors()['ownerFullName']">
         <span class="field__label">Owner name</span>
         <input name="ownerFullName" maxlength="200" [(ngModel)]="form.ownerFullName" />
+        @if (fieldErrors()['ownerFullName']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
+        <span class="hint muted">
+          Optional — the shop name is used if this is blank.
+        </span>
       </label>
 
-      <label class="field">
+      <label class="field" [class.field--bad]="fieldErrors()['ownerPhone']">
         <span class="field__label">Owner phone</span>
         <input name="ownerPhone" maxlength="32" [(ngModel)]="form.ownerPhone" />
+        @if (fieldErrors()['ownerPhone']; as message) {
+          <span class="err" role="alert">{{ message }}</span>
+        }
+        <span class="hint muted">
+          Optional. Must not already belong to another account.
+        </span>
       </label>
     </fieldset>
 
     <div class="detail__actions">
-      <button class="btn btn--primary" type="submit" [disabled]="saving() || createForm.invalid">
+      <button class="btn btn--primary" type="submit" [disabled]="saving()">
         {{ saving() ? 'Creating…' : 'Create and approve' }}
       </button>
       <button class="btn" type="button" [disabled]="saving()" (click)="toggleCreate()">Cancel</button>
