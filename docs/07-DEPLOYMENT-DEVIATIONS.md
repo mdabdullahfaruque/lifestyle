@@ -191,7 +191,7 @@ A placeholder comment marks the spot in the api site file.
 
 ---
 
-## 9. Seller and admin consoles are served from the host, not Cloudflare Pages — **T**
+## 9. Seller and admin consoles are served from the host, not Cloudflare Pages — **T**, live 2026-09-13
 
 The plan (docs/06 step D1) puts both consoles on Pages, and the two projects exist —
 `lifestyle` and `lifestyle-admin`. They are not what serves the live hostnames.
@@ -206,6 +206,11 @@ bundle out, the consoles moved to the host that already serves the storefront.
 Both are static bundles under `/var/www/lifestyle-{seller,admin}`, behind site files vendored in
 `deploy/nginx/`. Each proxies `/v1/*` same-origin the way the apex does, and carries
 `X-Robots-Tag: noindex`.
+
+DNS was moved with them: `seller` and `admin` are now **A records to 94.136.186.220, DNS-only**,
+not proxied CNAMEs to `*.pages.dev`. Let's Encrypt certificates were issued by certbot
+`--webroot` on 2026-09-13 and expire 2026-12-12. The two Pages projects still exist and still
+hold the custom-domain entries; they serve nothing.
 
 Publishing is two steps, and the split is deliberate — **the bundle is built on the workstation,
 never on the VPS**. There is no node on that host, and an Angular build would peak past what is
