@@ -24,46 +24,71 @@
 }
 
 @if (editable()) {
-  <form class="card" (ngSubmit)="saveApplication()">
+  <form class="card" novalidate (ngSubmit)="saveApplication()">
     <h2>Business details</h2>
 
     <label class="field">
-      <span class="field__label">Registered legal name</span>
-      <input name="legalName" required [(ngModel)]="form.legalName" [disabled]="busy()" />
+      <span class="field__label">Registered legal name <span class="req">required</span></span>
+      <input name="legalName" maxlength="300" [(ngModel)]="form.legalName" [disabled]="busy()" />
+      @if (fieldErrors()['legalName']; as message) {
+        <span class="err" role="alert">{{ message }}</span>
+      }
       <span class="field__hint">Exactly as it appears on your trade licence.</span>
     </label>
 
     <label class="field">
-      <span class="field__label">Shop name</span>
-      <input name="displayName" required [(ngModel)]="form.displayName" [disabled]="busy()" />
+      <span class="field__label">Shop name <span class="req">required</span></span>
+      <input name="displayName" maxlength="200" [(ngModel)]="form.displayName" [disabled]="busy()" />
+      @if (fieldErrors()['displayName']; as message) {
+        <span class="err" role="alert">{{ message }}</span>
+      }
       <span class="field__hint">What buyers see on the marketplace.</span>
     </label>
 
     <label class="field">
-      <span class="field__label">Shop address</span>
-      <input name="desiredSlug" [(ngModel)]="form.desiredSlug" [disabled]="busy()"
-             placeholder="your-shop" />
-      <span class="field__hint">
-        Becomes your shop's web address. Lowercase letters, numbers and hyphens; leave blank and we
-        will pick one from your shop name.
-      </span>
+      <span class="field__label">Web address</span>
+      <input name="desiredSlug" maxlength="80" [(ngModel)]="form.desiredSlug" [disabled]="busy()"
+             placeholder="Leave blank to use your shop name" />
+      @if (fieldErrors()['desiredSlug']; as message) {
+        <span class="err" role="alert">{{ message }}</span>
+      }
+      @if (addressPreview(); as preview) {
+        <span class="field__hint">Your shop will be at <strong>{{ preview }}</strong></span>
+      } @else {
+        <span class="field__hint">
+          Not a street address — this is your shop's own web address on the marketplace.
+        </span>
+      }
     </label>
 
     <label class="field">
-      <span class="field__label">Contact email</span>
-      <input name="contactEmail" type="email" required [(ngModel)]="form.contactEmail" [disabled]="busy()" />
+      <span class="field__label">Contact email <span class="req">required</span></span>
+      <input name="contactEmail" type="email" maxlength="320" [(ngModel)]="form.contactEmail"
+             [disabled]="busy()" />
+      @if (fieldErrors()['contactEmail']; as message) {
+        <span class="err" role="alert">{{ message }}</span>
+      }
+      <span class="field__hint">How we reach you about the shop. It is not shown to buyers.</span>
     </label>
 
     <label class="field">
-      <span class="field__label">Contact phone</span>
-      <input name="contactPhone" required [(ngModel)]="form.contactPhone" [disabled]="busy()"
+      <span class="field__label">Contact phone <span class="req">required</span></span>
+      <input name="contactPhone" maxlength="32" [(ngModel)]="form.contactPhone" [disabled]="busy()"
              placeholder="+8801XXXXXXXXX" />
+      @if (fieldErrors()['contactPhone']; as message) {
+        <span class="err" role="alert">{{ message }}</span>
+      }
       <span class="field__hint">Full international format.</span>
     </label>
 
     <label class="field">
       <span class="field__label">Registration number</span>
-      <input name="registrationNumber" [(ngModel)]="form.registrationNumber" [disabled]="busy()" />
+      <input name="registrationNumber" maxlength="60" [(ngModel)]="form.registrationNumber"
+             [disabled]="busy()" />
+      @if (fieldErrors()['registrationNumber']; as message) {
+        <span class="err" role="alert">{{ message }}</span>
+      }
+      <span class="field__hint">Optional.</span>
     </label>
 
     <button class="btn btn--primary" type="submit" [disabled]="busy()">

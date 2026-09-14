@@ -36,3 +36,17 @@
 }
 
 .submit { margin-top: 1rem; }
+
+/* Required is marked on the label, and every rejection is shown under the field it belongs to.
+   The submit button stays pressable — a dead button cannot explain itself. */
+.req {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--muted);
+  margin-left: 0.35rem;
+}
+
+.err { display: block; font-size: 0.8rem; color: var(--danger); margin-top: 0.25rem; }
+.field--bad input { border-color: var(--danger); }
