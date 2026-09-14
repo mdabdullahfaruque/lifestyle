@@ -82,6 +82,23 @@ export class Onboarding {
     };
   }
 
+  /**
+   * A message about a field stops being true the moment someone edits that field. Leaving it up
+   * until the next save makes a corrected form look broken — and it is how a stale "required"
+   * ends up sitting under a box that is now filled in.
+   */
+  protected clearFieldError(event: Event): void {
+    const name = (event.target as HTMLInputElement | null)?.name;
+    if (!name || !this.fieldErrors()[name]) return;
+
+    this.fieldErrors.update((errors) => {
+      const { [name]: _removed, ...rest } = errors;
+      return rest;
+    });
+
+    if (!Object.keys(this.fieldErrors()).length) this.error.set(null);
+  }
+
   protected async saveApplication(): Promise<void> {
     if (this.busy()) return;
 

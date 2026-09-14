@@ -24,7 +24,7 @@
 }
 
 @if (editable()) {
-  <form class="card" novalidate (ngSubmit)="saveApplication()">
+  <form class="card" novalidate (input)="clearFieldError($event)" (ngSubmit)="saveApplication()">
     <h2>Business details</h2>
 
     <label class="field">

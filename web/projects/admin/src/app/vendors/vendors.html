@@ -43,7 +43,7 @@
 }
 
 @if (creating()) {
-  <form class="card create" novalidate (ngSubmit)="create()">
+  <form class="card create" novalidate (input)="clearFieldError($event)" (ngSubmit)="create()">
     <h2>Create a shop</h2>
     <p class="muted tiny">
       For a seller signed up in person or over the phone. It is approved immediately — you are
