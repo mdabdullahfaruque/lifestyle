@@ -115,6 +115,11 @@ internal static class GoogleSignIn
                     user.AssignRole(SystemRoles.BuyerId, null, now);
                     db.Users.Add(user);
                 }
+
+                // PermissionResolver queries UserRoles fresh from the database; a role assigned only
+                // in memory is invisible to it. Without this save, every brand-new Google sign-up
+                // fails permission resolution against its own just-granted role.
+                await db.SaveChangesAsync(ct);
             }
 
             if (user.Status == UserStatus.Suspended)
