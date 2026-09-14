@@ -11,6 +11,7 @@ import {
   VendorListItem,
 } from 'data-access';
 import { firstValueFrom } from 'rxjs';
+import { describeSlugProblem, looksLikeEmail, slugify } from 'util';
 
 @Component({
   selector: 'app-vendors',
@@ -69,7 +70,7 @@ export class Vendors {
    * guessing. Falls back to the shop name, which is what the API does when the box is empty.
    */
   protected addressPreview(): string {
-    const slug = Vendors.slugify(this.form.desiredSlug || this.form.displayName || '');
+    const slug = slugify(this.form.desiredSlug || this.form.displayName || '');
     return slug ? `${slug}.mylifestylemart.com` : '';
   }
 
@@ -217,7 +218,7 @@ export class Vendors {
       // Sent already slugified. The API would derive the same thing from the shop name, but its
       // validator rejects a `desiredSlug` that is not already a slug — so normalising here is what
       // lets an admin type "Uttara Crafts" in this box instead of guessing the format.
-      desiredSlug: Vendors.slugify(form.desiredSlug ?? '') || null,
+      desiredSlug: slugify(form.desiredSlug ?? '') || null,
       contactEmail: (form.contactEmail || form.ownerEmail).trim(),
       contactPhone: form.contactPhone.trim(),
       registrationNumber: form.registrationNumber?.trim() || null,
@@ -310,18 +311,16 @@ export class Vendors {
 
     if ((form.legalName ?? '').trim().length > 300) errors['legalName'] = 'Legal name is too long (300 characters).';
 
-    // Typed text is turned into a web address rather than rejected for not already being one —
-    // see `slugify`. The only thing left to refuse is text that contains nothing usable at all
-    // ("...", "!!!") or that survives as fewer than the three characters the API requires.
+    // Typed text becomes a web address rather than being rejected for not already being one — see
+    // `slugify` in the util lib, which both consoles share so their answers cannot diverge.
     const typedSlug = (form.desiredSlug ?? '').trim();
     if (typedSlug) {
-      const slug = Vendors.slugify(typedSlug);
-      if (!slug) errors['desiredSlug'] = 'That has no letters or numbers in it to build a web address from.';
-      else if (slug.length < 3) errors['desiredSlug'] = 'A web address needs at least three letters or numbers.';
+      const problem = describeSlugProblem(typedSlug);
+      if (problem) errors['desiredSlug'] = problem;
     }
 
     const contactEmail = (form.contactEmail ?? '').trim();
-    if (contactEmail && !Vendors.isEmail(contactEmail)) {
+    if (contactEmail && !looksLikeEmail(contactEmail)) {
       errors['contactEmail'] = 'That does not look like an email address.';
     }
 
@@ -334,42 +333,12 @@ export class Vendors {
 
     const ownerEmail = form.ownerEmail.trim();
     if (!ownerEmail) errors['ownerEmail'] = "The owner's email is required — it is the account they sign in with.";
-    else if (!Vendors.isEmail(ownerEmail)) errors['ownerEmail'] = 'That does not look like an email address.';
+    else if (!looksLikeEmail(ownerEmail)) errors['ownerEmail'] = 'That does not look like an email address.';
 
     if ((form.ownerFullName ?? '').trim().length > 200) errors['ownerFullName'] = 'Owner name is too long (200 characters).';
     if ((form.ownerPhone ?? '').trim().length > 32) errors['ownerPhone'] = 'Phone number is too long (32 characters).';
 
     return errors;
-  }
-
-  /**
-   * Deliberately loose. A stricter pattern rejects addresses that are perfectly deliverable, and
-   * the only thing this check is for is catching a typo before a round trip — the API validates
-   * properly, and whether an address exists is something only sending to it can answer.
-   */
-  private static isEmail(value: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
-  }
-
-  /**
-   * The same transformation `Slug.From` applies on the server: lowercase, strip diacritics,
-   * everything that is not a letter or digit becomes a single hyphen, trimmed, capped at 80.
-   *
-   * Doing it here rather than rejecting non-slug text is the point — an admin typing "Uttara,
-   * Dhaka" has misread the field, and the useful response is to show them what the address will
-   * be, not to refuse the form.
-   */
-  private static slugify(value: string): string {
-    return value
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80)
-      .replace(/-+$/, '');
   }
 
   private static emptyForm(): CreateVendorRequest {
