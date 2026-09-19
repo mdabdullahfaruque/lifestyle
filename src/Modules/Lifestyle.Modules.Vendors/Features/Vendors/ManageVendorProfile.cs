@@ -1,4 +1,5 @@
 using FluentValidation;
+using Lifestyle.Modules.Media.Contracts;
 using Lifestyle.Modules.Vendors.Domain;
 using Lifestyle.Modules.Vendors.Internal;
 using Lifestyle.Modules.Vendors.Persistence;
@@ -56,7 +57,7 @@ internal static class UploadVendorDocument
         }
     }
 
-    internal sealed class Handler(IVendorsDbContext db, ApplicantScope scope, IClock clock)
+    internal sealed class Handler(IVendorsDbContext db, IMediaModule media, ApplicantScope scope, IClock clock)
         : IHandler<Request, Result<VendorResponse>>
     {
         public async Task<Result<VendorResponse>> Handle(Request request, CancellationToken ct)
@@ -69,6 +70,13 @@ internal static class UploadVendorDocument
             vendor.AddDocument(kind, request.MediaId, request.FileName, clock.UtcNow);
 
             await db.SaveChangesAsync(ct);
+
+            // Claim the upload, or the media sweeper deletes it 24 hours later as an orphan and the
+            // application is left pointing at a file that no longer exists. A vendor who applies on
+            // Friday and is reviewed on Monday would have no trade licence to show — and media is
+            // not in the database dump (docs/07 G1), so it is not recoverable either.
+            await media.AttachAsync([request.MediaId], MediaOwnerTypes.VendorDocument, vendor.Id, ct);
+
             return vendor.ToResponse();
         }
     }
@@ -175,7 +183,8 @@ internal static class UpdateStorefront
         }
     }
 
-    internal sealed class Handler(IVendorsDbContext db, ICurrentUser currentUser, IClock clock)
+    internal sealed class Handler(
+        IVendorsDbContext db, IMediaModule media, ICurrentUser currentUser, IClock clock)
         : IHandler<Request, Result<VendorResponse>>
     {
         public async Task<Result<VendorResponse>> Handle(Request request, CancellationToken ct)
@@ -194,6 +203,19 @@ internal static class UpdateStorefront
                 request.BannerMediaId, request.AccentColour, request.WhatsAppNumber, clock.UtcNow);
 
             await db.SaveChangesAsync(ct);
+
+            // Same reason as the KYC document above: an unclaimed upload is swept after 24 hours,
+            // so a shop logo set today would silently vanish from every storefront tomorrow.
+            string?[] branding = [request.LogoMediaId, request.BannerMediaId];
+
+            var uploaded = branding
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id!)
+                .ToList();
+
+            if (uploaded.Count > 0)
+                await media.AttachAsync(uploaded, MediaOwnerTypes.VendorBranding, vendor.Id, ct);
+
             return vendor.ToResponse();
         }
     }
