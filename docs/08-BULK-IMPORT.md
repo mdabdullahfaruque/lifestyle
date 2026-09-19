@@ -510,7 +510,8 @@ Recorded so they are decisions rather than omissions:
 
 ## 12. Implementation status — 2026-09-19
 
-Steps 1–4 of §10 are built, compiled and unit-tested. Steps 5–9 are untouched specification.
+**All nine steps of §10 are built, compiled and unit-tested.** Nothing has run against a database
+or in a browser — see *Not verified* below, which is the part that matters.
 
 ### Built
 
@@ -527,6 +528,11 @@ Steps 1–4 of §10 are built, compiled and unit-tested. Steps 5–9 are untouch
 | Endpoints | `Catalog/Features/Import/` — template, start, get, revise, cancel, commit, errors |
 | Seller UI | `web/projects/seller/src/app/media/` and `.../products/import/` |
 | API client | `web/projects/data-access/src/lib/import.service.ts` |
+| ZIP ingest (5) | `Modules.Media/Features/Library/UploadLibraryZip.cs` |
+| Capture-time clustering (6) | `MediaFile.CapturedAt`, `ImageMatcher.Cluster`, migration `CaptureTimeAndImageClusters` |
+| Square white canvas (7) | `Modules.Media/Internal/ImageSharpProcessor.cs`, opt-in per upload |
+| Browser downscale + HEIC (8) | `web/projects/util/src/lib/downscale-image.ts` |
+| `image_urls` (9) | `Modules.Media/Internal/RemoteImageFetcher.cs` — **disabled by default** |
 
 ### Decisions taken during implementation
 
@@ -550,18 +556,50 @@ so `LS1001-RED-M.jpg` resolves to the SKU rather than being shadowed by the shor
 writes `1,234.56`; the separator that appears last is treated as the decimal point. Getting this
 wrong prices a dress at 123456.
 
-### Not built — the rest of §10
+**ZIP folders are flattened, not preserved.** `LS-1001/main.jpg` is stored as `LS-1001_main.jpg`.
+The matcher resolves the longest leading run of a filename, so a flattened name matches on the
+folder exactly as a path would — and nothing has to store or trust a directory that came out of an
+archive. Matcher rule 1 therefore needed no code at all.
 
-Steps 5 (ZIP ingest), 6 (capture-time clustering), 7 (square white canvas), 8 (client-side
-downscale and HEIC) and 9 (`image_urls`) are unstarted. The matcher already handles folder paths
-(rule 1), so step 5 is mostly ZIP extraction plus the §7.1 guards rather than new matching logic.
+**Clustering groups, it never assigns.** A gap over 90 seconds between EXIF capture times starts a
+new group. The sheet decides which products exist and no clock can guess a product code, so a
+clustered photo stays unmatched until the seller drags it — the grid just lets them drag eight at
+once instead of one at a time.
 
-### Not verified
+**The square canvas is opt-in per upload, not global.** Derivatives are generated at upload time,
+before anything knows whether the image is a product photo or a shop banner. Squaring a banner
+would letterbox the shop header, so the library, ZIP and product-image paths ask for it and
+logo/banner uploads do not.
+
+**`image_urls` ships switched off.** §7.2 argued for dropping it; it was built because it was asked
+for, with `Media:RemoteImageImport:Enabled` defaulting to false. When it is off the column is
+*ignored*, not rejected — failing a seller's rows because the platform disabled a column the
+template offers them would be indefensible.
+
+> ⚠ **Do not set `Enabled` without closing the DNS-rebinding gap first.** The address check
+> resolves the hostname, then `HttpClient` resolves it again to connect. A host that answers the
+> first lookup publicly and the second with `127.0.0.1` walks straight through to the loopback
+> interface — where four other products' containers listen. Closing it means resolving once and
+> connecting to the pinned address with the original `Host` header, via a custom
+> `SocketsHttpHandler.ConnectCallback`. Everything else in §7.2 is implemented and tested;
+> this one is not, and `RemoteImageFetcher.FetchAsync` has never made a real request.
+
+### Not verified — the part that matters
 
 - **No integration tests and no run against a live database.** Docker is not installed on the
-  development machine, so the Testcontainers suite could not run. Everything below the unit tests
-  — the EF configurations, both migrations, the jsonb value comparers, the filtered unique index
-  on `vendor_product_code`, and every endpoint end to end — is **compiled but unexercised**.
+  development machine, so all 16 Testcontainers tests skipped. Everything below the unit tests
+  — the EF configurations, all three migrations, the jsonb value comparers, the filtered unique
+  index on `vendor_product_code`, and every endpoint end to end — is **compiled but unexercised**.
   [docs/04 §13](04-CODEBASE-STRUCTURE.md) records three defects that a clean build and green unit
   tests still missed, all found by running against a real database. Assume the same risk here.
-- The seller UI has been built by the Angular compiler but never opened in a browser.
+- **The seller UI has never been opened in a browser.** It compiles; no drag has ever been made.
+- **`downscaleImage` has never run.** `createImageBitmap` and `canvas.toBlob` are browser APIs that
+  no test exercises.
+- **No archive has been unpacked and no EXIF has been parsed.** The zip-slip guard and the
+  clustering are tested as pure functions, with synthetic paths and synthetic timestamps.
+- **`RemoteImageFetcher` has never made a request.** Only its address predicate is tested; the
+  redirect handling, size cap and timeout are not.
+
+**Before this goes anywhere near `bd-prod`:** run `docker compose up -d`, apply the three
+migrations against a real PostgreSQL, run the integration suite, and walk one import through the
+seller UI end to end.

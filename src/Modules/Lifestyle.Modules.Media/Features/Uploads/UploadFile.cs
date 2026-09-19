@@ -38,7 +38,18 @@ internal static class UploadFile
         /// grid is one shape throughout (docs/08 §6.3). False for shop logos and banners, whose own
         /// aspect ratio is the point — squaring a wide banner would letterbox it.
         /// </param>
-        internal sealed record Command(IFormFile File, bool IsPrivate, bool SquareCanvas = false);
+        /// <param name="CapturedAtFallback">
+        /// Capture time supplied by the client, used only when the file itself carries no EXIF.
+        /// The browser has to re-encode large photos before upload — a 12 MP phone JPEG exceeds the
+        /// size cap — and that destroys the metadata, so the timestamp is read before the re-encode
+        /// and sent alongside. Without this, capture-time clustering (docs/08 §4.3) would never fire
+        /// for exactly the photos it exists for.
+        /// </param>
+        internal sealed record Command(
+            IFormFile File,
+            bool IsPrivate,
+            bool SquareCanvas = false,
+            DateTimeOffset? CapturedAtFallback = null);
 
         public async Task<Result<MediaAsset>> Handle(Command command, CancellationToken ct)
         {
@@ -87,7 +98,10 @@ internal static class UploadFile
                     if (metadata is null)
                         return Error.Validation("media.not_an_image", "That file is not a readable image.");
 
-                    (width, height, capturedAt) = (metadata.Width, metadata.Height, metadata.CapturedAt);
+                    // The file's own EXIF wins; the client's value is only a fallback for a photo
+                    // whose metadata the browser had to strip to get it under the size cap.
+                    (width, height) = (metadata.Width, metadata.Height);
+                    capturedAt = metadata.CapturedAt ?? command.CapturedAtFallback;
                     stream.Position = 0;
                 }
 

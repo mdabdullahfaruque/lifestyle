@@ -1,3 +1,4 @@
+using System.Globalization;
 using Lifestyle.Modules.Identity.Contracts;
 using Lifestyle.Modules.Media.Contracts;
 using Lifestyle.Modules.Media.Features.Uploads;
@@ -48,7 +49,11 @@ internal static class BulkUploadToLibrary
         ICurrentUser currentUser)
         : IHandler<Handler.Command, Result<BulkUploadResponse>>
     {
-        internal sealed record Command(IFormFileCollection Files);
+        /// <param name="CapturedAt">
+        /// Capture times read by the browser before it re-encoded each photo, aligned by index with
+        /// <paramref name="Files"/>. Empty when the client sent none.
+        /// </param>
+        internal sealed record Command(IFormFileCollection Files, IReadOnlyList<DateTimeOffset?> CapturedAt);
 
         public async Task<Result<BulkUploadResponse>> Handle(Command command, CancellationToken ct)
         {
@@ -67,14 +72,18 @@ internal static class BulkUploadToLibrary
             var items = new List<BulkUploadItemResponse>(files.Count);
             var uploaded = new List<string>(files.Count);
 
-            foreach (var file in files)
+            for (var index = 0; index < files.Count; index++)
             {
                 ct.ThrowIfCancellationRequested();
+
+                var file = files[index];
+
+                var capturedAt = index < command.CapturedAt.Count ? command.CapturedAt[index] : null;
 
                 // Reuses the single-file handler rather than restating its size, type and
                 // magic-byte checks — one upload path, one set of rules.
                 var result = await upload.Handle(
-                    new UploadFile.Handler.Command(file, IsPrivate: false, SquareCanvas: true), ct);
+                    new UploadFile.Handler.Command(file, IsPrivate: false, SquareCanvas: true, capturedAt), ct);
 
                 if (result.IsFailure)
                 {
@@ -99,8 +108,22 @@ internal static class BulkUploadToLibrary
     }
 
     public static void Map(IEndpointRouteBuilder group) =>
-        group.MapPost("/bulk", async (IFormFileCollection files, Handler handler, CancellationToken ct) =>
-                (await handler.Handle(new Handler.Command(files), ct)).ToHttpResult())
+        group.MapPost("/bulk", async (HttpRequest request, Handler handler, CancellationToken ct) =>
+            {
+                var form = await request.ReadFormAsync(ct);
+
+                // Repeated form field, one per file, in the same order as the files. Parsed
+                // leniently: a value the browser could not read arrives blank and simply means
+                // "this photo has no capture time", which is a normal case (a screenshot).
+                var capturedAt = form["capturedAt"]
+                    .Select(value => DateTimeOffset.TryParse(
+                        value, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var parsed)
+                        ? parsed
+                        : (DateTimeOffset?)null)
+                    .ToList();
+
+                return (await handler.Handle(new Handler.Command(form.Files, capturedAt), ct)).ToHttpResult();
+            })
             .WithName("BulkUploadToLibrary")
             .WithSummary("Upload up to 40 images into the vendor's library. One bad file does not fail the batch.")
             .RequirePermission(Permissions.Media.UploadOwn)

@@ -2,10 +2,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { BulkUploadItem, ImportService, LibraryItem, ProblemDetails } from 'data-access';
 import { firstValueFrom } from 'rxjs';
-import { downscaleImage } from 'util';
+import { downscaleImage, readExifCaptureTime } from 'util';
 
 /** The API accepts at most 40 files per request, so a big drop is sent in batches. */
 const BATCH_SIZE = 40;
+
+/** Images fetched per page. The API caps a page at 100. */
+const PAGE_SIZE = 60;
 
 /**
  * The vendor's image library (docs/08 §2).
@@ -29,6 +32,10 @@ export class Library {
   protected readonly notice = signal<string | null>(null);
   protected readonly unusedOnly = signal(false);
   protected readonly deleting = signal<string | null>(null);
+
+  protected readonly page = signal(1);
+  protected readonly hasMore = signal(false);
+  protected readonly totalCount = signal(0);
 
   /** Progress across all batches, so a 400-file upload has a truthful bar rather than 10 bars. */
   protected readonly uploading = signal(false);
@@ -120,12 +127,16 @@ export class Library {
       for (let start = 0; start < files.length; start += BATCH_SIZE) {
         const batch = files.slice(start, start + BATCH_SIZE);
 
-        // Shrunk in the browser first: a phone JPEG is 8-12 MB against a 10 MB server cap, and an
+        // Read the capture time *before* shrinking: re-encoding through a canvas destroys EXIF,
+        // and capture time is how unnamed phone photos are grouped into shoots during an import.
+        const capturedAt = await Promise.all(batch.map((file) => readExifCaptureTime(file)));
+
+        // Shrunk in the browser: a phone JPEG is 8-12 MB against a 10 MB server cap, and an
         // iPhone's HEIC is a format the API does not accept at all but the browser can decode.
         const prepared = await Promise.all(batch.map((file) => downscaleImage(file)));
 
         try {
-          const result = await firstValueFrom(this.imports.uploadToLibrary(prepared));
+          const result = await firstValueFrom(this.imports.uploadToLibrary(prepared, capturedAt));
           succeeded += result.succeeded;
           failed.push(...result.items.filter((i) => !i.succeeded));
         } catch (err) {
@@ -188,14 +199,33 @@ export class Library {
       : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  private async load(): Promise<void> {
+  /**
+   * Loads one page and appends it. The library is built for sellers with hundreds of photos, so
+   * showing only the first hundred with no way to reach the rest would hide most of their work —
+   * and make the "not on a product yet" filter quietly lie.
+   */
+  protected async loadMore(): Promise<void> {
+    await this.load(this.page() + 1);
+  }
+
+  private async load(page = 1): Promise<void> {
     this.loading.set(true);
 
     try {
-      const page = await firstValueFrom(
-        this.imports.library({ unusedOnly: this.unusedOnly() || undefined, pageSize: 100 }),
+      const result = await firstValueFrom(
+        this.imports.library({
+          unusedOnly: this.unusedOnly() || undefined,
+          page,
+          pageSize: PAGE_SIZE,
+        }),
       );
-      this.items.set(page.items ?? []);
+
+      const items = result.items ?? [];
+
+      this.items.update((existing) => (page === 1 ? items : [...existing, ...items]));
+      this.page.set(result.page?.number ?? page);
+      this.hasMore.set(result.page?.hasNext ?? false);
+      this.totalCount.set(result.page?.totalCount ?? items.length);
     } catch {
       this.error.set('Could not load your image library.');
     } finally {

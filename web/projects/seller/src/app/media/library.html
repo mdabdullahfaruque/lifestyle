@@ -95,7 +95,8 @@
   </section>
 } @else {
   <p class="muted small count">
-    {{ items().length }} image(s) · {{ usedCount() }} already on a product
+    Showing {{ items().length }} of {{ totalCount() }} image(s) · {{ usedCount() }} shown are
+    already on a product
   </p>
 
   <ul class="grid">
@@ -125,4 +126,12 @@
       </li>
     }
   </ul>
+
+  @if (hasMore()) {
+    <div class="more">
+      <button class="btn" type="button" [disabled]="loading()" (click)="loadMore()">
+        {{ loading() ? 'Loading…' : 'Load more images' }}
+      </button>
+    </div>
+  }
 }

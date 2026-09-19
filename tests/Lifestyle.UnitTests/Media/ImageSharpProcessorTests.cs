@@ -88,16 +88,34 @@ public sealed class ImageSharpProcessorTests
 
     /// <summary>
     /// A banner is uploaded without the canvas precisely so it keeps its shape; squaring one would
-    /// letterbox the shop header.
+    /// letterbox the shop header. Nothing to do for one already small enough.
     /// </summary>
     [Fact]
-    public async Task An_image_already_smaller_than_the_variant_is_left_alone()
+    public async Task An_image_smaller_than_the_variant_is_left_alone_without_the_canvas()
     {
         await using var source = Photo(200, 200);
 
-        var resized = await Processor.ResizeAsync(source, 600, squareCanvas: true, CancellationToken.None);
+        var resized = await Processor.ResizeAsync(source, 600, squareCanvas: false, CancellationToken.None);
 
         resized.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// A small product photo still has to be squared, or it leaves exactly the ragged gap in the
+    /// grid that the canvas exists to close — but it must not be scaled up to do it.
+    /// </summary>
+    [Fact]
+    public async Task A_small_product_photo_is_squared_without_being_enlarged()
+    {
+        await using var source = Photo(400, 200);
+
+        using var resized = await Processor.ResizeAsync(source, 600, squareCanvas: true, CancellationToken.None);
+
+        resized.ShouldNotBeNull();
+        resized.Width.ShouldBe(resized.Height, "the tile must be square");
+
+        // Sized to the photo's own long edge, never up to the variant size.
+        resized.Width.ShouldBe(400);
     }
 
     [Fact]

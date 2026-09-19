@@ -158,7 +158,7 @@ internal static class UploadLibraryZip
                     break;
                 }
 
-                var file = await ReadEntryAsync(entry, displayName, extension, ct);
+                var file = await ReadEntryAsync(entry, displayName, extension, _options.MaxUploadBytes, ct);
 
                 if (file is null)
                 {
@@ -190,14 +190,35 @@ internal static class UploadLibraryZip
         }
 
         private static async Task<IFormFile?> ReadEntryAsync(
-            ZipArchiveEntry entry, string displayName, string extension, CancellationToken ct)
+            ZipArchiveEntry entry, string displayName, string extension, long maxBytes,
+            CancellationToken ct)
         {
             try
             {
-                var buffer = new MemoryStream((int)entry.Length);
+                var buffer = new MemoryStream();
 
                 await using (var entryStream = entry.Open())
-                    await entryStream.CopyToAsync(buffer, ct);
+                {
+                    // Copied through a capped loop rather than CopyToAsync. Everything checked
+                    // before this point — entry.Length, CompressedLength, the ratio — is a number
+                    // the archive itself declares, and a zip bomb simply lies about all of them.
+                    // This is the only guard that counts bytes we have actually decompressed.
+                    var chunk = new byte[81920];
+
+                    while (true)
+                    {
+                        var read = await entryStream.ReadAsync(chunk, ct);
+                        if (read == 0) break;
+
+                        if (buffer.Length + read > maxBytes)
+                        {
+                            await buffer.DisposeAsync();
+                            return null;
+                        }
+
+                        await buffer.WriteAsync(chunk.AsMemory(0, read), ct);
+                    }
+                }
 
                 buffer.Position = 0;
                 return new InMemoryFormFile(buffer, displayName, ContentTypeFor(extension));

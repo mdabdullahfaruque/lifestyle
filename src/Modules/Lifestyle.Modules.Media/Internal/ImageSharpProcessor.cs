@@ -68,12 +68,19 @@ internal sealed class ImageSharpProcessor : IImageProcessor
     {
         using var image = await Image.LoadAsync(source, ct);
 
+        var alreadySmall = image.Width <= maxEdge && image.Height <= maxEdge;
+
         // Never enlarge: upscaling produces a bigger file that looks worse than the original.
-        if (image.Width <= maxEdge && image.Height <= maxEdge) return null;
+        // A squared variant is still produced for a small image, because the point of the canvas
+        // is that every tile in the grid is the same shape — skipping the small ones would leave
+        // exactly the gaps it exists to close. The canvas is sized to the image rather than to
+        // maxEdge, so nothing is scaled up.
+        if (alreadySmall && !squareCanvas) return null;
 
         if (squareCanvas)
         {
-            var inner = (int)(maxEdge * (1 - (2 * CanvasMargin)));
+            var edge = alreadySmall ? Math.Max(image.Width, image.Height) : maxEdge;
+            var inner = (int)(edge * (1 - (2 * CanvasMargin)));
 
             // Fit inside the margin, then pad out to the exact square. Pad never crops — a tall
             // dress and a wide rug both end up whole, on the same ground, at the same shape.
@@ -86,7 +93,7 @@ internal sealed class ImageSharpProcessor : IImageProcessor
                 })
                 .Resize(new ResizeOptions
                 {
-                    Size = new Size(maxEdge, maxEdge),
+                    Size = new Size(edge, edge),
                     Mode = ResizeMode.Pad,
                     PadColor = Color.White
                 }));

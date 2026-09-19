@@ -16,6 +16,15 @@ namespace Lifestyle.Modules.Media.Internal;
 /// image library solves the same seller problem with none of this risk, so this should stay off
 /// unless someone has a reason.
 /// </para>
+/// <para>
+/// <b>Known gap — DNS rebinding.</b> The address check resolves the hostname and then
+/// <see cref="HttpClient"/> resolves it again when it connects. A host that answers the first
+/// lookup with a public address and the second with <c>127.0.0.1</c> defeats the check, and
+/// nothing here closes that window: doing so means resolving once and connecting to the pinned
+/// address with the original <c>Host</c> header, which needs a custom
+/// <see cref="SocketsHttpHandler.ConnectCallback"/>. <b>That must be built before
+/// <c>Enabled</c> is ever turned on</b>, and is recorded as such in docs/08 §12.
+/// </para>
 /// </summary>
 internal sealed class RemoteImageFetcher(HttpClient http, IOptions<MediaModuleOptions> options)
 {

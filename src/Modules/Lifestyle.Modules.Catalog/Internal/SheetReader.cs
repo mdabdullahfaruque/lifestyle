@@ -76,9 +76,11 @@ internal static class SheetReader
             var headerCheck = ValidateHeaders(headers);
             if (headerCheck.IsFailure) return headerCheck.Error;
 
+            if (lastRow - firstRow > MaxRows) return TooManyRows();
+
             var rows = new List<SheetRow>();
 
-            for (var r = firstRow + 1; r <= lastRow && rows.Count < MaxRows; r++)
+            for (var r = firstRow + 1; r <= lastRow; r++)
             {
                 var cells = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 var hasValue = false;
@@ -115,37 +117,47 @@ internal static class SheetReader
             return Error.Validation("catalog.import_empty", "That file is empty.");
 
         var (text, encodingUsed) = Decode(bytes);
-        var lines = SplitLines(text);
 
-        if (lines.Count == 0)
+        // Parsed as records, not as lines. A description containing a newline is legal CSV — it is
+        // quoted — and splitting on '\n' first would tear that one product's row into pieces and
+        // shred every row after it.
+        var records = ParseCsvRecords(text);
+
+        if (records.Count == 0)
             return Error.Validation("catalog.import_empty", "That file has no rows.");
 
-        var headers = ParseCsvLine(lines[0]).Select(h => h.Trim()).ToList();
+        var headers = records[0].Fields.Select(h => h.Trim()).ToList();
 
         var headerCheck = ValidateHeaders(headers);
         if (headerCheck.IsFailure) return headerCheck.Error;
 
+        if (records.Count - 1 > MaxRows)
+            return TooManyRows();
+
         var rows = new List<SheetRow>();
 
-        for (var i = 1; i < lines.Count && rows.Count < MaxRows; i++)
+        for (var i = 1; i < records.Count; i++)
         {
-            if (string.IsNullOrWhiteSpace(lines[i])) continue;
+            var record = records[i];
+            if (record.Fields.All(string.IsNullOrWhiteSpace)) continue;
 
-            var fields = ParseCsvLine(lines[i]);
             var cells = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             for (var c = 0; c < headers.Count; c++)
             {
                 if (string.IsNullOrEmpty(headers[c])) continue;
-                cells[headers[c]] = c < fields.Count ? fields[c].Trim() : string.Empty;
+                cells[headers[c]] = c < record.Fields.Count ? record.Fields[c].Trim() : string.Empty;
             }
 
-            // +1 because the header is row 1 in the seller's editor.
-            rows.Add(new SheetRow(i + 1, cells));
+            rows.Add(new SheetRow(record.LineNumber, cells));
         }
 
         return new SheetContent(headers, rows, encodingUsed);
     }
+
+    private static Error TooManyRows() =>
+        Error.Validation("catalog.import_too_many_rows",
+            $"That sheet has more than {MaxRows} rows. Split it and import the parts separately.");
 
     /// <summary>
     /// Decodes CSV bytes, preferring UTF-8 and falling back rather than throwing.
@@ -193,32 +205,62 @@ internal static class SheetReader
             : Result.Success();
     }
 
-    private static List<string> SplitLines(string text) =>
-        [.. text.Split(['\n'], StringSplitOptions.None).Select(l => l.TrimEnd('\r'))];
+    /// <summary>One CSV record, and the line the seller's editor shows it starting on.</summary>
+    private sealed record CsvRecord(int LineNumber, List<string> Fields);
 
     /// <summary>
-    /// Splits one CSV line, honouring quoted fields and doubled quotes. Written rather than taken
-    /// from a package: the input is one line of a known shape, and a CSV dependency for this is not
-    /// worth another pinned version to audit.
+    /// Parses the whole file into records, honouring quoted fields, doubled quotes and newlines
+    /// <b>inside</b> a quoted value.
+    /// <para>
+    /// Scanned once as a character stream rather than split into lines first, because a newline is
+    /// only a record separator when it falls outside quotes. A product description containing a
+    /// line break is perfectly legal CSV, and splitting on '\n' up front would tear that row apart
+    /// and misalign every column in every row after it — the kind of corruption a seller would see
+    /// as "the import mangled my catalogue" with no clue why.
+    /// </para>
+    /// <para>
+    /// Written rather than taken from a package: the grammar is small and fully covered by tests,
+    /// and a CSV dependency here would be another pinned version to audit.
+    /// </para>
     /// </summary>
-    private static List<string> ParseCsvLine(string line)
+    private static List<CsvRecord> ParseCsvRecords(string text)
     {
+        var records = new List<CsvRecord>();
         var fields = new List<string>();
         var current = new StringBuilder();
         var inQuotes = false;
+        var line = 1;
+        var recordStart = 1;
 
-        for (var i = 0; i < line.Length; i++)
+        void EndField() { fields.Add(current.ToString()); current.Clear(); }
+
+        void EndRecord()
         {
-            var ch = line[i];
+            EndField();
+            records.Add(new CsvRecord(recordStart, [.. fields]));
+            fields.Clear();
+        }
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
 
             if (inQuotes)
             {
-                if (ch != '"') { current.Append(ch); continue; }
+                if (ch == '"')
+                {
+                    // "" inside a quoted field is a literal quote.
+                    if (i + 1 < text.Length && text[i + 1] == '"') { current.Append('"'); i++; }
+                    else inQuotes = false;
 
-                // "" inside a quoted field is a literal quote.
-                if (i + 1 < line.Length && line[i + 1] == '"') { current.Append('"'); i++; continue; }
+                    continue;
+                }
 
-                inQuotes = false;
+                // A newline inside quotes is content, but still advances the line count so the
+                // row numbers reported back to the seller match what their editor shows.
+                if (ch == '\n') line++;
+
+                current.Append(ch);
                 continue;
             }
 
@@ -227,17 +269,30 @@ internal static class SheetReader
                 case '"':
                     inQuotes = true;
                     break;
+
                 case ',':
-                    fields.Add(current.ToString());
-                    current.Clear();
+                    EndField();
                     break;
+
+                case '\r':
+                    // Swallowed; the '\n' that follows ends the record.
+                    break;
+
+                case '\n':
+                    EndRecord();
+                    line++;
+                    recordStart = line;
+                    break;
+
                 default:
                     current.Append(ch);
                     break;
             }
         }
 
-        fields.Add(current.ToString());
-        return fields;
+        // A final record with no trailing newline.
+        if (current.Length > 0 || fields.Count > 0) EndRecord();
+
+        return records;
     }
 }

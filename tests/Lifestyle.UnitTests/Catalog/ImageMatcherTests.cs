@@ -17,7 +17,7 @@ public sealed class ImageMatcherTests
         ImageMatcher.Match(
             [.. fileNames.Select((f, i) => new MatchCandidate($"media{i}", f))],
             Codes,
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+            []);
 
     [Fact]
     public void A_folder_named_after_the_product_claims_everything_in_it()
@@ -79,13 +79,32 @@ public sealed class ImageMatcherTests
     [Fact]
     public void A_sku_that_belongs_to_two_products_is_not_matched()
     {
-        var ambiguous = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["SHARED-1"] = "LS-1001"
-        };
+        // The same SKU on two products — exactly what a dictionary of SKU → code would hide by
+        // silently keeping the first one.
+        (string Sku, string ProductCode)[] ambiguous =
+        [
+            ("SHARED-1", "LS-1001"),
+            ("SHARED-1", "LS-1002")
+        ];
 
-        // Same SKU key resolving to a second product makes it ambiguous.
-        ambiguous["shared_1"] = "LS-1002";
+        var matches = ImageMatcher.Match(
+            [new MatchCandidate("m1", "SHARED-1.jpg")], Codes, ambiguous);
+
+        matches.Single().ProductCode.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// Spelled differently but the same SKU once normalised — the matcher compares on the
+    /// normalised key, so this is the same collision as above.
+    /// </summary>
+    [Fact]
+    public void A_sku_that_collides_only_after_normalising_is_not_matched_either()
+    {
+        (string Sku, string ProductCode)[] ambiguous =
+        [
+            ("SHARED-1", "LS-1001"),
+            ("shared_1", "LS-1002")
+        ];
 
         var matches = ImageMatcher.Match(
             [new MatchCandidate("m1", "SHARED-1.jpg")], Codes, ambiguous);
@@ -96,10 +115,7 @@ public sealed class ImageMatcherTests
     [Fact]
     public void A_unique_sku_matches_its_product()
     {
-        var skus = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["LS1001-RED-M"] = "LS-1001"
-        };
+        (string Sku, string ProductCode)[] skus = [("LS1001-RED-M", "LS-1001")];
 
         var match = ImageMatcher.Match(
             [new MatchCandidate("m1", "LS1001-RED-M.jpg")], Codes, skus).Single();
@@ -130,7 +146,7 @@ public sealed class ImageMatcherClusteringTests
         ImageMatcher.Match(
             [.. files.Select((f, i) => new MatchCandidate($"media{i}", f.Name, f.Taken))],
             ["LS-1001"],
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+            []);
 
     [Fact]
     public void Photos_taken_seconds_apart_are_one_group()

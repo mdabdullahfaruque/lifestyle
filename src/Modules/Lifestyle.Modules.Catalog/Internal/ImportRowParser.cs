@@ -93,6 +93,19 @@ internal static class ImportRowParser
             weight = parsedWeight;
         }
 
+        // An import is for one category — its columns and dropdowns come from that category's
+        // attribute set. A row naming a different one cannot be honoured, and silently importing
+        // it into the chosen category would file the product where the seller did not put it.
+        var categorySlug = row.Get(ImportColumns.CategorySlug);
+
+        if (categorySlug is not null
+            && !string.Equals(categorySlug, schema.CategorySlug, StringComparison.OrdinalIgnoreCase))
+        {
+            return Error.Validation("import.category_mismatch",
+                $"This sheet is for '{schema.CategorySlug}', but this row says '{categorySlug}'. "
+                + "Import that product separately using its own category's sheet.");
+        }
+
         var axes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -220,9 +233,37 @@ internal static class ImportRowParser
         var lastComma = trimmed.LastIndexOf(',');
         var lastDot = trimmed.LastIndexOf('.');
 
-        var normalised = lastComma > lastDot
-            ? trimmed.Replace(".", string.Empty, StringComparison.Ordinal).Replace(',', '.')
-            : trimmed.Replace(",", string.Empty, StringComparison.Ordinal);
+        string normalised;
+
+        if (lastComma >= 0 && lastDot >= 0)
+        {
+            // Both present, so the one that appears last is the decimal point and the other groups
+            // thousands. "1.234,56" is Italian, "1,234.56" is Malaysian; both mean 1234.56.
+            normalised = lastComma > lastDot
+                ? trimmed.Replace(".", string.Empty, StringComparison.Ordinal).Replace(',', '.')
+                : trimmed.Replace(",", string.Empty, StringComparison.Ordinal);
+        }
+        else if (lastComma >= 0 || lastDot >= 0)
+        {
+            var separator = lastComma >= 0 ? ',' : '.';
+            var at = lastComma >= 0 ? lastComma : lastDot;
+            var after = trimmed.Length - at - 1;
+            var occurrences = trimmed.Count(c => c == separator);
+
+            // One separator and exactly three digits after it is a thousands separator, not a
+            // decimal point: "1,234" and "1.234" both mean 1234. Prices are written with two
+            // decimal places or none, never three, so reading that as 1.234 would sell a 1,234
+            // taka dress for one taka — which is the single worst thing this parser could do.
+            var groupsThousands = after == 3 && (occurrences > 1 || trimmed.Length - after - 1 <= 3);
+
+            normalised = groupsThousands
+                ? trimmed.Replace(separator.ToString(), string.Empty, StringComparison.Ordinal)
+                : trimmed.Replace(separator, '.');
+        }
+        else
+        {
+            normalised = trimmed;
+        }
 
         return decimal.TryParse(normalised, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
     }

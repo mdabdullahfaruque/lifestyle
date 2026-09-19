@@ -150,4 +150,59 @@ public sealed class ImportRowParserTests
 
         ImportRowParser.ValidateGroup([first, second]).IsSuccess.ShouldBeTrue();
     }
+    /// <summary>
+    /// A lone separator with three digits after it is a thousands separator, not a decimal point.
+    /// Reading "1,234" as 1.234 would sell a 1,234 taka dress for one taka — the single worst
+    /// thing this parser could do, and it is the shape a seller most often types.
+    /// </summary>
+    [Theory]
+    [InlineData("1,234", 1234)]
+    [InlineData("1.234", 1234)]
+    [InlineData("12,500", 12500)]
+    [InlineData("49,90", 49.90)]
+    [InlineData("49.90", 49.90)]
+    [InlineData("1,234,567", 1234567)]
+    public void A_single_separator_is_read_the_way_a_price_is_written(string text, decimal expected)
+    {
+        var row = Row(
+            (ImportColumns.ProductCode, "LS-1001"),
+            (ImportColumns.Sku, "X"),
+            (ImportColumns.Price, text),
+            ($"{ImportColumns.AxisPrefix}colour", "Red"));
+
+        ImportRowParser.Parse(Schema(), row).Value.Price.ShouldBe(expected);
+    }
+
+    /// <summary>
+    /// A sheet is generated for one category and its columns come from that category's attribute
+    /// set. Quietly importing a row that names a different one would file the product where the
+    /// seller did not put it.
+    /// </summary>
+    [Fact]
+    public void A_row_naming_a_different_category_is_refused()
+    {
+        var row = Row(
+            (ImportColumns.ProductCode, "LS-1001"),
+            (ImportColumns.Name, "Scarf"),
+            (ImportColumns.CategorySlug, "mens-shoes"),
+            (ImportColumns.Sku, "X"),
+            (ImportColumns.Price, "10"),
+            ($"{ImportColumns.AxisPrefix}colour", "Red"));
+
+        ImportRowParser.Parse(Schema(), row).Error.Code.ShouldBe("import.category_mismatch");
+    }
+
+    [Fact]
+    public void The_sheets_own_category_is_accepted()
+    {
+        var row = Row(
+            (ImportColumns.ProductCode, "LS-1001"),
+            (ImportColumns.Name, "Scarf"),
+            (ImportColumns.CategorySlug, "DRESSES"),
+            (ImportColumns.Sku, "X"),
+            (ImportColumns.Price, "10"),
+            ($"{ImportColumns.AxisPrefix}colour", "Red"));
+
+        ImportRowParser.Parse(Schema(), row).IsSuccess.ShouldBeTrue();
+    }
 }

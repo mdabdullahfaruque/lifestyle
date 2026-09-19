@@ -44,9 +44,19 @@ export class ImportService {
    * Uploads up to 40 images in one request. One bad file does not fail the batch — the result
    * reports each file separately.
    */
-  uploadToLibrary(files: File[]): Observable<BulkUploadResult> {
+  /**
+   * @param capturedAt EXIF capture times read before the browser re-encoded each photo, aligned
+   * by index with `files`. Re-encoding destroys the metadata, and this is what keeps capture-time
+   * grouping working for the large photos that have to be re-encoded.
+   */
+  uploadToLibrary(files: File[], capturedAt: (string | null)[] = []): Observable<BulkUploadResult> {
     const form = new FormData();
-    for (const file of files) form.append('files', file, file.name);
+
+    files.forEach((file, index) => {
+      form.append('files', file, file.name);
+      // Appended per file, blank when unknown, so the two lists stay aligned by index.
+      form.append('capturedAt', capturedAt[index] ?? '');
+    });
 
     return this.http.post<BulkUploadResult>(`${this.baseUrl}/v1/vendor/media/bulk`, form);
   }

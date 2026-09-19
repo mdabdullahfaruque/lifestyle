@@ -101,7 +101,8 @@ internal sealed class ImportSchemaFactory(ICatalogDbContext db)
                 "Your own code for this product. Repeat it on every row of the same product."),
             Core(ImportColumns.Name, ImportColumnKind.Product, required: true, "Product title, up to 300 characters."),
             Core(ImportColumns.CategorySlug, ImportColumnKind.Product, required: true,
-                $"Leave as '{category.Slug}' unless the product belongs elsewhere."),
+                $"Must be '{category.Slug}'. This sheet only imports into that category — a product "
+                + "in another one needs that category's own sheet."),
             Core(ImportColumns.Brand, ImportColumnKind.Product, required: false, "Optional."),
             Core(ImportColumns.ShortDescription, ImportColumnKind.Product, required: false, "Up to 500 characters."),
             Core(ImportColumns.Description, ImportColumnKind.Product, required: false,

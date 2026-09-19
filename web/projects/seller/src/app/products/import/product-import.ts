@@ -285,13 +285,26 @@ export class ProductImport {
     return product.rows.filter((r) => r.outcome === 'Error');
   }
 
+  /**
+   * Firefox only honours a click on an anchor that is actually in the document, and revoking the
+   * object URL in the same tick can cancel the download before it starts — so the link is attached,
+   * clicked, then cleaned up on the next turn of the event loop.
+   */
   private save(blob: Blob, fileName: string): void {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
+
     link.href = url;
     link.download = fileName;
+    link.style.display = 'none';
+
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+
+    setTimeout(() => {
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, 0);
   }
 
   private describe(err: unknown, fallback: string): string {

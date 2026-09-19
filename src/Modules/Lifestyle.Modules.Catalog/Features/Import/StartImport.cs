@@ -196,13 +196,16 @@ internal static class StartImport
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            var skuToCode = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var row in job.Rows.Where(r => r.Sku is not null && r.ProductCode is not null))
-                skuToCode.TryAdd(row.Sku!, row.ProductCode!);
+            // Every pair, including repeats: a SKU that appears on two products must reach the
+            // matcher as two pairs so it can refuse to guess between them (docs/08 §9 D2).
+            var skus = job.Rows
+                .Where(r => r.Sku is not null && r.ProductCode is not null)
+                .Select(r => (Sku: r.Sku!, ProductCode: r.ProductCode!))
+                .ToList();
 
             var matches = ImageMatcher.Match(
                 [.. library.Select(a => new MatchCandidate(a.Id, a.FileName, a.CapturedAt))],
-                codes, skuToCode);
+                codes, skus);
 
             foreach (var match in matches)
                 job.AddImage(ImportJobImage.Create(
@@ -261,6 +264,12 @@ internal static class StartImport
 
                     if (result.IsFailure)
                     {
+                        // The feature being switched off is a platform decision, not a mistake the
+                        // seller made. Failing their rows for filling in a column the template
+                        // offers them would be indefensible — the column is simply ignored, and
+                        // they place the images from their library instead.
+                        if (result.Error.Code == "media.url_import_disabled") return;
+
                         first.Reject(result.Error.Code, $"{url}: {result.Error.Message}");
                         break;
                     }

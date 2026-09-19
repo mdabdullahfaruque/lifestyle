@@ -91,7 +91,9 @@ internal static class CommitImport
 
                 if (parsed.Count == 0) continue;
 
-                var outcome = await UpsertAsync(job, group.Key, parsed, rows, definitions, now, ct);
+                var header = HeaderRowFor(job, schema.Value, group.Key);
+
+                var outcome = await UpsertAsync(job, group.Key, parsed, rows, definitions, header, now, ct);
                 if (outcome.IsFailure)
                 {
                     foreach (var row in rows) row.Reject(outcome.Error.Code, outcome.Error.Message);
@@ -133,16 +135,115 @@ internal static class CommitImport
                 .Select(c => c.AttributeSetId)
                 .FirstOrDefaultAsync(ct);
 
+        /// <summary>
+        /// The product's own columns come from the first row of that product in the seller's file —
+        /// every row of it, not only the ones being imported.
+        /// <para>
+        /// A seller who skips row 1 of a three-variant product in the review grid still means the
+        /// product to keep its name and description; those live on row 1 and nowhere else.
+        /// </para>
+        /// </summary>
+        private static ParsedRow? HeaderRowFor(ImportJob job, ImportSchema schema, string productCode)
+        {
+            var candidates = job.Rows
+                .Where(r => string.Equals(r.ProductCode, productCode, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(r => r.RowNumber);
+
+            foreach (var row in candidates)
+            {
+                var parsed = ImportRowParser.Parse(schema, new SheetRow(row.RowNumber, row.Values));
+
+                if (parsed.IsSuccess && !string.IsNullOrWhiteSpace(parsed.Value.Name))
+                    return parsed.Value;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Everything about a group that can be refused, checked before the aggregate is touched.
+        /// <para>
+        /// The commit writes every product in one <c>SaveChanges</c>, so a group that mutated an
+        /// aggregate and then failed would be persisted anyway — the seller would be told a product
+        /// was skipped and find it half-imported. Rather than unpicking EF's change tracker, the
+        /// rules that could reject are run first and the mutation that follows cannot fail.
+        /// </para>
+        /// </summary>
+        private static Result Validate(
+            Product? existing,
+            List<ParsedRow> parsed,
+            IReadOnlyList<ProductAttribute> definitions,
+            ParsedRow header)
+        {
+            var attributeCheck = ValidateAttributeValues(definitions, header.Attributes);
+            if (attributeCheck.IsFailure) return attributeCheck;
+
+            foreach (var row in parsed)
+            {
+                var axisCheck = CreateProduct.Handler.ValidateAxes(definitions, row.Axes);
+                if (axisCheck.IsFailure) return axisCheck;
+            }
+
+            if (existing is null) return Result.Success();
+
+            // Against a product that already exists, a new SKU can still collide with one of its
+            // current variants' option combinations — which AddVariant refuses, half-way through.
+            foreach (var row in parsed)
+            {
+                var sameSku = existing.Variants
+                    .Any(v => string.Equals(v.Sku, row.Sku, StringComparison.OrdinalIgnoreCase));
+
+                if (sameSku) continue;
+
+                var signature = ProductVariant.BuildSignature(row.Axes);
+
+                if (existing.Variants.Any(v => v.AxisSignature == signature))
+                    return Error.Conflict("import.variant_duplicate",
+                        $"SKU '{row.Sku}' has the same options as a variant this product already has.");
+            }
+
+            return Result.Success();
+        }
+
+        /// <summary>
+        /// Mirrors what <see cref="CreateProduct.Handler.ApplyAttributes"/> would refuse, without
+        /// writing anything to the aggregate.
+        /// </summary>
+        private static Result ValidateAttributeValues(
+            IReadOnlyList<ProductAttribute> definitions,
+            Dictionary<string, string> supplied)
+        {
+            foreach (var attribute in definitions.Where(a => !a.IsVariantAxis))
+            {
+                supplied.TryGetValue(attribute.Code, out var value);
+
+                var check = attribute.ValidateValue(value);
+                if (check.IsFailure) return check;
+            }
+
+            return Result.Success();
+        }
+
         private async Task<Result<(Product Product, bool IsNew)>> UpsertAsync(
             ImportJob job,
             string productCode,
             List<ParsedRow> parsed,
             IReadOnlyList<ImportJobRow> rows,
             IReadOnlyList<ProductAttribute> definitions,
+            ParsedRow? header,
             DateTimeOffset now,
             CancellationToken ct)
         {
-            var first = parsed[0];
+            // Product-level columns come from the first row of the product in the *sheet*, which
+            // is not necessarily the first importable one — the seller may have skipped row 1 of a
+            // multi-variant product in the grid. Reading name from parsed[0] would then find a
+            // blank continuation row and hand a null to Slug.From.
+            var first = header ?? parsed[0];
+
+            if (string.IsNullOrWhiteSpace(first.Name))
+                return Error.Validation("import.name_missing",
+                    "The first row of each product must have a name.");
+
             var existingId = rows.Select(r => r.TargetProductId).FirstOrDefault(id => id is not null);
 
             var product = existingId is { } id
@@ -152,6 +253,13 @@ internal static class CommitImport
                     .Include(p => p.AttributeValues)
                     .FirstOrDefaultAsync(p => p.Id == id, ct)
                 : null;
+
+            // Everything that can fail is checked before anything is mutated. There is one
+            // SaveChanges for the whole commit, so a group that half-applied and then failed would
+            // still be written — a product with some of its variants and an error message telling
+            // the seller it was skipped.
+            var check = Validate(product, parsed, definitions, first);
+            if (check.IsFailure) return check.Error;
 
             var isNew = product is null;
 
@@ -179,9 +287,6 @@ internal static class CommitImport
 
             foreach (var row in parsed)
             {
-                var axisCheck = CreateProduct.Handler.ValidateAxes(definitions, row.Axes);
-                if (axisCheck.IsFailure) return axisCheck.Error;
-
                 var existingVariant = product.Variants
                     .FirstOrDefault(v => string.Equals(v.Sku, row.Sku, StringComparison.OrdinalIgnoreCase));
 

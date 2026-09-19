@@ -130,9 +130,15 @@ internal static class DeleteVendorMedia
             if (file is null || file.VendorId != vendorId)
                 return Error.NotFound("media.not_found");
 
-            if (file.OwnerType == MediaOwnerTypes.Product)
+            // Allow-list, not a block-list. Refusing only "product" would let a vendor delete their
+            // own KYC documents and shop branding through the library — including the trade licence
+            // a moderator has not read yet, which docs/07 G1 says there is no backup for. Anything
+            // this endpoint does not positively recognise as a spare library image is refused.
+            if (file.OwnerType != MediaOwnerTypes.VendorLibrary)
                 return Error.Conflict("media.in_use",
-                    "This image is on a product. Remove it from the product first.");
+                    file.OwnerType == MediaOwnerTypes.Product
+                        ? "This image is on a product. Remove it from the product first."
+                        : "This file is in use elsewhere in your shop and cannot be deleted here.");
 
             // Storage first, then the row: if the process dies between the two, the row is still
             // present and the next attempt re-deletes idempotently. The reverse order would leak an

@@ -388,6 +388,13 @@ feature, not a UI one, and is not built.
 translating them is mechanical, but their strings are not in a catalogue yet. That is a real gap
 for Bangladeshi sellers and should not be left indefinitely.
 
+The bulk import and image library screens added on 2026-09-19 follow the same rule and so add to
+this debt — deliberately, to match the consoles around them rather than leave one screen half
+translated. It is now the largest English-only surface a seller has to work through, and it is the
+screen where a misunderstanding costs the most: a seller who misreads "this will take your product
+off the storefront" confirms something they did not mean. **Translate the consoles starting with
+`products/import`.**
+
 ## Storefront coverage — what the marketplace does and does not do
 
 Brought to demo standard 2026-09-12. Working: search (query-string driven, so a filtered grid

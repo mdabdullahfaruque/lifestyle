@@ -133,10 +133,11 @@ Rules 2, 3 and 7 are enforced by the architecture tests, not by review alone.
 
 **Not done**
 
-- Bulk product import: the **image library, category template, matcher, review grid and commit are
-  built** ([docs/08](docs/08-BULK-IMPORT.md) steps 1–4) but have **never run against a database** —
-  no Docker on the dev machine, so the integration suite did not run. ZIP upload, capture-time
-  clustering and image normalisation (steps 5–9) are not started.
+- Bulk product import: **all of [docs/08](docs/08-BULK-IMPORT.md) is built** — image library, ZIP
+  upload, category template, matcher, capture-time clustering, review grid, commit, square canvas,
+  browser-side downscale — but it has **never run against a database or in a browser**. No Docker
+  on the dev machine, so all 16 integration tests skipped. `image_urls` is built and deliberately
+  **disabled**. Treat the whole feature as unproven until doc 08 §12's checklist is done.
 - Generated API client — `npm run generate:client` is wired but `data-access/models.ts` is currently hand-written.
 - Email **verification**, and delivering credentials for an admin-created shop. Password reset and
   vendor approval/rejection notices are built (SMTP, any provider) — but nothing is delivered until

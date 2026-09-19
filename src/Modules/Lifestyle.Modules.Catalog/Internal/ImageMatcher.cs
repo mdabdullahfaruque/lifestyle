@@ -37,10 +37,15 @@ internal static class ImageMatcher
     /// <summary>Qualifiers that mean "this is the main shot", whatever the number says.</summary>
     private static readonly string[] PrimaryQualifiers = ["main", "cover", "front", "primary", "hero"];
 
+    /// <param name="skus">
+    /// Every (SKU, product code) pair in the sheet — a <b>list</b>, not a dictionary, because the
+    /// same SKU appearing on two products is exactly the case this has to detect. A dictionary
+    /// would silently keep the first and the ambiguity check below could never fire.
+    /// </param>
     public static IReadOnlyList<ImageMatch> Match(
         IReadOnlyList<MatchCandidate> candidates,
         IReadOnlyCollection<string> productCodes,
-        IReadOnlyDictionary<string, string> skuToProductCode)
+        IReadOnlyCollection<(string Sku, string ProductCode)> skus)
     {
         // Normalised key -> the code as the seller wrote it, so "LS-1001", "ls_1001" and "LS 1001"
         // all find the same product while the grid still shows their own spelling.
@@ -51,7 +56,7 @@ internal static class ImageMatcher
         var skuIndex = new Dictionary<string, string>(StringComparer.Ordinal);
         var ambiguousSkus = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var (sku, code) in skuToProductCode)
+        foreach (var (sku, code) in skus)
         {
             var key = Normalise(sku);
 

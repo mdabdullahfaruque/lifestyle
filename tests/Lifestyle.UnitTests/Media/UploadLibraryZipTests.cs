@@ -81,7 +81,7 @@ public sealed class UploadLibraryZipTests
         var match = Lifestyle.Modules.Catalog.Internal.ImageMatcher.Match(
             [new Lifestyle.Modules.Catalog.Internal.MatchCandidate("m1", flattened)],
             ["LS-1001"],
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)).Single();
+            []).Single();
 
         match.ProductCode.ShouldBe("LS-1001");
     }
