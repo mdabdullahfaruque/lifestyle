@@ -181,3 +181,15 @@
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 }
+
+.head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.hint {
+  margin: 0 0 0.9rem;
+  max-width: 68ch;
+}

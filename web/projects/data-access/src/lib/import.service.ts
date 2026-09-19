@@ -51,6 +51,17 @@ export class ImportService {
     return this.http.post<BulkUploadResult>(`${this.baseUrl}/v1/vendor/media/bulk`, form);
   }
 
+  /**
+   * Unpacks a ZIP into the library. Folder names become product codes, so a seller who already
+   * keeps `LS-1001/main.jpg` on disk gets almost everything matched without touching the grid.
+   */
+  uploadZipToLibrary(archive: File): Observable<BulkUploadResult> {
+    const form = new FormData();
+    form.append('archive', archive, archive.name);
+
+    return this.http.post<BulkUploadResult>(`${this.baseUrl}/v1/vendor/media/zip`, form);
+  }
+
   deleteFromLibrary(mediaId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/v1/vendor/media/${mediaId}`);
   }

@@ -42,6 +42,7 @@ public static class MediaModule
             .RequireRateLimiting(RateLimitPolicies.Uploads);
         ListVendorMedia.Map(library);
         BulkUploadToLibrary.Map(library);
+        UploadLibraryZip.Map(library);
         DeleteVendorMedia.Map(library);
 
         return app;

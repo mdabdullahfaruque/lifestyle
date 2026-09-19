@@ -62,6 +62,45 @@ export class Library {
   }
 
   /**
+   * A ZIP is unpacked on the server, which is what makes folder-per-product work: `LS-1001/main.jpg`
+   * arrives already tied to the product code, so a later import matches it without any dragging.
+   */
+  protected async onZipChosen(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const archive = input.files?.[0];
+    input.value = '';
+
+    if (!archive) return;
+
+    this.uploading.set(true);
+    this.error.set(null);
+    this.notice.set(null);
+    this.failures.set([]);
+    this.uploadTotal.set(1);
+    this.uploadDone.set(0);
+
+    try {
+      const result = await firstValueFrom(this.imports.uploadZipToLibrary(archive));
+
+      this.failures.set(result.items.filter((i) => !i.succeeded));
+      this.notice.set(
+        result.failed === 0
+          ? `Unpacked ${result.succeeded} image${result.succeeded === 1 ? '' : 's'} from ${archive.name}.`
+          : `Unpacked ${result.succeeded}. ${result.failed} were skipped.`,
+      );
+
+      await this.load();
+    } catch (err) {
+      const problem =
+        err instanceof HttpErrorResponse ? (err.error as ProblemDetails | null) : null;
+      this.error.set(problem?.detail ?? 'Could not unpack that archive.');
+    } finally {
+      this.uploadDone.set(1);
+      this.uploading.set(false);
+    }
+  }
+
+  /**
    * Uploads in batches, reporting per-file failures rather than abandoning the run. A corrupt
    * photo in the middle of a shoot must not cost the seller the other 399.
    */
