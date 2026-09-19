@@ -6,7 +6,7 @@
     "start": "ng serve storefront",
     "build": "ng build storefront && ng build seller && ng build admin",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test util --watch=false && ng test storefront --watch=false && ng test seller --watch=false && ng test admin --watch=false",
+    "test": "ng test util --watch=false --browsers=ChromeHeadless && ng test storefront --watch=false --browsers=ChromeHeadless && ng test seller --watch=false --browsers=ChromeHeadless && ng test admin --watch=false --browsers=ChromeHeadless",
     "serve:ssr:storefront": "node dist/storefront/server/server.mjs",
     "start:seller": "ng serve seller --port 4201",
     "start:admin": "ng serve admin --port 4202",
