@@ -11,6 +11,7 @@ import {
   VendorService,
 } from 'data-access';
 import { firstValueFrom } from 'rxjs';
+import { downscaleImage } from 'util';
 
 interface VariantRow {
   sku: string;
@@ -162,7 +163,9 @@ export class ProductEditor {
 
   protected setOption(index: number, code: string, value: string): void {
     this.variants.update((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, options: { ...row.options, [code]: value } } : row)),
+      rows.map((row, i) =>
+        i === index ? { ...row, options: { ...row.options, [code]: value } } : row,
+      ),
     );
   }
 
@@ -187,7 +190,9 @@ export class ProductEditor {
 
     try {
       // Public, unlike KYC documents: product images are meant to be served and CDN-cached.
-      const media = await firstValueFrom(this.vendors.upload(file, false));
+      const media = await firstValueFrom(
+        this.vendors.upload(await downscaleImage(file), false, true),
+      );
       this.imageIds.update((ids) => [...ids, media.id]);
     } catch (err) {
       this.error.set(this.describe(err));
@@ -259,7 +264,8 @@ export class ProductEditor {
       return `Every variant needs a ${code.split('.').pop()} value.`;
     }
     if (code === 'catalog.duplicate_sku') return 'Two variants share a SKU. Each must be unique.';
-    if (code === 'catalog.attribute_invalid') return problem?.detail ?? 'One of the product details is not an accepted value.';
+    if (code === 'catalog.attribute_invalid')
+      return problem?.detail ?? 'One of the product details is not an accepted value.';
     if (problem?.errors) return Object.values(problem.errors).flat().join(' ');
 
     return problem?.detail ?? 'Could not save this product. Please check the fields and try again.';

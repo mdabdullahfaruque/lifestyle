@@ -73,7 +73,8 @@ internal static class BulkUploadToLibrary
 
                 // Reuses the single-file handler rather than restating its size, type and
                 // magic-byte checks — one upload path, one set of rules.
-                var result = await upload.Handle(new UploadFile.Handler.Command(file, IsPrivate: false), ct);
+                var result = await upload.Handle(
+                    new UploadFile.Handler.Command(file, IsPrivate: false, SquareCanvas: true), ct);
 
                 if (result.IsFailure)
                 {

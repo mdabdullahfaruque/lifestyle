@@ -48,7 +48,8 @@ export class Products {
       this.notice.set(`"${product.name}" sent for review.`);
       await this.load();
     } catch (err) {
-      const problem = err instanceof HttpErrorResponse ? (err.error as ProblemDetails | null) : null;
+      const problem =
+        err instanceof HttpErrorResponse ? (err.error as ProblemDetails | null) : null;
       this.error.set(problem?.detail ?? 'Could not submit that product.');
     } finally {
       this.working.set(null);

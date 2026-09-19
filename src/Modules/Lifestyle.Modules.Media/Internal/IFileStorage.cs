@@ -36,7 +36,12 @@ internal interface IImageProcessor
     /// enlarging. Returns null when the source is already smaller — re-encoding a small image just
     /// makes it worse.
     /// </summary>
-    Task<ProcessedImage?> ResizeAsync(Stream source, int maxEdge, CancellationToken ct);
+    /// <param name="squareCanvas">
+    /// True to centre the image on a square white canvas instead of keeping its own aspect ratio.
+    /// What makes a marketplace grid look professional is not cutouts but consistency — one shape,
+    /// one ground — and that costs nothing beyond the resize we already do (docs/08 §6.3).
+    /// </param>
+    Task<ProcessedImage?> ResizeAsync(Stream source, int maxEdge, bool squareCanvas, CancellationToken ct);
 }
 
 /// <summary>What the image header tells us before any pixel is decoded.</summary>

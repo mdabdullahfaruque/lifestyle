@@ -33,7 +33,12 @@ internal static class UploadFile
     {
         private readonly MediaModuleOptions _options = options.Value;
 
-        internal sealed record Command(IFormFile File, bool IsPrivate);
+        /// <param name="SquareCanvas">
+        /// True for product photography, which is squared onto a white ground so the marketplace
+        /// grid is one shape throughout (docs/08 §6.3). False for shop logos and banners, whose own
+        /// aspect ratio is the point — squaring a wide banner would letterbox it.
+        /// </param>
+        internal sealed record Command(IFormFile File, bool IsPrivate, bool SquareCanvas = false);
 
         public async Task<Result<MediaAsset>> Handle(Command command, CancellationToken ct)
         {
@@ -96,7 +101,7 @@ internal static class UploadFile
             // Private files get no public derivatives: they are documents for a reviewer, not
             // storefront imagery, and every derivative would be another key to protect.
             if (isImage && !command.IsPrivate)
-                await GenerateDerivativesAsync(media, file, publicId, extension, ct);
+                await GenerateDerivativesAsync(media, file, publicId, extension, command.SquareCanvas, ct);
 
             db.MediaFiles.Add(media);
             await db.SaveChangesAsync(ct);
@@ -105,7 +110,8 @@ internal static class UploadFile
         }
 
         private async Task GenerateDerivativesAsync(
-            MediaFile media, IFormFile file, string publicId, string extension, CancellationToken ct)
+            MediaFile media, IFormFile file, string publicId, string extension, bool squareCanvas,
+            CancellationToken ct)
         {
             foreach (var variant in MediaVariants.All)
             {
@@ -114,7 +120,7 @@ internal static class UploadFile
                 try
                 {
                     await using var source = file.OpenReadStream();
-                    using var resized = await images.ResizeAsync(source, maxEdge, ct);
+                    using var resized = await images.ResizeAsync(source, maxEdge, squareCanvas, ct);
 
                     // Null means the source was already smaller than this variant — reuse the
                     // original rather than upscaling it into a bigger, blurrier file.
@@ -180,8 +186,14 @@ internal static class UploadFile
         media.CapturedAt);
 
     public static void Map(IEndpointRouteBuilder group) =>
-        group.MapPost("/", async (IFormFile file, [Microsoft.AspNetCore.Mvc.FromForm(Name = "private")] bool? isPrivate, Handler handler, CancellationToken ct) =>
-                (await handler.Handle(new Handler.Command(file, isPrivate ?? false), ct)).ToHttpResult())
+        group.MapPost("/", async (
+                IFormFile file,
+                [Microsoft.AspNetCore.Mvc.FromForm(Name = "private")] bool? isPrivate,
+                [Microsoft.AspNetCore.Mvc.FromForm(Name = "squareCanvas")] bool? squareCanvas,
+                Handler handler,
+                CancellationToken ct) =>
+                (await handler.Handle(
+                    new Handler.Command(file, isPrivate ?? false, squareCanvas ?? false), ct)).ToHttpResult())
             .WithName("UploadFile")
             .WithSummary("Upload an image or document and generate its derivative sizes.")
             .RequireAuthorization()

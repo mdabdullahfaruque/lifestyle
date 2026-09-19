@@ -82,7 +82,8 @@ export class VendorService {
     let params = new HttpParams();
 
     for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
+      if (value !== undefined && value !== null && value !== '')
+        params = params.set(key, String(value));
     }
 
     return this.http.get<Paged<ProductListItem>>(`${this.baseUrl}/v1/vendor/products`, { params });
@@ -116,11 +117,16 @@ export class VendorService {
     productId: string,
     images: { mediaId: string; altText?: string | null }[],
   ): Observable<Product> {
-    return this.http.put<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/images`, { images });
+    return this.http.put<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/images`, {
+      images,
+    });
   }
 
   addVariant(productId: string, variant: VariantInput): Observable<Product> {
-    return this.http.post<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/variants`, variant);
+    return this.http.post<Product>(
+      `${this.baseUrl}/v1/vendor/products/${productId}/variants`,
+      variant,
+    );
   }
 
   updateVariant(
@@ -157,7 +163,10 @@ export class VendorService {
    * Stock moves as deltas, not absolutes, so two concurrent adjustments both apply rather than
    * the second silently overwriting the first.
    */
-  adjustStock(productId: string, adjustments: { variantId: string; delta: number }[]): Observable<Product> {
+  adjustStock(
+    productId: string,
+    adjustments: { variantId: string; delta: number }[],
+  ): Observable<Product> {
     return this.http.post<Product>(`${this.baseUrl}/v1/vendor/products/${productId}/stock`, {
       adjustments,
     });
@@ -168,10 +177,14 @@ export class VendorService {
    * public media host and readable only through the authorised endpoint. Product images stay
    * public so the CDN can cache them.
    */
-  upload(file: File, isPrivate = false): Observable<MediaAsset> {
+  upload(file: File, isPrivate = false, squareCanvas = false): Observable<MediaAsset> {
     const form = new FormData();
     form.append('file', file, file.name);
     if (isPrivate) form.append('private', 'true');
+
+    // Product photography is squared onto a white ground so the marketplace grid is one shape
+    // throughout. A shop logo or banner must not be: its own aspect ratio is the point.
+    if (squareCanvas) form.append('squareCanvas', 'true');
 
     return this.http.post<MediaAsset>(`${this.baseUrl}/v1/media`, form);
   }

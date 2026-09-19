@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { BulkUploadItem, ImportService, LibraryItem, ProblemDetails } from 'data-access';
 import { firstValueFrom } from 'rxjs';
+import { downscaleImage } from 'util';
 
 /** The API accepts at most 40 files per request, so a big drop is sent in batches. */
 const BATCH_SIZE = 40;
@@ -119,8 +120,12 @@ export class Library {
       for (let start = 0; start < files.length; start += BATCH_SIZE) {
         const batch = files.slice(start, start + BATCH_SIZE);
 
+        // Shrunk in the browser first: a phone JPEG is 8-12 MB against a 10 MB server cap, and an
+        // iPhone's HEIC is a format the API does not accept at all but the browser can decode.
+        const prepared = await Promise.all(batch.map((file) => downscaleImage(file)));
+
         try {
-          const result = await firstValueFrom(this.imports.uploadToLibrary(batch));
+          const result = await firstValueFrom(this.imports.uploadToLibrary(prepared));
           succeeded += result.succeeded;
           failed.push(...result.items.filter((i) => !i.succeeded));
         } catch (err) {

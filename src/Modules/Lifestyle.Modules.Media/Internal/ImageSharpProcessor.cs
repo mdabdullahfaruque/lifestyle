@@ -57,19 +57,49 @@ internal sealed class ImageSharpProcessor : IImageProcessor
             : null;
     }
 
-    public async Task<ProcessedImage?> ResizeAsync(Stream source, int maxEdge, CancellationToken ct)
+    /// <summary>
+    /// Margin around a squared image, as a share of the edge. Without it the photo's long side
+    /// touches the tile border and the grid looks cramped.
+    /// </summary>
+    private const double CanvasMargin = 0.04;
+
+    public async Task<ProcessedImage?> ResizeAsync(
+        Stream source, int maxEdge, bool squareCanvas, CancellationToken ct)
     {
         using var image = await Image.LoadAsync(source, ct);
 
         // Never enlarge: upscaling produces a bigger file that looks worse than the original.
         if (image.Width <= maxEdge && image.Height <= maxEdge) return null;
 
-        image.Mutate(x => x.Resize(new ResizeOptions
+        if (squareCanvas)
         {
-            Size = new Size(maxEdge, maxEdge),
-            Mode = ResizeMode.Max,
-            Sampler = KnownResamplers.Lanczos3
-        }));
+            var inner = (int)(maxEdge * (1 - (2 * CanvasMargin)));
+
+            // Fit inside the margin, then pad out to the exact square. Pad never crops — a tall
+            // dress and a wide rug both end up whole, on the same ground, at the same shape.
+            image.Mutate(x => x
+                .Resize(new ResizeOptions
+                {
+                    Size = new Size(inner, inner),
+                    Mode = ResizeMode.Max,
+                    Sampler = KnownResamplers.Lanczos3
+                })
+                .Resize(new ResizeOptions
+                {
+                    Size = new Size(maxEdge, maxEdge),
+                    Mode = ResizeMode.Pad,
+                    PadColor = Color.White
+                }));
+        }
+        else
+        {
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(maxEdge, maxEdge),
+                Mode = ResizeMode.Max,
+                Sampler = KnownResamplers.Lanczos3
+            }));
+        }
 
         // Strip EXIF: orientation is already baked in by the resize, and camera metadata routinely
         // carries GPS coordinates a seller did not mean to publish.
