@@ -1,7 +1,7 @@
 using Lifestyle.Modules.Catalog.Domain;
-using Lifestyle.Modules.Vendors.Contracts;
 using Lifestyle.Modules.Catalog.Internal;
 using Lifestyle.Modules.Catalog.Persistence;
+using Lifestyle.Modules.Vendors.Contracts;
 using Lifestyle.SharedKernel.Abstractions;
 using Lifestyle.SharedKernel.Http;
 using Lifestyle.SharedKernel.Paging;
