@@ -1,5 +1,6 @@
 using FluentValidation;
 using Lifestyle.Modules.Media.Contracts;
+using Lifestyle.Modules.Media.Features.Library;
 using Lifestyle.Modules.Media.Features.Uploads;
 using Lifestyle.Modules.Media.Internal;
 using Lifestyle.SharedKernel.Http;
@@ -33,6 +34,16 @@ public static class MediaModule
         var media = app.MapGroup("/v1/media").WithTags("Media").RequireRateLimiting(RateLimitPolicies.Uploads);
         UploadFile.Map(media);
         DownloadPrivateFile.Map(media);
+
+        // ── Vendor Admin: the image library (docs/08 §2) ──
+        var library = app.MapGroup("/v1/vendor/media")
+            .WithTags("Vendor · Media")
+            .RequireVendorStaff()
+            .RequireRateLimiting(RateLimitPolicies.Uploads);
+        ListVendorMedia.Map(library);
+        BulkUploadToLibrary.Map(library);
+        DeleteVendorMedia.Map(library);
+
         return app;
     }
 }

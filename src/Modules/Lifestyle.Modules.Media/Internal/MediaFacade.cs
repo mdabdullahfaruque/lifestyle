@@ -31,6 +31,22 @@ internal sealed class MediaFacade(IMediaDbContext db, IFileStorage storage, IClo
         return [.. files.Select(m => UploadFile.ToAsset(m, storage))];
     }
 
+    public async Task<IReadOnlyList<MediaAsset>> ListForVendorAsync(Guid vendorId, bool unusedOnly, CancellationToken ct)
+    {
+        // Private files are KYC documents, never storefront imagery.
+        var query = db.MediaFiles
+            .Include(m => m.Derivatives)
+            .AsNoTracking()
+            .Where(m => m.VendorId == vendorId && !m.IsPrivate);
+
+        if (unusedOnly)
+            query = query.Where(m => m.OwnerType == MediaOwnerTypes.VendorLibrary);
+
+        var files = await query.OrderByDescending(m => m.CreatedAt).ToListAsync(ct);
+
+        return [.. files.Select(m => UploadFile.ToAsset(m, storage))];
+    }
+
     public async Task AttachAsync(IReadOnlyCollection<string> mediaIds, string ownerType, Guid ownerId, CancellationToken ct)
     {
         if (mediaIds.Count == 0) return;

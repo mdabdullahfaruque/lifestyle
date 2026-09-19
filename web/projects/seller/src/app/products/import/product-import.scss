@@ -1,0 +1,296 @@
+:host {
+  display: block;
+}
+
+.head {
+  margin-bottom: 1rem;
+}
+.head h1 {
+  font-size: 1.3rem;
+}
+.sub {
+  margin: 0.2rem 0 0;
+  max-width: 60ch;
+}
+
+.small {
+  font-size: 0.8rem;
+}
+.block {
+  height: 180px;
+}
+.right {
+  text-align: right;
+}
+.ok {
+  color: var(--accent);
+  font-weight: 600;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn--busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ── Steps ── */
+
+.step {
+  margin-bottom: 0.75rem;
+}
+.step h2 {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+.step p {
+  margin: 0 0 0.6rem;
+  max-width: 62ch;
+}
+.step--off {
+  opacity: 0.55;
+}
+
+.num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.input {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ── Review summary ── */
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+  position: sticky;
+  top: 0.5rem;
+  z-index: 2;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.stat strong {
+  font-size: 1.25rem;
+}
+.stat span {
+  font-size: 0.78rem;
+}
+.stat--bad strong {
+  color: var(--danger);
+}
+
+.summary__actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* ── Images ── */
+
+.loose {
+  margin-bottom: 0.75rem;
+  border: 1px dashed var(--border);
+}
+.loose h2 {
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+.loose p {
+  margin: 0 0 0.5rem;
+}
+
+.thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.thumbs--drop {
+  min-height: 88px;
+}
+
+.thumb {
+  position: relative;
+  width: 84px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  cursor: grab;
+}
+
+.thumb:active {
+  cursor: grabbing;
+}
+
+.thumb img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  background: var(--border);
+}
+
+.thumb__name {
+  display: block;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thumb--guess {
+  border-color: var(--warn, #b8860b);
+  border-style: dashed;
+}
+
+.thumb__flag,
+.thumb__main {
+  position: absolute;
+  top: 0.2rem;
+  left: 0.2rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.65);
+  color: #fff;
+}
+
+.thumb__flag {
+  background: var(--warn, #b8860b);
+}
+
+.thumb--empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 84px;
+  border-style: dashed;
+  cursor: default;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+/* ── Product cards ── */
+
+.product {
+  margin-bottom: 0.6rem;
+}
+.product--live {
+  border-left: 3px solid var(--warn, #b8860b);
+}
+
+.product__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.product__head h2 {
+  font-size: 1rem;
+}
+.product__head p {
+  margin: 0.15rem 0 0;
+}
+
+.product__body {
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.confirmed {
+  margin: 0 0 0.5rem;
+  color: var(--accent);
+}
+
+.tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  background: var(--border);
+  color: var(--muted);
+}
+
+.tag--new {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.rows {
+  width: 100%;
+}
+.row--error td {
+  background: rgb(220 38 38 / 0.06);
+}
+.row--skipped {
+  opacity: 0.55;
+}
+
+.alert--warn {
+  border-left: 3px solid var(--warn, #b8860b);
+}
+
+.done {
+  max-width: 540px;
+}
+.done h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.4rem;
+}
+
+@media (max-width: 720px) {
+  .product__body {
+    grid-template-columns: 1fr;
+  }
+  .summary {
+    position: static;
+  }
+  .summary__actions {
+    margin-left: 0;
+    width: 100%;
+  }
+}

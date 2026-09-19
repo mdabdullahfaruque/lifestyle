@@ -220,6 +220,205 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                     b.ToTable("categories", "catalog");
                 });
 
+            modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ImportJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset?>("CommittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("committed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("CreatedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_count");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<string>("SourceFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("source_file_name");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("UpdatedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("updated_count");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vendor_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_jobs");
+
+                    b.HasIndex("Status", "ExpiresAt")
+                        .HasDatabaseName("ix_import_jobs_status_expires_at");
+
+                    b.HasIndex("VendorId", "CreatedAt")
+                        .HasDatabaseName("ix_import_jobs_vendor_id_created_at");
+
+                    b.ToTable("import_jobs", "catalog");
+                });
+
+            modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ImportJobImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Confidence")
+                        .HasColumnType("integer")
+                        .HasColumnName("confidence");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<Guid>("ImportJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_job_id");
+
+                    b.Property<string>("MatchedBy")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("matched_by");
+
+                    b.Property<string>("MediaId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("media_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("ProductCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("product_code");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_job_images");
+
+                    b.HasIndex("ImportJobId", "ProductCode")
+                        .HasDatabaseName("ix_import_job_images_import_job_id_product_code");
+
+                    b.ToTable("import_job_images", "catalog");
+                });
+
+            modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ImportJobRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AffectsLiveProduct")
+                        .HasColumnType("boolean")
+                        .HasColumnName("affects_live_product");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("error_code");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("error_message");
+
+                    b.Property<Guid>("ImportJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_job_id");
+
+                    b.Property<bool>("IsSkipped")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_skipped");
+
+                    b.Property<bool>("LiveUpdateConfirmed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("live_update_confirmed");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("integer")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("ProductCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("product_code");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("row_number");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("sku");
+
+                    b.Property<Guid?>("TargetProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_product_id");
+
+                    b.Property<string>("Values")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("values");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_job_rows");
+
+                    b.HasIndex("ImportJobId", "ProductCode")
+                        .HasDatabaseName("ix_import_job_rows_import_job_id_product_code");
+
+                    b.HasIndex("ImportJobId", "RowNumber")
+                        .HasDatabaseName("ix_import_job_rows_import_job_id_row_number");
+
+                    b.ToTable("import_job_rows", "catalog");
+                });
+
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -319,6 +518,11 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("vendor_id");
 
+                    b.Property<string>("VendorProductCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("citext")
+                        .HasColumnName("vendor_product_code");
+
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -336,6 +540,11 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_products_vendor_id_slug")
                         .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("VendorId", "VendorProductCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_products_vendor_id_vendor_product_code")
+                        .HasFilter("vendor_product_code IS NOT NULL AND deleted_at IS NULL");
 
                     b.HasIndex("CategoryId", "Status", "MinPrice")
                         .HasDatabaseName("ix_products_category_id_status_min_price")
@@ -1348,6 +1557,26 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_categories_categories_parent_id");
                 });
 
+            modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ImportJobImage", b =>
+                {
+                    b.HasOne("Lifestyle.Modules.Catalog.Domain.ImportJob", null)
+                        .WithMany("Images")
+                        .HasForeignKey("ImportJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_import_job_images_import_jobs_import_job_id");
+                });
+
+            modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ImportJobRow", b =>
+                {
+                    b.HasOne("Lifestyle.Modules.Catalog.Domain.ImportJob", null)
+                        .WithMany("Rows")
+                        .HasForeignKey("ImportJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_import_job_rows_import_jobs_import_job_id");
+                });
+
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.Product", b =>
                 {
                     b.HasOne("Lifestyle.Modules.Catalog.Domain.Category", null)
@@ -1470,6 +1699,13 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.AttributeSet", b =>
                 {
                     b.Navigation("Attributes");
+                });
+
+            modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.ImportJob", b =>
+                {
+                    b.Navigation("Images");
+
+                    b.Navigation("Rows");
                 });
 
             modelBuilder.Entity("Lifestyle.Modules.Catalog.Domain.Product", b =>

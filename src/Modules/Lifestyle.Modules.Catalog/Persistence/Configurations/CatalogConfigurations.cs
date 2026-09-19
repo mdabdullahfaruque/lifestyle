@@ -87,6 +87,11 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         b.Property(p => p.Name).HasMaxLength(300).IsRequired();
         b.Property(p => p.Slug).HasColumnType("citext").HasMaxLength(120).IsRequired();
+
+        // citext so "LS-1001" and "ls-1001" are the same code. The bulk importer matches filenames
+        // against this case-insensitively (docs/08 §4), and the database should agree rather than
+        // letting two codes exist that the matcher cannot tell apart.
+        b.Property(p => p.VendorProductCode).HasColumnType("citext").HasMaxLength(64);
         b.Property(p => p.Description).HasMaxLength(20000);
         b.Property(p => p.ShortDescription).HasMaxLength(500);
         b.Property(p => p.Brand).HasMaxLength(150);
@@ -103,6 +108,13 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         // The vendor's own product list, newest first.
         b.HasIndex(p => new { p.VendorId, p.Status, p.CreatedAt });
+
+        // The bulk-import idempotency key (docs/08 §9 D1). Partial, because the code is optional:
+        // products created through the normal editor have none, and a plain unique index would
+        // collapse every one of those into a single allowed NULL row per vendor on some engines.
+        b.HasIndex(p => new { p.VendorId, p.VendorProductCode })
+            .IsUnique()
+            .HasFilter("vendor_product_code IS NOT NULL AND deleted_at IS NULL");
 
         // Public category browse: only published rows are ever served, so the filter keeps the
         // index small and matches the query exactly.

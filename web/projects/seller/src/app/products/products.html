@@ -1,6 +1,9 @@
 <header class="head">
   <h1>Products</h1>
-  <a class="btn btn--primary" routerLink="/products/new">Add product</a>
+  <div class="head__actions">
+    <a class="btn" routerLink="/products/import">Bulk import</a>
+    <a class="btn btn--primary" routerLink="/products/new">Add product</a>
+  </div>
 </header>
 
 @if (error(); as message) { <p class="alert" role="alert">{{ message }}</p> }

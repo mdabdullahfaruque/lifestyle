@@ -5,5 +5,6 @@
 export * from './lib/models';
 export * from './lib/catalog.service';
 export * from './lib/vendor.service';
+export * from './lib/import.service';
 export * from './lib/admin.service';
 export * from './lib/account.service';

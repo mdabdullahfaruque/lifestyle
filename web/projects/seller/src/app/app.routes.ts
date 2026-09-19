@@ -40,6 +40,18 @@ export const routes: Routes = [
         title: 'Products · Seller Console',
       },
       {
+        // Before :productId, or "import" would be read as a product id.
+        path: 'products/import',
+        loadComponent: () =>
+          import('./products/import/product-import').then((m) => m.ProductImport),
+        title: 'Bulk import · Seller Console',
+      },
+      {
+        path: 'media',
+        loadComponent: () => import('./media/library').then((m) => m.Library),
+        title: 'Image library · Seller Console',
+      },
+      {
         path: 'products/new',
         loadComponent: () => import('./products/product-editor').then((m) => m.ProductEditor),
         title: 'New product · Seller Console',

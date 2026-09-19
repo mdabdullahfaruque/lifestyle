@@ -34,3 +34,5 @@
 .nowrap { white-space: nowrap; }
 .right { text-align: right; }
 .low { color: var(--danger); font-weight: 700; }
+
+.head__actions { display: flex; gap: 0.5rem; }

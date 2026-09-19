@@ -24,6 +24,8 @@ See [Current state](#current-state).
 | [04 — Codebase Structure](docs/04-CODEBASE-STRUCTURE.md) | Solution layout, module anatomy, persistence and boundary rules; lessons taken from PropertyMart |
 | [05 — Deployment](docs/05-DEPLOYMENT.md) | Cloudflare + Pages + single-server topology, TLS, media, backups, CI/CD — the *why* behind every deploy artifact |
 | [06 — Phase 1 Go-Live Runbook](docs/06-PHASE1-GO-LIVE.md) | The *do this, see that* checklist: Cloudflare clicks, server commands, admin bootstrap, verification, troubleshooting |
+| [07 — Deployment Deviations](docs/07-DEPLOYMENT-DEVIATIONS.md) | Everything live that differs from docs 05/06, each with its trigger for removal |
+| [08 — Bulk Product & Image Import](docs/08-BULK-IMPORT.md) | Image library, category template, image matcher, import job, capacity budget — §12 says what is built |
 | [infrastructure-mypropertymart/](docs/infrastructure-mypropertymart/) | Existing PropertyMart infrastructure (reference baseline) |
 
 ---
@@ -131,7 +133,10 @@ Rules 2, 3 and 7 are enforced by the architecture tests, not by review alone.
 
 **Not done**
 
-- Bulk CSV product import (Phase 1 scope, deferred to the first Phase 2 sprint).
+- Bulk product import: the **image library, category template, matcher, review grid and commit are
+  built** ([docs/08](docs/08-BULK-IMPORT.md) steps 1–4) but have **never run against a database** —
+  no Docker on the dev machine, so the integration suite did not run. ZIP upload, capture-time
+  clustering and image normalisation (steps 5–9) are not started.
 - Generated API client — `npm run generate:client` is wired but `data-access/models.ts` is currently hand-written.
 - Email **verification**, and delivering credentials for an admin-created shop. Password reset and
   vendor approval/rejection notices are built (SMTP, any provider) — but nothing is delivered until

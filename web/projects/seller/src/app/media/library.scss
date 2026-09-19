@@ -1,0 +1,183 @@
+:host {
+  display: block;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.head h1 {
+  font-size: 1.3rem;
+}
+.sub {
+  margin: 0.2rem 0 0;
+  max-width: 46ch;
+}
+
+/* The label is the button; the input only needs to stay reachable by the keyboard. */
+.hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn--busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.chip--on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.block {
+  height: 200px;
+}
+.count {
+  margin: 0 0 0.6rem;
+}
+.small {
+  font-size: 0.8rem;
+}
+
+.progress-card {
+  margin-bottom: 0.9rem;
+}
+.progress-label {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.bar__fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.failures {
+  margin-bottom: 0.9rem;
+  border-left: 3px solid var(--danger);
+}
+.failures h2 {
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+.failures ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+.failures li {
+  margin-bottom: 0.2rem;
+}
+
+.empty {
+  max-width: 460px;
+}
+.empty h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.3rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tile {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tile img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--border);
+  display: block;
+}
+
+.tile--used img {
+  opacity: 0.75;
+}
+
+.tile__meta {
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.tile__name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile__delete {
+  margin: 0 0.55rem 0.55rem;
+}
+
+.badge {
+  margin: 0 0.55rem 0.55rem;
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+@media (max-width: 560px) {
+  .head {
+    flex-direction: column;
+  }
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}

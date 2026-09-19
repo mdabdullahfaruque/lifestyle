@@ -12,6 +12,16 @@ public interface IMediaModule
     Task<IReadOnlyList<MediaAsset>> GetManyAsync(IReadOnlyCollection<string> mediaIds, CancellationToken ct);
 
     /// <summary>
+    /// The images in a vendor's library. Bulk import uses this to match filenames against product
+    /// codes (docs/08 §4) — Catalog cannot read Media's tables, so the library is offered here.
+    /// </summary>
+    /// <param name="unusedOnly">
+    /// True to return only images not yet on a product, which is what an import should consider:
+    /// an image already placed on one product should not be silently claimed by another.
+    /// </param>
+    Task<IReadOnlyList<MediaAsset>> ListForVendorAsync(Guid vendorId, bool unusedOnly, CancellationToken ct);
+
+    /// <summary>
     /// Marks assets as belonging to something real. Uploads start orphaned and are swept after
     /// 24 hours, so a failed product save cannot leave files behind forever.
     /// </summary>
@@ -28,6 +38,35 @@ public sealed record MediaAsset(
     int? Height,
     string Url,
     IReadOnlyDictionary<string, string> Derivatives);
+
+/// <summary>
+/// What a stored file belongs to. A file with no owner is an orphan and the sweeper deletes it
+/// after <c>Media:OrphanRetentionHours</c>, so anything meant to survive must claim one of these.
+/// <para>
+/// Constants rather than loose strings because the value decides whether a file lives or is
+/// deleted, and a typo in a literal would be a silent data loss rather than a compile error.
+/// </para>
+/// </summary>
+public static class MediaOwnerTypes
+{
+    /// <summary>Attached to a product's image set.</summary>
+    public const string Product = "product";
+
+    /// <summary>
+    /// Held in a vendor's image library: uploaded deliberately, not yet on any product, and not to
+    /// be swept. <c>OwnerId</c> is the vendor id.
+    /// </summary>
+    public const string VendorLibrary = "vendor_library";
+
+    /// <summary>
+    /// A KYC document on a vendor application — trade licence, owner identity, bank statement.
+    /// <c>OwnerId</c> is the vendor id.
+    /// </summary>
+    public const string VendorDocument = "vendor_document";
+
+    /// <summary>A vendor's shop logo or banner. <c>OwnerId</c> is the vendor id.</summary>
+    public const string VendorBranding = "vendor_branding";
+}
 
 /// <summary>
 /// The derivative sizes we generate for every image. Named rather than numeric so a call site

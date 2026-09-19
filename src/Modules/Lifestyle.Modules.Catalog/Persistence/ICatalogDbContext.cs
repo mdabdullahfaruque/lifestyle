@@ -12,6 +12,9 @@ internal interface ICatalogDbContext
     DbSet<ProductVariant> ProductVariants { get; }
     DbSet<ProductImage> ProductImages { get; }
     DbSet<ProductAttributeValue> ProductAttributeValues { get; }
+    DbSet<ImportJob> ImportJobs { get; }
+    DbSet<ImportJobRow> ImportJobRows { get; }
+    DbSet<ImportJobImage> ImportJobImages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
