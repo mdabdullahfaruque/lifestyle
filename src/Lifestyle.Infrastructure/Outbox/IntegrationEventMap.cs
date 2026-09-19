@@ -29,6 +29,9 @@ internal static class IntegrationEventMap
         VendorEvents.VendorApproved e =>
             new VendorApprovedEvent(Guid.CreateVersion7(), now, e.VendorId, e.DisplayName, e.Slug, e.OwnerUserId),
 
+        VendorEvents.VendorRejected e =>
+            new VendorRejectedEvent(Guid.CreateVersion7(), now, e.VendorId, e.DisplayName, e.Reason, e.OwnerUserId),
+
         VendorEvents.VendorSuspended e =>
             new VendorSuspendedEvent(Guid.CreateVersion7(), now, e.VendorId, e.Reason),
 
@@ -41,7 +44,7 @@ internal static class IntegrationEventMap
         CatalogEvents.ProductUnpublished e =>
             new ProductUnpublishedEvent(Guid.CreateVersion7(), now, e.ProductId, e.VendorId, e.Reason),
 
-        // In-module only: VendorApplied, VendorSubmittedForReview, VendorRejected,
+        // In-module only: VendorApplied, VendorSubmittedForReview,
         // ProductSubmittedForReview, ProductRejected, RefreshTokenFamilyRevoked.
         _ => null
     };

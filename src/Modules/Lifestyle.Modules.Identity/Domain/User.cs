@@ -150,6 +150,23 @@ internal sealed class User : AggregateRoot, ISoftDeletable
             token.Revoke(now, "password_changed");
     }
 
+    /// <summary>
+    /// Completes a password reset: sets the new hash, ends every session, and — unlike an ordinary
+    /// change — clears any lockout.
+    /// <para>
+    /// Clearing it is the point. Someone resetting a password has usually just spent their five
+    /// attempts trying to remember the old one, so leaving the lockout in place would refuse the
+    /// password they set seconds earlier. They have proved control of the registered mailbox,
+    /// which is a stronger claim than the password they were failing to type.
+    /// </para>
+    /// </summary>
+    public void ResetPassword(string passwordHash, DateTimeOffset now)
+    {
+        SetPasswordHash(passwordHash, now);
+        FailedLoginAttempts = 0;
+        LockedOutUntil = null;
+    }
+
     public void VerifyEmail(DateTimeOffset now)
     {
         EmailVerified = true;

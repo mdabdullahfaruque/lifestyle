@@ -25,4 +25,14 @@ export class AccountService {
       newPassword,
     });
   }
+
+  /**
+   * Gives an account that signs in with Google only its first password. There is no current
+   * password to supply, which is exactly why `changePassword` cannot serve this case.
+   *
+   * Ends every session too — same reasoning as above.
+   */
+  setPassword(newPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/v1/me/set-password`, { newPassword });
+  }
 }

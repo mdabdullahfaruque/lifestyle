@@ -57,3 +57,16 @@ public sealed record VendorReinstatedEvent(
     Guid EventId,
     DateTimeOffset OccurredAt,
     Guid VendorId) : IIntegrationEvent;
+
+/// <summary>
+/// Published so the owner can be told, and told *why*. A rejection the applicant never hears about
+/// is indistinguishable from an application nobody read — they cannot fix what they were not told
+/// was wrong, and the reason is already captured on the vendor.
+/// </summary>
+public sealed record VendorRejectedEvent(
+    Guid EventId,
+    DateTimeOffset OccurredAt,
+    Guid VendorId,
+    string DisplayName,
+    string Reason,
+    Guid OwnerUserId) : IIntegrationEvent;

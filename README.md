@@ -131,10 +131,19 @@ Rules 2, 3 and 7 are enforced by the architecture tests, not by review alone.
 
 **Not done**
 
-- Vendor Admin / Super Admin **UI screens**. The apps, auth and API clients exist; the screens do not.
 - Bulk CSV product import (Phase 1 scope, deferred to the first Phase 2 sprint).
 - Generated API client — `npm run generate:client` is wired but `data-access/models.ts` is currently hand-written.
-- Email sending. `Mailpit` is in Compose; no `IEmailSender` implementation yet.
+- Email **verification**, and delivering credentials for an admin-created shop. Password reset and
+  vendor approval/rejection notices are built (SMTP, any provider) — but nothing is delivered until
+  `SMTP_HOST` is set; until then every message is written to the log instead.
+- Vendor storefront subdomains do not resolve in production — the code resolves any
+  `{slug}.{root}`, but DNS, the wildcard certificate and the nginx site are missing. See
+  [docs/07 §10](docs/07-DEPLOYMENT-DEVIATIONS.md).
+
+Vendor Admin and Super Admin **screens do exist** — this list claimed otherwise until 2026-09-16.
+Seller: sign in, register, apply, KYC upload, products, settings, password reset. Admin: vendor
+queue, moderation, categories, audit log. Neither has automated tests, and
+[docs/07](docs/07-DEPLOYMENT-DEVIATIONS.md) has the accurate per-console breakdown.
 
 ### Verified against a real database
 

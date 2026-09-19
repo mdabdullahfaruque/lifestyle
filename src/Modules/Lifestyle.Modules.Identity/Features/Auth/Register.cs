@@ -73,7 +73,7 @@ internal static class Register
 
             return new UserProfileResponse(
                 user.Id, user.Email, user.FullName, user.PhoneNumber,
-                user.EmailVerified, user.TwoFactorEnabled, []);
+                user.EmailVerified, user.TwoFactorEnabled, [], user.HasPassword);
         }
     }
 

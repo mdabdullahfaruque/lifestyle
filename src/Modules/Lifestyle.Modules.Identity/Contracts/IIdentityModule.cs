@@ -19,9 +19,14 @@ public interface IIdentityModule
     /// <summary>
     /// Creates an account on someone's behalf, for a shop an administrator onboards directly.
     /// <para>
-    /// Returns the generated password once, because the administrator has to hand it over — there
-    /// is no email sender yet. It is never stored in readable form and never logged; if it is lost,
-    /// the owner resets it rather than anyone looking it up.
+    /// Returns the generated password once, for the administrator to hand over. It is never stored
+    /// in readable form and never logged.
+    /// </para>
+    /// <para>
+    /// Since password reset exists (docs/07 §11) that hand-off is no longer the only way in: an
+    /// owner who never receives the password, or loses it, can set their own from the sign-in page.
+    /// The better flow — mailing a set-password link and never generating a shared secret at all —
+    /// is not built.
     /// </para>
     /// </summary>
     Task<Result<CreatedUser>> CreateForVendorOwnerAsync(

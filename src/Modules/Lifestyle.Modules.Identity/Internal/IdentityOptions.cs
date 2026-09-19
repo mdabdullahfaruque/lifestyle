@@ -56,4 +56,23 @@ public sealed class IdentityModuleOptions
     /// </para>
     /// </summary>
     public string? GoogleClientId { get; init; }
+
+    /// <summary>
+    /// How long a password-reset link stays valid. An hour is the usual balance: long enough to
+    /// survive a message sitting unread through a meeting, short enough that a link left in an
+    /// inbox is not a standing key to the account.
+    /// </summary>
+    [Range(5, 1440)]
+    public int PasswordResetMinutes { get; init; } = 60;
+
+    /// <summary>
+    /// Where a reset link should land, keyed by surface ("buyer", "seller", "admin") — the three
+    /// consoles are different origins, so one URL cannot serve them.
+    /// <para>
+    /// A surface with no entry configured cannot send reset mail at all: the endpoint refuses
+    /// rather than mailing a link to nowhere, because a reset link that 404s is indistinguishable
+    /// to the recipient from the account being broken.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, string> PasswordResetUrls { get; init; } = [];
 }

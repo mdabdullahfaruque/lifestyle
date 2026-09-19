@@ -1,3 +1,4 @@
+using Lifestyle.Infrastructure.Email;
 using Lifestyle.Infrastructure.Identity;
 using Lifestyle.Infrastructure.Outbox;
 using Lifestyle.Infrastructure.Persistence;
@@ -5,6 +6,7 @@ using Lifestyle.Infrastructure.Persistence.Interceptors;
 using Lifestyle.Infrastructure.Storage;
 using Lifestyle.Infrastructure.Time;
 using Lifestyle.Modules.Catalog.Persistence;
+using Lifestyle.Modules.Identity.Internal;
 using Lifestyle.Modules.Identity.Persistence;
 using Lifestyle.Modules.Media.Internal;
 using Lifestyle.Modules.Media.Persistence;
@@ -78,6 +80,7 @@ public static class InfrastructureModule
         services.AddScoped<IPlatformDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
         AddStorage(services, configuration);
+        AddEmail(services, configuration);
 
         services.AddHostedService<OutboxDispatcher>();
         services.AddHostedService<Media.MediaOrphanSweeper>();
@@ -93,5 +96,22 @@ public static class InfrastructureModule
             services.AddSingleton<IFileStorage, S3FileStorage>();
         else
             services.AddSingleton<IFileStorage, LocalFileStorage>();
+    }
+
+    /// <summary>
+    /// A blank <c>Email:Host</c> selects the logging sender rather than failing at start-up: mail
+    /// is new, every deployment predates it, and refusing to boot would take the whole platform
+    /// down over an unsent password-reset link. The logging sender is loud about it.
+    /// </summary>
+    private static void AddEmail(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<EmailOptions>().BindConfiguration(EmailOptions.SectionName);
+
+        var host = configuration[$"{EmailOptions.SectionName}:Host"];
+
+        if (string.IsNullOrWhiteSpace(host))
+            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        else
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
     }
 }

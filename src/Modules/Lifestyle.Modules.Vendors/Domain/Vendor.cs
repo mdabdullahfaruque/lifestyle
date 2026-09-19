@@ -164,7 +164,7 @@ internal sealed class Vendor : AggregateRoot, ISoftDeletable
         StatusReason = reason;
         UpdatedAt = now;
 
-        Raise(new VendorRejected(Id, reason, rejectedBy, now));
+        Raise(new VendorRejected(Id, DisplayName, reason, rejectedBy, OwnerUserId, now));
         return Result.Success();
     }
 

@@ -144,7 +144,7 @@ internal static class Login
                     request.Surface,
                     access.VendorId,
                     new UserProfileResponse(user.Id, user.Email, user.FullName, user.PhoneNumber,
-                        user.EmailVerified, user.TwoFactorEnabled, [.. access.Permissions])),
+                        user.EmailVerified, user.TwoFactorEnabled, [.. access.Permissions], user.HasPassword)),
                 refreshValue,
                 now.Add(lifetime));
         }

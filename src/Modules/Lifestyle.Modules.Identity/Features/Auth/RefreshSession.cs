@@ -87,7 +87,7 @@ internal static class RefreshSession
                     command.Surface,
                     access.VendorId,
                     new UserProfileResponse(user.Id, user.Email, user.FullName, user.PhoneNumber,
-                        user.EmailVerified, user.TwoFactorEnabled, [.. access.Permissions])),
+                        user.EmailVerified, user.TwoFactorEnabled, [.. access.Permissions], user.HasPassword)),
                 value,
                 now.Add(lifetime));
         }

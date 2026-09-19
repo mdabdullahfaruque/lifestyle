@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthStore } from 'auth';
@@ -21,28 +21,38 @@ import { firstValueFrom } from 'rxjs';
   imports: [FormsModule],
   template: `
     <section class="card">
-      <h2>Password</h2>
-      <p class="muted tiny">
-        If this shop was opened for you by the marketplace team, change the password they gave you —
-        it was shared out loud or over a message, so it should not stay in use.
-      </p>
+      <h2>{{ hasPassword() ? 'Password' : 'Set a password' }}</h2>
+
+      @if (hasPassword()) {
+        <p class="muted tiny">
+          If this shop was opened for you by the marketplace team, change the password they gave you —
+          it was shared out loud or over a message, so it should not stay in use.
+        </p>
+      } @else {
+        <p class="muted tiny">
+          This account signs in with Google only. Adding a password gives you a second way in — worth
+          doing, because it is what you will need if you ever lose access to that Google account.
+        </p>
+      }
 
       @if (error(); as message) {
         <p class="alert" role="alert">{{ message }}</p>
       }
 
       <form class="grid" novalidate (ngSubmit)="submit()">
-        <label class="field">
-          <span class="field__label">Current password</span>
-          <input type="password" name="currentPassword" autocomplete="current-password"
-                 [(ngModel)]="current" [disabled]="busy()" />
-          @if (fieldErrors()['currentPassword']; as message) {
-            <span class="err" role="alert">{{ message }}</span>
-          }
-        </label>
+        @if (hasPassword()) {
+          <label class="field">
+            <span class="field__label">Current password</span>
+            <input type="password" name="currentPassword" autocomplete="current-password"
+                   [(ngModel)]="current" [disabled]="busy()" />
+            @if (fieldErrors()['currentPassword']; as message) {
+              <span class="err" role="alert">{{ message }}</span>
+            }
+          </label>
+        }
 
         <label class="field">
-          <span class="field__label">New password</span>
+          <span class="field__label">{{ hasPassword() ? 'New password' : 'Password' }}</span>
           <input type="password" name="newPassword" autocomplete="new-password"
                  [(ngModel)]="next" [disabled]="busy()" />
           @if (fieldErrors()['newPassword']; as message) {
@@ -53,7 +63,7 @@ import { firstValueFrom } from 'rxjs';
         </label>
 
         <label class="field">
-          <span class="field__label">Repeat the new password</span>
+          <span class="field__label">Repeat it</span>
           <input type="password" name="confirmPassword" autocomplete="new-password"
                  [(ngModel)]="confirm" [disabled]="busy()" />
           @if (fieldErrors()['confirmPassword']; as message) {
@@ -63,7 +73,7 @@ import { firstValueFrom } from 'rxjs';
 
         <div class="actions">
           <button class="btn btn--primary" type="submit" [disabled]="busy()">
-            {{ busy() ? 'Changing…' : 'Change password' }}
+            {{ busy() ? 'Saving…' : hasPassword() ? 'Change password' : 'Set password' }}
           </button>
           <span class="muted tiny">You will be signed out and asked to sign in again.</span>
         </div>
@@ -95,16 +105,24 @@ export class ChangePassword {
   protected readonly error = signal<string | null>(null);
   protected readonly fieldErrors = signal<Record<string, string>>({});
 
+  /**
+   * A Google-only account has no password to verify, so this screen asks for one instead of two and
+   * calls a different endpoint. Reading it from the session rather than discovering it from a failed
+   * submit is the difference between the right form and a field the owner can never fill.
+   */
+  protected readonly hasPassword = computed(() => this.auth.user()?.hasPassword ?? true);
+
   protected async submit(): Promise<void> {
     if (this.busy()) return;
 
     this.error.set(null);
     const problems: Record<string, string> = {};
+    const setting = !this.hasPassword();
 
-    if (!this.current) problems['currentPassword'] = 'Enter the password you sign in with now.';
-    if (!this.next) problems['newPassword'] = 'Choose a new password.';
+    if (!setting && !this.current) problems['currentPassword'] = 'Enter the password you sign in with now.';
+    if (!this.next) problems['newPassword'] = 'Choose a password.';
     else if (this.next.length < 10) problems['newPassword'] = 'Use at least 10 characters.';
-    else if (this.next === this.current) problems['newPassword'] = 'The new password must be different.';
+    else if (!setting && this.next === this.current) problems['newPassword'] = 'The new password must be different.';
     if (this.next && this.confirm !== this.next) problems['confirmPassword'] = 'These two do not match.';
 
     this.fieldErrors.set(problems);
@@ -112,7 +130,9 @@ export class ChangePassword {
 
     this.busy.set(true);
     try {
-      await firstValueFrom(this.account.changePassword(this.current, this.next));
+      await firstValueFrom(
+        setting ? this.account.setPassword(this.next) : this.account.changePassword(this.current, this.next),
+      );
 
       // The API revoked every session, this one included. Clearing locally and routing to the sign
       // -in page is the honest thing to do — leaving the console up would show a shell whose next
@@ -134,7 +154,11 @@ export class ChangePassword {
         this.fieldErrors.set({ currentPassword: 'That is not your current password.' });
         return;
       case 'identity.password_not_set':
-        this.error.set('This account signs in with Google, so there is no password to change.');
+        // Reachable only if the session's hasPassword disagreed with the server — a stale profile.
+        this.error.set('This account has no password yet. Reload the page and set one instead.');
+        return;
+      case 'identity.password_already_set':
+        this.error.set('This account already has a password. Reload the page to change it instead.');
         return;
       default:
         if (problem?.errors) {

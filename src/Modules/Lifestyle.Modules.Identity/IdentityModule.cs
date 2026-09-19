@@ -53,10 +53,17 @@ public static class IdentityModule
         Logout.Map(auth);
         EnrolTwoFactor.Map(auth);
 
+        // Both sit in the rate-limited auth group on purpose: one mails to any address given to
+        // it, the other is guessable in principle, and the per-IP throttle is what keeps either
+        // from being run in bulk.
+        ForgotPassword.Map(auth);
+        ResetPassword.Map(auth);
+
         var me = app.MapGroup("/v1/me").WithTags("Me").RequireAuthorization();
         GetCurrentUser.Map(me);
         UpdateProfile.Map(me);
         ChangePassword.Map(me);
+        SetFirstPassword.Map(me);
 
         return app;
     }

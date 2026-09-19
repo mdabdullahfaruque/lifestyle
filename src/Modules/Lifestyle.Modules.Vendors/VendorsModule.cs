@@ -5,6 +5,7 @@ using Lifestyle.Modules.Vendors.Features.Admin;
 using Lifestyle.Modules.Vendors.Features.Storefronts;
 using Lifestyle.Modules.Vendors.Features.Vendors;
 using Lifestyle.Modules.Vendors.Internal;
+using Lifestyle.SharedKernel.Domain;
 using Lifestyle.SharedKernel.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -17,8 +18,14 @@ public static class VendorsModule
 {
     public static IServiceCollection AddVendorsModule(this IServiceCollection services)
     {
+        services.AddOptions<VendorsModuleOptions>().BindConfiguration(VendorsModuleOptions.SectionName);
+
         services.AddScoped<IVendorsModule, VendorsFacade>();
         services.AddScoped<ApplicantScope>();
+
+        // Dispatched from the outbox, so the owner is told only once the decision has committed.
+        services.AddScoped<IIntegrationEventHandler<VendorApprovedEvent>, EmailOwnerOnVendorApproved>();
+        services.AddScoped<IIntegrationEventHandler<VendorRejectedEvent>, EmailOwnerOnVendorRejected>();
         services.AddValidatorsFromAssembly(typeof(VendorsModule).Assembly, includeInternalTypes: true);
         services.AddHandlersFromAssembly(typeof(VendorsModule).Assembly);
         return services;

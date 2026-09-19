@@ -8,7 +8,8 @@ internal sealed record VendorSubmittedForReview(Guid VendorId, string DisplayNam
 
 internal sealed record VendorApproved(Guid VendorId, string DisplayName, string Slug, Guid OwnerUserId, DateTimeOffset OccurredAt) : IDomainEvent;
 
-internal sealed record VendorRejected(Guid VendorId, string Reason, Guid RejectedBy, DateTimeOffset OccurredAt) : IDomainEvent;
+internal sealed record VendorRejected(
+    Guid VendorId, string DisplayName, string Reason, Guid RejectedBy, Guid OwnerUserId, DateTimeOffset OccurredAt) : IDomainEvent;
 
 internal sealed record VendorSuspended(Guid VendorId, string Reason, Guid SuspendedBy, DateTimeOffset OccurredAt) : IDomainEvent;
 

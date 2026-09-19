@@ -63,6 +63,26 @@ services:
       # be exact: a token minted for a different Google app is still validly signed by Google.
       # Blank disables Google sign-in rather than half-enabling it.
       Identity__GoogleClientId: ${GOOGLE_CLIENT_ID:-}
+      # Where a password-reset link lands, per surface — three different origins, so one URL cannot
+      # serve them. A surface left blank cannot send reset mail: the endpoint says so rather than
+      # mailing a link that goes nowhere.
+      Identity__PasswordResetUrls__buyer: "https://${ROOT_DOMAIN}/reset-password"
+      Identity__PasswordResetUrls__seller: "https://seller.${ROOT_DOMAIN}/reset-password"
+      Identity__PasswordResetUrls__admin: "https://admin.${ROOT_DOMAIN}/reset-password"
+      # Transactional mail. A blank host does not fail the boot — it logs every message it would
+      # have sent instead, so an operator can see that reset mail is going nowhere.
+      Email__Host: ${SMTP_HOST:-}
+      Email__Port: ${SMTP_PORT:-587}
+      Email__UseStartTls: ${SMTP_STARTTLS:-true}
+      Email__UserName: ${SMTP_USERNAME:-}
+      Email__Password: ${SMTP_PASSWORD:-}
+      Email__FromAddress: ${SMTP_FROM_ADDRESS:-no-reply@${ROOT_DOMAIN}}
+      Email__FromName: ${SMTP_FROM_NAME:-Lifestyle Mart}
+      # Addresses used in approval and rejection mail. SHOP_URL_TEMPLATE substitutes {slug}: keep it
+      # on the path form until wildcard subdomains actually resolve (docs/07 §10), then switch it to
+      # https://{slug}.${ROOT_DOMAIN} — a config change, not a deploy of new code.
+      Vendors__SellerConsoleUrl: "https://seller.${ROOT_DOMAIN}"
+      Vendors__ShopUrlTemplate: ${SHOP_URL_TEMPLATE:-https://${ROOT_DOMAIN}/shop/{slug}}
       Storage__Provider: ${STORAGE_PROVIDER}
       Storage__BucketName: ${STORAGE_BUCKET}
       Storage__ServiceUrl: ${STORAGE_SERVICE_URL}

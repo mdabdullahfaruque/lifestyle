@@ -11,6 +11,8 @@ export interface UserProfile {
   emailVerified: boolean;
   twoFactorEnabled: boolean;
   permissions: string[];
+  /** False for an account that has only ever signed in with Google — it can set one, not change one. */
+  hasPassword: boolean;
 }
 
 export interface AuthResponse {
@@ -108,6 +110,28 @@ export class AuthStore {
     );
 
     this.apply(response);
+  }
+
+  /**
+   * Asks for a reset link. Resolves the same way whether or not the account exists — the server
+   * answers 202 either way, deliberately, so this cannot be used to discover who has an account.
+   * The caller must not imply otherwise in what it shows afterwards.
+   */
+  async forgotPassword(email: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(`${this.baseUrl}/v1/auth/forgot-password`, { email, surface: this.surface }),
+    );
+  }
+
+  /** Redeems a reset link. The token comes from the emailed URL, not from a session. */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(
+        `${this.baseUrl}/v1/auth/reset-password`,
+        { token, newPassword },
+        { withCredentials: true },
+      ),
+    );
   }
 
   /**

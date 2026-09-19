@@ -25,7 +25,10 @@ internal static class GetCurrentUser
                 .Where(u => u.Id == userId)
                 .Select(u => new UserProfileResponse(
                     u.Id, u.Email, u.FullName, u.PhoneNumber,
-                    u.EmailVerified, u.TwoFactorEnabled, new List<string>()))
+                    u.EmailVerified, u.TwoFactorEnabled, new List<string>(),
+                    // The column, not the User.HasPassword property: this projection runs as SQL,
+                    // and EF cannot translate a computed property.
+                    !string.IsNullOrEmpty(u.PasswordHash)))
                 .FirstOrDefaultAsync(ct);
 
             if (user is null) return Error.NotFound("identity.user_not_found");

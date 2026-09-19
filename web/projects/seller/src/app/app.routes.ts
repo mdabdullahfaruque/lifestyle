@@ -13,6 +13,18 @@ export const routes: Routes = [
     title: 'Open your shop · Seller Console',
   },
   {
+    path: 'forgot-password',
+    loadComponent: () => import('./login/forgot-password').then((m) => m.ForgotPassword),
+    title: 'Forgot your password · Seller Console',
+  },
+  {
+    // Reached from the emailed link, which carries ?token=. Anonymous by necessity: the whole
+    // point is that the owner cannot sign in.
+    path: 'reset-password',
+    loadComponent: () => import('./login/reset-password').then((m) => m.ResetPassword),
+    title: 'Choose a new password · Seller Console',
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./shell/shell').then((m) => m.Shell),

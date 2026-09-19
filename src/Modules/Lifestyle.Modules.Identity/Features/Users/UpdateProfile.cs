@@ -47,7 +47,7 @@ internal static class UpdateProfile
             await db.SaveChangesAsync(ct);
 
             return new UserProfileResponse(user.Id, user.Email, user.FullName, user.PhoneNumber,
-                user.EmailVerified, user.TwoFactorEnabled, [.. currentUser.Permissions]);
+                user.EmailVerified, user.TwoFactorEnabled, [.. currentUser.Permissions], user.HasPassword);
         }
     }
 

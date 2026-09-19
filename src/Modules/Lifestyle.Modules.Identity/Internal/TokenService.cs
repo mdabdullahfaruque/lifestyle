@@ -19,6 +19,16 @@ internal interface ITokenService
 
     string HashRefreshToken(string value);
 
+    /// <summary>
+    /// An opaque single-use token for an out-of-band flow (today: password reset). Same
+    /// construction as a refresh token — CSPRNG value handed out, only its hash retained — under
+    /// its own name so a reader of <c>ForgotPassword</c> is not left wondering whether a session
+    /// is being created.
+    /// </summary>
+    (string Value, string Hash) CreateSingleUseToken();
+
+    string HashSingleUseToken(string value);
+
     string AudienceFor(string surface);
 }
 
@@ -84,6 +94,10 @@ internal sealed class TokenService(IOptions<IdentityModuleOptions> options, IClo
 
     public string HashRefreshToken(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+
+    public (string Value, string Hash) CreateSingleUseToken() => CreateRefreshToken();
+
+    public string HashSingleUseToken(string value) => HashRefreshToken(value);
 
     public string AudienceFor(string surface) =>
         string.Create(CultureInfo.InvariantCulture, $"{_options.JwtAudienceBase}:{surface}");

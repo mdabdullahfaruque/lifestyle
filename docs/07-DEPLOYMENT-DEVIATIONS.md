@@ -232,6 +232,129 @@ in the Pages project, point `seller` and `admin` back at their `*.pages.dev` CNA
 
 ---
 
+## 10. No vendor gets a working shop URL — **G**, found 2026-09-16
+
+**Not even the three demo shops have one.** `demo-arunima.mylifestylemart.com` is NXDOMAIN today —
+confirmed by direct lookup, not inferred from docs. Every vendor's shop address, the one the seller
+onboarding form promises ("Your shop will be at `uttara-dhaka.mylifestylemart.com`" —
+[onboarding.ts](../web/projects/seller/src/app/onboarding/onboarding.ts) `addressPreview()`), does
+not resolve for anyone.
+
+**Nothing on the code side is missing.** `TenantResolutionMiddleware.cs` already resolves any
+`{slug}.mylifestylemart.com` generically from the database — no per-shop code or config — and the
+storefront's `ShellStore.resolve()` derives shop-vs-marketplace chrome and branding purely from the
+API's answer to the `Host` it was called on. A vendor's site works the moment the edge routes their
+subdomain to the same storefront bundle and API the apex already serves.
+
+**Why it never got built:** docs/05 §Deployment's plan was Caddy with on-demand TLS, checked against
+the `tls-check` endpoint, which issues a certificate per registered slug automatically as each shop
+is approved. §1 above replaced Caddy with the host's nginx to avoid fighting three other products
+for ports 80/443 — a necessary and permanent call — but nothing replaced the wildcard/on-demand
+piece that decision took with it. It was never a deliberate deferral; it was dropped silently and
+nobody re-solved it, which is exactly the failure mode this document exists to catch.
+
+**What is missing, concretely:**
+
+1. **DNS** — a `*.mylifestylemart.com` record. DNS-only (grey), matching every other record on this
+   zone (§8) — Cloudflare's free plan does not proxy wildcards anyway (docs/03 §6.2).
+2. **A wildcard TLS certificate.** Every cert on this host so far is certbot `--webroot` (HTTP-01),
+   which **cannot** issue a wildcard — Let's Encrypt requires a DNS-01 challenge for `*.` names, which
+   needs API write access to the zone (the `certbot-dns-cloudflare` plugin plus a scoped Cloudflare
+   API token: `Zone → DNS → Edit`, restricted to this zone). Nothing currently holds that token.
+3. **An nginx site.** Written and vendored, **not installed**:
+   [`deploy/nginx/wildcard.mylifestylemart.com.conf`](../deploy/nginx/wildcard.mylifestylemart.com.conf) —
+   a `server_name ~^[^.]+\.mylifestylemart\.com$` block, safe to add because a literal `server_name`
+   (seller, admin, api, media, the apex) always wins over a regex match in nginx regardless of load
+   order, so it cannot hijack those five hosts. It reuses the apex's storefront-serving config
+   unchanged; the app itself needs no per-subdomain build.
+
+**Not this gap:** vendor-owned custom domains (`theirshop.com`) are a separate, larger feature —
+`CheckCustomDomain.cs` / the `tls-check` endpoint exists for it but nothing issues those certificates
+either. This gap is only about the platform-provided `{slug}.mylifestylemart.com` address every
+vendor is promised at signup.
+
+**Revert trigger:** none — this is net-new infrastructure, not a reversion. Closed by: the DNS
+record, a Cloudflare API token scoped to this zone, one `certbot certonly --dns-cloudflare …
+-d '*.mylifestylemart.com'` run (plus its renewal hook — DNS-01 renewals cannot use the existing
+webroot hook), and installing the site file per the README's normal procedure. Until then, a vendor's
+shop is reachable only at `mylifestylemart.com/shop/{slug}` (built, working, but not what onboarding
+promises) — worth using as a stand-in if a demo is needed before this is closed.
+
+---
+
+## 11. Password reset and first-password — **built 2026-09-16**
+
+Closes the code half of G4, and the "a Google-only account cannot set a password" note in §6.
+
+`POST /v1/auth/forgot-password` mails a single-use link; `POST /v1/auth/reset-password` redeems it;
+`POST /v1/me/set-password` gives an account that has only ever used Google its first password.
+Seller console screens for all three; the settings screen now reads `hasPassword` off the session
+and offers "set" or "change" accordingly instead of dead-ending on `identity.password_not_set`.
+
+**No migration.** Reset tokens live in `IDistributedCache` — Redis in production — keyed by the
+token's SHA-256 hash, the same way `EnrolTwoFactor` holds enrolment secrets. Only the hash is
+stored, so the store cannot be read to reset anyone's password. They expire in an hour
+(`Identity:PasswordResetMinutes`) and are consumed on first use.
+
+Three behaviours worth knowing, each deliberate:
+
+- **`forgot-password` always answers 202** — unknown address, suspended account, dead relay alike.
+  Anything else is a free oracle for which addresses sell here. `Register` makes the opposite call
+  on purpose, because there an honest user needs to be told the address is taken.
+- **A reset clears the lockout.** Someone resetting has usually just burned their attempts
+  guessing, and refusing the password they set seconds ago is a support ticket with no security
+  benefit — they have proved control of the mailbox, which is the stronger claim.
+- **It does not sign the caller in.** Issuing a session would mean stepping around the TOTP gate on
+  an account that may have it enabled — precisely what a stolen link would want.
+
+**Owed:** `SMTP_HOST` and friends in `deploy/.env` (see `.env.example`). A blank host does not fail
+the boot; it selects a sender that logs each message and delivers none, which is visible in the log
+and invisible to the vendor waiting for a link. Set it before the first real vendor.
+
+Verified against the live development database on 2026-09-16, by walking the flow rather than by
+unit test: request, redeem, single-use refusal on replay, old password dead, new password signs in,
+lockout cleared, and `set-password` refused on an account that already has one.
+
+---
+
+## 12. Vendors are told what happened to their application — **built 2026-09-17**
+
+Approving or rejecting a shop used to be silent. An approved owner had to keep signing in to
+notice; a rejected one was never told why, and so could not fix it and reapply. The decision was
+recorded all along — only the telling was missing.
+
+`VendorApprovedEvent` already existed and was already mapped; **nothing had ever registered a
+handler for it**. `VendorRejected` was in-module only, so it gained an integration event, a map
+entry, and `DisplayName`/`OwnerUserId` on the domain event.
+
+**Both run off the outbox, not inline in the review handler.** That is the point: the mail goes out
+only if the decision actually committed. Sending before `SaveChanges` risks congratulating someone
+whose approval then rolled back; sending after risks losing it if the process dies. Delivery is
+at-least-once, so a duplicate notice is possible and accepted — deduplicating would cost a table and
+a migration to prevent an email that says the same true thing twice.
+
+`IEmailSender` **moved from `Identity/Internal/` to `SharedKernel/Abstractions/`** the moment
+Vendors needed it, which is exactly what the admission rule prescribes (docs/04 §3.2: two or more
+modules, no dependency on any module).
+
+Everything interpolated into the HTML bodies is `HtmlEncode`d. A shop's display name is chosen by
+the vendor and a rejection reason typed by a reviewer; scripts do not run in a mail client, but
+unencoded markup can still restructure a message into one carrying a link that appears to be ours.
+
+**`SHOP_URL_TEMPLATE` substitutes `{slug}` and defaults to the path form**,
+`https://{root}/shop/{slug}` — because §10 means `https://{slug}.{root}` would send every newly
+approved vendor to a dead link. Switch that one variable once the wildcard is live.
+
+Verified on 2026-09-17 against the live development database: applied, approved, and the mail
+dispatched from the outbox to the owner's address; then a second application rejected, and the
+reviewer's reason present in the message.
+
+**Still not built:** email verification, and delivering credentials for an admin-created shop (§9)
+— though password reset (§11) now gives such an owner a self-service route that needs no password
+hand-off at all.
+
+---
+
 ## Gaps — never done, still owed
 
 | # | Gap | Consequence |
@@ -239,9 +362,10 @@ in the Pages project, point `seller` and `admin` back at their `*.pages.dev` CNA
 | **G1** | **Backups never leave the host — accepted risk, owner's decision 2026-09-13.** A nightly dump + media archive and a weekly restore test run on cron (2am / 4am Sunday), and the dump carries the uploads alongside it, but `BACKUP_RSYNC_TARGET` and `BACKUP_S3_BUCKET` are empty, so every copy sits on the same disk as the data. | Defensible **only** while the platform holds nothing real: today that is three demo shops and no buyers. It stops being defensible the moment a vendor uploads a KYC document, because losing the host then loses identity documents that cannot be re-created. **Revisit before onboarding the first real vendor** — set one of the two targets in `deploy/.env` and the existing script does the rest. |
 | **G2** | **No monitoring.** No uptime check on `/v1/internal/health`, no disk alert. | You learn of outages from vendors. |
 | **G3** | ~~nginx site files are not in the repo.~~ **Closed 2026-09-06** — all five live site files are vendored in `deploy/nginx/` with an install note. Keep copying a change back into the repo in the same session you make it on the server, or this reopens quietly. | — |
-| **G4** | **No `IEmailSender`.** Mailpit is in Compose with nothing sending to it. Nothing the platform does reaches a user by mail: no verification, no password reset, no approval notice, and no way to deliver the password for an account an admin created (§9 above, "Creating a shop directly"). | Every credential hand-off is manual, and an owner who loses their one-time password has no self-service route back in. Blocks real onboarding more than it blocks the demo. |
+| **G4** | ~~**No `IEmailSender`.**~~ **Built 2026-09-16/17 — see §11 and §12.** Password reset, first-password for Google-only accounts, and vendor approval/rejection notices all work end to end. **Still owed: `SMTP_HOST` in `deploy/.env`.** Until it is set, every message is written to the log instead of being delivered, and none of it reaches anyone. Still not built: email verification, and delivering the password for an admin-created account (§9) — though §11 gives such an owner a self-service route instead. | Set the SMTP variables and all of it works. Left blank, a vendor still hears nothing and a forgotten password still has no self-service route — but the code is no longer what stands in the way. |
 | **G5** | **Three PropertyMart certificates use `authenticator = standalone`**, which needs port 80 free — nginx holds it. Not Lifestyle's, but on the same box. | Those renewals will likely fail. Convert them to `--webroot`. |
 | **G6** | **The server login password was briefly written into two nginx files** by a `sudo -S` stdin mistake, then overwritten. It is also in this session's shell history. | Rotate the `deploy` password. |
+| **G7** | **No vendor shop subdomain resolves — see §10.** DNS wildcard, wildcard TLS cert and the nginx site are all missing; the code side is done. | Onboarding promises `{slug}.mylifestylemart.com` and cannot deliver it. **Blocks the "must" of a new shop having its own URL** — needs a Cloudflare API token before it can be closed. |
 
 ---
 
