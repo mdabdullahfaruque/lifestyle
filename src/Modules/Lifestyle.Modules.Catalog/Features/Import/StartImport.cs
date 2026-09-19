@@ -30,6 +30,12 @@ internal static class StartImport
 
     private const long MaxSheetBytes = 10 * 1024 * 1024;
 
+    /// <summary>
+    /// How many <c>image_urls</c> one import may download. Fetching happens inside this request, so
+    /// without a cap a sheet of a thousand links would hold the request open for an hour.
+    /// </summary>
+    private const int MaxFetchedUrls = 50;
+
     internal sealed class Handler(
         ICatalogDbContext db,
         ImportSchemaFactory schemas,
@@ -80,6 +86,7 @@ internal static class StartImport
             BuildRows(job, schema.Value, content);
             await MatchExistingProductsAsync(job, db, vendorId.Value, ct);
             await MatchImagesAsync(job, media, vendorId.Value, ct);
+            await FetchImageUrlsAsync(job, media, vendorId.Value, ct);
 
             var ready = job.Ready(clock.UtcNow);
             if (ready.IsFailure) return ready.Error;
@@ -201,6 +208,75 @@ internal static class StartImport
                 job.AddImage(ImportJobImage.Create(
                     job.Id, match.MediaId, match.FileName, match.ProductCode,
                     match.Position, match.Confidence, match.MatchedBy, match.ClusterKey));
+        }
+
+        /// <summary>
+        /// Downloads anything named in the <c>image_urls</c> column and attaches it to that row's
+        /// product (docs/08 §7.2).
+        /// <para>
+        /// Off unless <c>Media:RemoteImageImport:Enabled</c> is set, in which case every URL
+        /// returns a failure that is reported against the row rather than failing the import. A
+        /// download that does not work must never cost the seller the rest of a good sheet — and
+        /// the image library is the path that does not depend on someone else's server being up.
+        /// </para>
+        /// </summary>
+        private static async Task FetchImageUrlsAsync(
+            ImportJob job, IMediaModule media, Guid vendorId, CancellationToken ct)
+        {
+            var byProduct = job.Rows
+                .Where(r => r.ProductCode is not null
+                            && r.Values.TryGetValue(ImportColumns.ImageUrls, out var raw)
+                            && !string.IsNullOrWhiteSpace(raw))
+                .GroupBy(r => r.ProductCode!, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (byProduct.Count == 0) return;
+
+            var fetched = new List<string>();
+
+            foreach (var group in byProduct)
+            {
+                // Product-level column, so only the first row of each product is read — the same
+                // rule as name and description.
+                var first = group.OrderBy(r => r.RowNumber).First();
+                var urls = first.Values[ImportColumns.ImageUrls]
+                    .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                var position = job.Images.Count(i =>
+                    string.Equals(i.ProductCode, group.Key, StringComparison.OrdinalIgnoreCase));
+
+                foreach (var url in urls)
+                {
+                    ct.ThrowIfCancellationRequested();
+
+                    if (fetched.Count >= MaxFetchedUrls)
+                    {
+                        first.Reject("import.too_many_image_urls",
+                            $"An import can download at most {MaxFetchedUrls} images by URL. "
+                            + "Upload the rest to your image library instead.");
+                        break;
+                    }
+
+                    var result = await media.ImportFromUrlAsync(url, ct);
+
+                    if (result.IsFailure)
+                    {
+                        first.Reject(result.Error.Code, $"{url}: {result.Error.Message}");
+                        break;
+                    }
+
+                    job.AddImage(ImportJobImage.Create(
+                        job.Id, result.Value.Id, result.Value.FileName, group.Key,
+                        position++, ImportMatchConfidence.Matched, "url", null));
+
+                    fetched.Add(result.Value.Id);
+                }
+            }
+
+            // Claimed for the library so a cancelled import leaves them reusable rather than
+            // sweeping them and making the seller download everything again.
+            if (fetched.Count > 0)
+                await media.AttachAsync(fetched, MediaOwnerTypes.VendorLibrary, vendorId, ct);
         }
 
         internal static async Task<IReadOnlyDictionary<string, string>> ImageUrlsAsync(

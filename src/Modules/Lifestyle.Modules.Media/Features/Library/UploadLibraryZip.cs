@@ -200,7 +200,7 @@ internal static class UploadLibraryZip
                     await entryStream.CopyToAsync(buffer, ct);
 
                 buffer.Position = 0;
-                return new ZipEntryFormFile(buffer, displayName, ContentTypeFor(extension));
+                return new InMemoryFormFile(buffer, displayName, ContentTypeFor(extension));
             }
             catch (InvalidDataException)
             {
@@ -262,42 +262,6 @@ internal static class UploadLibraryZip
         return string.IsNullOrWhiteSpace(cleaned)
             ? null
             : cleaned.Length > 255 ? cleaned[..255] : cleaned;
-    }
-
-    /// <summary>
-    /// Presents one unpacked archive entry as an <see cref="IFormFile"/>.
-    /// <para>
-    /// An adapter rather than a refactor of <see cref="UploadFile"/>: the single-file upload path
-    /// carries the size, content-type and magic-byte checks and is the one place they live, so ZIP
-    /// ingest bends to fit it instead of growing a second ingest path that could drift from it.
-    /// </para>
-    /// </summary>
-    private sealed class ZipEntryFormFile(MemoryStream content, string fileName, string contentType) : IFormFile
-    {
-        public string ContentType => contentType;
-        public string ContentDisposition => $"form-data; name=\"file\"; filename=\"{fileName}\"";
-        public IHeaderDictionary Headers { get; } = new HeaderDictionary();
-        public long Length => content.Length;
-        public string Name => "file";
-        public string FileName => fileName;
-
-        public void CopyTo(Stream target)
-        {
-            content.Position = 0;
-            content.CopyTo(target);
-        }
-
-        public async Task CopyToAsync(Stream target, CancellationToken ct = default)
-        {
-            content.Position = 0;
-            await content.CopyToAsync(target, ct);
-        }
-
-        /// <summary>
-        /// Each call returns an independent reader over the same bytes, because the upload path
-        /// opens the file once per derivative size and would otherwise find the stream at its end.
-        /// </summary>
-        public Stream OpenReadStream() => new MemoryStream(content.GetBuffer(), 0, (int)content.Length, writable: false);
     }
 
     public static void Map(IEndpointRouteBuilder group) =>

@@ -63,6 +63,8 @@ internal static class ImportColumns
     public const string WeightGrams = "weight_grams";
     public const string BarCode = "barcode";
 
+    public const string ImageUrls = "image_urls";
+
     public const string AxisPrefix = "axis:";
     public const string AttributePrefix = "attr:";
 }
@@ -111,7 +113,9 @@ internal sealed class ImportSchemaFactory(ICatalogDbContext db)
                 "The struck-through 'was' price. Must be higher than the price."),
             Core(ImportColumns.Stock, ImportColumnKind.Variant, required: false, "Whole number. Defaults to 0."),
             Core(ImportColumns.WeightGrams, ImportColumnKind.Variant, required: false, "Used for shipping rates."),
-            Core(ImportColumns.BarCode, ImportColumnKind.Variant, required: false, "Optional.")
+            Core(ImportColumns.BarCode, ImportColumnKind.Variant, required: false, "Optional."),
+            Core(ImportColumns.ImageUrls, ImportColumnKind.Product, required: false,
+                "Optional. Direct https links to photos, separated by | . Leave blank and use your image library instead — it is faster and does not depend on the other site staying up.")
         };
 
         foreach (var attribute in attributes)

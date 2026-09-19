@@ -1,3 +1,5 @@
+using Lifestyle.SharedKernel.Results;
+
 namespace Lifestyle.Modules.Media.Contracts;
 
 /// <summary>
@@ -20,6 +22,16 @@ public interface IMediaModule
     /// an image already placed on one product should not be silently claimed by another.
     /// </param>
     Task<IReadOnlyList<MediaAsset>> ListForVendorAsync(Guid vendorId, bool unusedOnly, CancellationToken ct);
+
+    /// <summary>
+    /// Downloads an image the seller named by URL and files it in their library (docs/08 §7.2).
+    /// <para>
+    /// <b>Off unless <c>Media:RemoteImageImport:Enabled</c> is set</b>, and it returns a failure
+    /// saying so when it is not. Fetching a seller-chosen URL means letting them choose what this
+    /// server connects to, which is why the image library is the preferred path.
+    /// </para>
+    /// </summary>
+    Task<Result<MediaAsset>> ImportFromUrlAsync(string url, CancellationToken ct);
 
     /// <summary>
     /// Marks assets as belonging to something real. Uploads start orphaned and are swept after

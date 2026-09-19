@@ -23,6 +23,11 @@ public static class MediaModule
         services.AddScoped<IMediaModule, MediaFacade>();
         services.AddSingleton<IImageProcessor, ImageSharpProcessor>();
 
+        // Redirects are followed by hand so every hop is re-checked against the private-address
+        // rules — automatic redirects are the standard way an SSRF guard gets bypassed.
+        services.AddHttpClient<RemoteImageFetcher>()
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+
         services.AddValidatorsFromAssembly(typeof(MediaModule).Assembly, includeInternalTypes: true);
         services.AddHandlersFromAssembly(typeof(MediaModule).Assembly);
 
