@@ -263,6 +263,11 @@ export interface ImportImage {
   position: number;
   confidence: ImportMatchConfidence;
   matchedBy: string | null;
+  /**
+   * Groups unplaced photos taken in one burst, so the grid can offer a whole shoot to drag at
+   * once. Null once the image belongs to a product, or when the photo carries no capture time.
+   */
+  clusterKey: number | null;
 }
 
 export interface ImportRow {

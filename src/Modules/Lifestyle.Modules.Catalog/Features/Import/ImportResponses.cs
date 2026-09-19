@@ -51,7 +51,12 @@ public sealed record ImportImageResponse(
     string? ProductCode,
     int Position,
     string Confidence,
-    string? MatchedBy);
+    string? MatchedBy,
+    /// <summary>
+    /// Groups unplaced photos taken in one burst so the grid can offer a whole shoot at once.
+    /// Null once the image belongs to a product, or when the photo carries no capture time.
+    /// </summary>
+    int? ClusterKey);
 
 internal static class ImportMapping
 {
@@ -128,5 +133,6 @@ internal static class ImportMapping
         image.ProductCode,
         image.Position,
         image.Confidence.ToString(),
-        image.MatchedBy);
+        image.MatchedBy,
+        image.ClusterKey);
 }

@@ -194,12 +194,13 @@ internal static class StartImport
                 skuToCode.TryAdd(row.Sku!, row.ProductCode!);
 
             var matches = ImageMatcher.Match(
-                [.. library.Select(a => new MatchCandidate(a.Id, a.FileName))], codes, skuToCode);
+                [.. library.Select(a => new MatchCandidate(a.Id, a.FileName, a.CapturedAt))],
+                codes, skuToCode);
 
             foreach (var match in matches)
                 job.AddImage(ImportJobImage.Create(
                     job.Id, match.MediaId, match.FileName, match.ProductCode,
-                    match.Position, match.Confidence, match.MatchedBy));
+                    match.Position, match.Confidence, match.MatchedBy, match.ClusterKey));
         }
 
         internal static async Task<IReadOnlyDictionary<string, string>> ImageUrlsAsync(

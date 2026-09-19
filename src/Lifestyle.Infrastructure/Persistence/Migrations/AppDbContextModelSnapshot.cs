@@ -305,6 +305,10 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int?>("ClusterKey")
+                        .HasColumnType("integer")
+                        .HasColumnName("cluster_key");
+
                     b.Property<int>("Confidence")
                         .HasColumnType("integer")
                         .HasColumnName("confidence");
@@ -1119,6 +1123,10 @@ namespace Lifestyle.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("AttachedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("attached_at");
+
+                    b.Property<DateTimeOffset?>("CapturedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("captured_at");
 
                     b.Property<string>("ContentType")
                         .IsRequired()

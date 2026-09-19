@@ -294,3 +294,34 @@
     width: 100%;
   }
 }
+
+/* ── Capture-time shoots in the unplaced tray ── */
+
+.shoot {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.shoot__handle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  cursor: grab;
+}
+
+.shoot__handle:active {
+  cursor: grabbing;
+}
+
+/* Photos with no EXIF are not a shoot, so the handle must not look draggable. */
+.shoot__handle--plain {
+  background: var(--border);
+  cursor: default;
+}

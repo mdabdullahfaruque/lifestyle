@@ -117,3 +117,76 @@ public sealed class ImageMatcherTests
         matches.Single(m => m.ProductCode == "LS-1002").Position.ShouldBe(0);
     }
 }
+
+/// <summary>
+/// Capture-time clustering (docs/08 §4.3) is what makes "just drop the whole folder in" usable
+/// instead of a wall of four hundred identically-named tiles.
+/// </summary>
+public sealed class ImageMatcherClusteringTests
+{
+    private static readonly DateTimeOffset Shoot = new(2026, 6, 12, 14, 0, 0, TimeSpan.Zero);
+
+    private static IReadOnlyList<ImageMatch> Match(params (string Name, DateTimeOffset? Taken)[] files) =>
+        ImageMatcher.Match(
+            [.. files.Select((f, i) => new MatchCandidate($"media{i}", f.Name, f.Taken))],
+            ["LS-1001"],
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+
+    [Fact]
+    public void Photos_taken_seconds_apart_are_one_group()
+    {
+        var matches = Match(
+            ("IMG_001.jpg", Shoot),
+            ("IMG_002.jpg", Shoot.AddSeconds(4)),
+            ("IMG_003.jpg", Shoot.AddSeconds(9)));
+
+        matches.Select(m => m.ClusterKey).Distinct().Count().ShouldBe(1);
+        matches.ShouldAllBe(m => m.ClusterKey == 0);
+    }
+
+    [Fact]
+    public void A_long_gap_starts_the_next_product()
+    {
+        var matches = Match(
+            ("IMG_001.jpg", Shoot),
+            ("IMG_002.jpg", Shoot.AddSeconds(5)),
+            // Long enough to be the seller fetching the next item off the shelf.
+            ("IMG_003.jpg", Shoot.AddMinutes(4)),
+            ("IMG_004.jpg", Shoot.AddMinutes(4).AddSeconds(6)));
+
+        var keys = matches.OrderBy(m => m.FileName, StringComparer.Ordinal).Select(m => m.ClusterKey).ToList();
+
+        keys.ShouldBe([0, 0, 1, 1]);
+    }
+
+    /// <summary>
+    /// Clustering only groups; it never invents a product. Nothing here may arrive assigned.
+    /// </summary>
+    [Fact]
+    public void Clustering_never_assigns_a_product()
+    {
+        var matches = Match(("IMG_001.jpg", Shoot), ("IMG_002.jpg", Shoot.AddSeconds(3)));
+
+        matches.ShouldAllBe(m => m.ProductCode == null);
+        matches.ShouldAllBe(m => m.Confidence == ImportMatchConfidence.Unmatched);
+    }
+
+    [Fact]
+    public void An_image_the_matcher_placed_is_not_clustered()
+    {
+        var matches = Match(("LS-1001_main.jpg", Shoot), ("IMG_002.jpg", Shoot.AddSeconds(3)));
+
+        matches.Single(m => m.ProductCode == "LS-1001").ClusterKey.ShouldBeNull();
+        matches.Single(m => m.ProductCode is null).ClusterKey.ShouldNotBeNull();
+    }
+
+    /// <summary>A screenshot or a photo through a social app has no EXIF; it must still be listed.</summary>
+    [Fact]
+    public void A_photo_with_no_capture_time_is_left_ungrouped_not_dropped()
+    {
+        var matches = Match(("IMG_001.jpg", Shoot), ("screenshot.png", null));
+
+        matches.Count.ShouldBe(2);
+        matches.Single(m => m.FileName == "screenshot.png").ClusterKey.ShouldBeNull();
+    }
+}

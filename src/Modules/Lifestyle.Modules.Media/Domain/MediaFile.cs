@@ -32,6 +32,17 @@ internal sealed class MediaFile : AggregateRoot
     public int? Width { get; private set; }
     public int? Height { get; private set; }
 
+    /// <summary>
+    /// When the camera says the photo was taken (EXIF <c>DateTimeOriginal</c>), or null when the
+    /// file carries no such tag — a screenshot, or an image already through a social app.
+    /// <para>
+    /// Captured at upload rather than read back later, because the tag lives only on the stored
+    /// original and derivatives are written with their metadata stripped. Bulk import groups a
+    /// dump of unnamed phone photos by the gaps between these times (docs/08 §4.3).
+    /// </para>
+    /// </summary>
+    public DateTimeOffset? CapturedAt { get; private set; }
+
     /// <summary>Who uploaded it — used for quota, abuse tracing and vendor scoping.</summary>
     public Guid UploadedByUserId { get; private set; }
     public Guid? VendorId { get; private set; }
@@ -50,7 +61,8 @@ internal sealed class MediaFile : AggregateRoot
 
     public static MediaFile Record(
         string publicId, string fileName, string contentType, long sizeBytes, string storageKey,
-        int? width, int? height, Guid uploadedBy, Guid? vendorId, bool isPrivate, DateTimeOffset now) => new()
+        int? width, int? height, Guid uploadedBy, Guid? vendorId, bool isPrivate, DateTimeOffset now,
+        DateTimeOffset? capturedAt = null) => new()
         {
             PublicId = publicId,
             IsPrivate = isPrivate,
@@ -60,6 +72,7 @@ internal sealed class MediaFile : AggregateRoot
             StorageKey = storageKey,
             Width = width,
             Height = height,
+            CapturedAt = capturedAt,
             UploadedByUserId = uploadedBy,
             VendorId = vendorId,
             CreatedAt = now

@@ -59,6 +59,7 @@ internal static class UploadFile
             var originalKey = BuildKey(publicId, "original", extension, command.IsPrivate);
 
             int? width = null, height = null;
+            DateTimeOffset? capturedAt = null;
             var isImage = contentType.StartsWith("image/", StringComparison.Ordinal);
 
             await using (var stream = file.OpenReadStream())
@@ -77,11 +78,11 @@ internal static class UploadFile
 
                 if (isImage)
                 {
-                    var dimensions = await images.ReadDimensionsAsync(stream, ct);
-                    if (dimensions is null)
+                    var metadata = await images.ReadMetadataAsync(stream, ct);
+                    if (metadata is null)
                         return Error.Validation("media.not_an_image", "That file is not a readable image.");
 
-                    (width, height) = dimensions.Value;
+                    (width, height, capturedAt) = (metadata.Width, metadata.Height, metadata.CapturedAt);
                     stream.Position = 0;
                 }
 
@@ -90,7 +91,7 @@ internal static class UploadFile
 
             var media = MediaFile.Record(
                 publicId, SafeFileName(file.FileName), contentType, file.Length, originalKey,
-                width, height, userId, currentUser.VendorId, command.IsPrivate, clock.UtcNow);
+                width, height, userId, currentUser.VendorId, command.IsPrivate, clock.UtcNow, capturedAt);
 
             // Private files get no public derivatives: they are documents for a reviewer, not
             // storefront imagery, and every derivative would be another key to protect.
@@ -175,7 +176,8 @@ internal static class UploadFile
         media.IsPrivate ? $"/v1/media/private/{media.PublicId}" : storage.GetPublicUrl(media.StorageKey),
         media.IsPrivate
             ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : media.Derivatives.ToDictionary(d => d.Variant, d => storage.GetPublicUrl(d.StorageKey), StringComparer.Ordinal));
+            : media.Derivatives.ToDictionary(d => d.Variant, d => storage.GetPublicUrl(d.StorageKey), StringComparer.Ordinal),
+        media.CapturedAt);
 
     public static void Map(IEndpointRouteBuilder group) =>
         group.MapPost("/", async (IFormFile file, [Microsoft.AspNetCore.Mvc.FromForm(Name = "private")] bool? isPrivate, Handler handler, CancellationToken ct) =>

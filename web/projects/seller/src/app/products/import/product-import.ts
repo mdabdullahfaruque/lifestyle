@@ -44,11 +44,42 @@ export class ProductImport {
   protected readonly error = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
 
-  /** The image currently being dragged, so a drop target knows what it is receiving. */
-  protected readonly dragging = signal<ImportImage | null>(null);
+  /**
+   * What is currently being dragged. Always a list, because a whole burst can be dragged at once
+   * and a single tile is just a burst of one — the drop handler then needs no special case.
+   */
+  protected readonly dragging = signal<ImportImage[] | null>(null);
 
   protected readonly products = computed(() => this.job()?.products ?? []);
   protected readonly looseImages = computed(() => this.job()?.looseImages ?? []);
+
+  /**
+   * The unplaced tray, grouped into the bursts the server clustered by capture time. Photos with
+   * no EXIF fall into a final "ungrouped" bucket rather than being hidden.
+   */
+  protected readonly looseGroups = computed(() => {
+    const groups = new Map<number, ImportImage[]>();
+    const ungrouped: ImportImage[] = [];
+
+    for (const image of this.looseImages()) {
+      if (image.clusterKey === null) {
+        ungrouped.push(image);
+        continue;
+      }
+
+      const existing = groups.get(image.clusterKey);
+      if (existing) existing.push(image);
+      else groups.set(image.clusterKey, [image]);
+    }
+
+    const shoots = [...groups.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([key, images]) => ({ key, images, isShoot: true }));
+
+    return ungrouped.length > 0
+      ? [...shoots, { key: -1, images: ungrouped, isShoot: false }]
+      : shoots;
+  });
 
   protected readonly needsConfirmation = computed(() =>
     this.products().filter((p) => p.affectsLiveProduct && !p.liveUpdateConfirmed),
@@ -117,7 +148,12 @@ export class ProductImport {
   // ── Step 2: the review grid ──
 
   protected onDragStart(image: ImportImage): void {
-    this.dragging.set(image);
+    this.dragging.set([image]);
+  }
+
+  /** Drags a whole capture-time burst, which is the point of clustering them at all. */
+  protected onDragStartGroup(images: ImportImage[]): void {
+    this.dragging.set(images);
   }
 
   protected onDragEnd(): void {
@@ -132,29 +168,37 @@ export class ProductImport {
   protected async dropOnProduct(event: DragEvent, product: ImportProduct): Promise<void> {
     event.preventDefault();
 
-    const image = this.dragging();
+    const images = this.dragging();
     this.dragging.set(null);
 
-    if (!image || image.productCode === product.productCode) return;
+    const moving = (images ?? []).filter((i) => i.productCode !== product.productCode);
+    if (moving.length === 0) return;
 
-    await this.assign(image, product.productCode, product.images.length);
+    // Appended after what the product already has, keeping the burst's own order.
+    await this.assign(moving, product.productCode, product.images.length);
   }
 
-  /** Dropping on the unplaced tray detaches an image the matcher placed wrongly. */
+  /** Dropping on the unplaced tray detaches images the matcher placed wrongly. */
   protected async dropOnLoose(event: DragEvent): Promise<void> {
     event.preventDefault();
 
-    const image = this.dragging();
+    const images = this.dragging();
     this.dragging.set(null);
 
-    if (!image || image.productCode === null) return;
+    const moving = (images ?? []).filter((i) => i.productCode !== null);
+    if (moving.length === 0) return;
 
-    await this.assign(image, null, 0);
+    await this.assign(moving, null, 0);
   }
 
-  private async assign(image: ImportImage, productCode: string | null, position: number) {
-    const change: ImageAssignment = { imageId: image.id, productCode, position };
-    await this.revise({ images: [change] });
+  private async assign(images: ImportImage[], productCode: string | null, firstPosition: number) {
+    const changes: ImageAssignment[] = images.map((image, index) => ({
+      imageId: image.id,
+      productCode,
+      position: firstPosition + index,
+    }));
+
+    await this.revise({ images: changes });
   }
 
   protected async toggleRow(rowId: string, skip: boolean): Promise<void> {

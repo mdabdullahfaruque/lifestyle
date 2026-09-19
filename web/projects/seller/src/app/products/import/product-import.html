@@ -145,17 +145,49 @@
     @if (!looseImages().length) {
       <p class="muted small">Every image was matched to a product. Drag one here to detach it.</p>
     } @else {
-      <p class="muted small">Drag each one onto the product it belongs to.</p>
-      <ul class="thumbs">
-        @for (img of looseImages(); track img.id) {
-          <li class="thumb" draggable="true" (dragstart)="onDragStart(img)" (dragend)="onDragEnd()">
-            @if (img.url) {
-              <img [src]="img.url" [alt]="img.fileName" />
+      <p class="muted small">
+        Drag a photo — or a whole shoot by its handle — onto the product it belongs to.
+      </p>
+
+      @for (group of looseGroups(); track group.key) {
+        <div class="shoot">
+          <div
+            class="shoot__handle"
+            [class.shoot__handle--plain]="!group.isShoot"
+            [draggable]="group.isShoot"
+            (dragstart)="onDragStartGroup(group.images)"
+            (dragend)="onDragEnd()"
+          >
+            @if (group.isShoot) {
+              <strong>Shoot {{ group.key + 1 }}</strong>
+              <span class="muted small">
+                {{ group.images.length }} photo(s) taken together — drag to place them all
+              </span>
+            } @else {
+              <strong>No capture time</strong>
+              <span class="muted small">
+                {{ group.images.length }} photo(s) we could not group — place these individually
+              </span>
             }
-            <span class="thumb__name" [title]="img.fileName">{{ img.fileName }}</span>
-          </li>
-        }
-      </ul>
+          </div>
+
+          <ul class="thumbs">
+            @for (img of group.images; track img.id) {
+              <li
+                class="thumb"
+                draggable="true"
+                (dragstart)="onDragStart(img)"
+                (dragend)="onDragEnd()"
+              >
+                @if (img.url) {
+                  <img [src]="img.url" [alt]="img.fileName" />
+                }
+                <span class="thumb__name" [title]="img.fileName">{{ img.fileName }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
     }
   </section>
 

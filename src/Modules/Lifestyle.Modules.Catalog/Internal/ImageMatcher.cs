@@ -3,8 +3,11 @@ using Lifestyle.Modules.Catalog.Domain;
 
 namespace Lifestyle.Modules.Catalog.Internal;
 
-/// <summary>An image offered to the matcher: its library id and the name the seller gave it.</summary>
-internal sealed record MatchCandidate(string MediaId, string FileName);
+/// <summary>
+/// An image offered to the matcher: its library id, the name the seller gave it, and when the
+/// camera says it was taken.
+/// </summary>
+internal sealed record MatchCandidate(string MediaId, string FileName, DateTimeOffset? CapturedAt = null);
 
 /// <summary>What the matcher decided about one image.</summary>
 internal sealed record ImageMatch(
@@ -13,7 +16,12 @@ internal sealed record ImageMatch(
     string? ProductCode,
     int Position,
     ImportMatchConfidence Confidence,
-    string? MatchedBy);
+    string? MatchedBy,
+    /// <summary>
+    /// Groups unmatched photos that were taken in one burst, so the seller drags a shoot rather
+    /// than eight files. Null for anything the matcher placed, and for photos with no capture time.
+    /// </summary>
+    int? ClusterKey = null);
 
 /// <summary>
 /// Assigns images to products by what the seller already called their files (docs/08 §4).
@@ -110,7 +118,52 @@ internal static class ImageMatcher
                     0, ImportMatchConfidence.Unmatched, null));
         }
 
-        return Reindex(results);
+        return Cluster(Reindex(results), candidates);
+    }
+
+    /// <summary>
+    /// How long a gap starts a new product. Photographs of one item are taken seconds apart;
+    /// picking the next item off the shelf and arranging it takes longer.
+    /// </summary>
+    private static readonly TimeSpan ClusterGap = TimeSpan.FromSeconds(90);
+
+    /// <summary>
+    /// Groups the images nothing matched into bursts by capture time (docs/08 §4.3).
+    /// <para>
+    /// This is what makes "just dump the folder in" usable rather than a wall of four hundred
+    /// identical-looking tiles. It never assigns a product — the sheet decides what products exist
+    /// and no clock can guess a product code — it only says "these eight were one shoot", so the
+    /// seller drags a group instead of eight files.
+    /// </para>
+    /// </summary>
+    private static List<ImageMatch> Cluster(List<ImageMatch> matches, IReadOnlyList<MatchCandidate> candidates)
+    {
+        var capturedAt = candidates.ToDictionary(c => c.MediaId, c => c.CapturedAt, StringComparer.Ordinal);
+
+        var loose = matches
+            .Where(m => m.ProductCode is null
+                        && capturedAt.TryGetValue(m.MediaId, out var taken) && taken is not null)
+            .OrderBy(m => capturedAt[m.MediaId]!.Value)
+            .ToList();
+
+        if (loose.Count == 0) return matches;
+
+        var clusterOf = new Dictionary<string, int>(StringComparer.Ordinal);
+        var cluster = 0;
+        DateTimeOffset? previous = null;
+
+        foreach (var match in loose)
+        {
+            var taken = capturedAt[match.MediaId]!.Value;
+
+            if (previous is { } last && taken - last > ClusterGap) cluster++;
+
+            clusterOf[match.MediaId] = cluster;
+            previous = taken;
+        }
+
+        return [.. matches.Select(m =>
+            clusterOf.TryGetValue(m.MediaId, out var key) ? m with { ClusterKey = key } : m)];
     }
 
     /// <summary>

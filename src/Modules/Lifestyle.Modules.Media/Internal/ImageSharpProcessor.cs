@@ -1,5 +1,7 @@
+using System.Globalization;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
 
 namespace Lifestyle.Modules.Media.Internal;
@@ -15,18 +17,44 @@ namespace Lifestyle.Modules.Media.Internal;
 /// </summary>
 internal sealed class ImageSharpProcessor : IImageProcessor
 {
-    public async Task<(int Width, int Height)?> ReadDimensionsAsync(Stream image, CancellationToken ct)
+    public async Task<ImageMetadata?> ReadMetadataAsync(Stream image, CancellationToken ct)
     {
         try
         {
             // Reads the header only — does not decode pixels, so a huge file costs nothing here.
             var info = await Image.IdentifyAsync(image, ct);
-            return (info.Width, info.Height);
+            return new ImageMetadata(info.Width, info.Height, CaptureTimeOf(info.Metadata.ExifProfile));
         }
         catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException)
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// EXIF <c>DateTimeOriginal</c>, which cameras write as "yyyy:MM:dd HH:mm:ss" with no zone.
+    /// <para>
+    /// Treated as UTC rather than local: the value is only ever compared with other photos from the
+    /// same shoot to find the gaps between them (docs/08 §4.3), so a consistent offset is all that
+    /// matters and guessing the server's zone would be worse than not guessing.
+    /// </para>
+    /// </summary>
+    private static DateTimeOffset? CaptureTimeOf(ExifProfile? exif)
+    {
+        if (exif is null) return null;
+
+        if (!exif.TryGetValue(ExifTag.DateTimeOriginal, out var tag)
+            && !exif.TryGetValue(ExifTag.DateTimeDigitized, out tag))
+            return null;
+
+        var text = tag?.Value;
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        return DateTime.TryParseExact(
+            text, "yyyy:MM:dd HH:mm:ss",
+            CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
+            ? new DateTimeOffset(parsed, TimeSpan.Zero)
+            : null;
     }
 
     public async Task<ProcessedImage?> ResizeAsync(Stream source, int maxEdge, CancellationToken ct)

@@ -37,7 +37,12 @@ public sealed record MediaAsset(
     int? Width,
     int? Height,
     string Url,
-    IReadOnlyDictionary<string, string> Derivatives);
+    IReadOnlyDictionary<string, string> Derivatives,
+    /// <summary>
+    /// EXIF capture time, or null when the file carries none. Bulk import groups a dump of
+    /// unnamed phone photos by the gaps between these (docs/08 §4.3).
+    /// </summary>
+    DateTimeOffset? CapturedAt = null);
 
 /// <summary>
 /// What a stored file belongs to. A file with no owner is an orphan and the sweeper deletes it

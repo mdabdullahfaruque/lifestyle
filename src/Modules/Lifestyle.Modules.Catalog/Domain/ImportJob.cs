@@ -252,9 +252,15 @@ internal sealed class ImportJobImage : Entity
     /// <summary>Which matcher rule claimed it, for the "why is this here" tooltip in the grid.</summary>
     public string? MatchedBy { get; private set; }
 
+    /// <summary>
+    /// Groups unplaced photos taken in one burst, so the grid can offer a whole shoot to drag
+    /// rather than eight separate tiles. Null once the image belongs to a product.
+    /// </summary>
+    public int? ClusterKey { get; private set; }
+
     public static ImportJobImage Create(
         Guid jobId, string mediaId, string fileName, string? productCode,
-        int position, ImportMatchConfidence confidence, string? matchedBy) => new()
+        int position, ImportMatchConfidence confidence, string? matchedBy, int? clusterKey) => new()
         {
             ImportJobId = jobId,
             MediaId = mediaId,
@@ -262,7 +268,8 @@ internal sealed class ImportJobImage : Entity
             ProductCode = productCode,
             Position = position,
             Confidence = confidence,
-            MatchedBy = matchedBy
+            MatchedBy = matchedBy,
+            ClusterKey = clusterKey
         };
 
     /// <summary>A seller's drag in the grid. Their choice is always certain, by definition.</summary>
@@ -272,6 +279,10 @@ internal sealed class ImportJobImage : Entity
         Position = position;
         Confidence = ProductCode is null ? ImportMatchConfidence.Unmatched : ImportMatchConfidence.Matched;
         MatchedBy = "seller";
+
+        // Once it has a home the burst it came from is no longer interesting; keeping the key would
+        // leave it grouped with photos it is no longer beside.
+        if (ProductCode is not null) ClusterKey = null;
     }
 }
 
