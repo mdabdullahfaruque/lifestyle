@@ -117,6 +117,10 @@ internal static class SetProductImages
             var desired = command.Request.Images;
             var desiredIds = desired.Select(i => i.MediaId).ToList();
 
+            // Captured before the replace so the images being dropped can be handed back to the
+            // vendor's library below.
+            var previousIds = product.Images.Select(i => i.MediaId).ToList();
+
             // Replace the set in one go rather than removing then adding. Doing it piecemeal passes
             // through a moment with zero images, which would trip the "a live product needs an
             // image" rule on a perfectly good swap of one photo for another. The request order is
@@ -129,7 +133,16 @@ internal static class SetProductImages
             await db.SaveChangesAsync(ct);
 
             if (desiredIds.Count > 0)
-                await media.AttachAsync(desiredIds, "product", product.Id, ct);
+                await media.AttachAsync(desiredIds, MediaOwnerTypes.Product, product.Id, ct);
+
+            // An image taken off a product goes back to the vendor's library rather than staying
+            // marked as "on a product". Without this it would be undeletable forever — the library
+            // refuses to delete anything still owned by a product — and it would not show as spare
+            // stock the seller can reuse.
+            var removedIds = previousIds.Except(desiredIds, StringComparer.Ordinal).ToList();
+
+            if (removedIds.Count > 0)
+                await media.AttachAsync(removedIds, MediaOwnerTypes.VendorLibrary, product.VendorId, ct);
 
             return product.ToResponse();
         }

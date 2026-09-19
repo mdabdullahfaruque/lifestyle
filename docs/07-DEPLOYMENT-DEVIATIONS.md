@@ -366,6 +366,7 @@ hand-off at all.
 | **G5** | **Three PropertyMart certificates use `authenticator = standalone`**, which needs port 80 free — nginx holds it. Not Lifestyle's, but on the same box. | Those renewals will likely fail. Convert them to `--webroot`. |
 | **G6** | **The server login password was briefly written into two nginx files** by a `sudo -S` stdin mistake, then overwritten. It is also in this session's shell history. | Rotate the `deploy` password. |
 | **G7** | **No vendor shop subdomain resolves — see §10.** DNS wildcard, wildcard TLS cert and the nginx site are all missing; the code side is done. | Onboarding promises `{slug}.mylifestylemart.com` and cannot deliver it. **Blocks the "must" of a new shop having its own URL** — needs a Cloudflare API token before it can be closed. |
+| **G8** | **KYC documents, shop logos and banners uploaded before 2026-09-19 were deleted 24 hours after upload.** `MediaOrphanSweeper` deletes any media with no `OwnerType`, and Vendors never claimed its uploads — it had no reference to Media and could not. Fixed on 2026-09-19 (Vendors now calls `AttachAsync` with `vendor_document` / `vendor_branding`), but **the fix is forward-only**. | Any vendor document or logo older than 24 hours at the time of the fix is gone from storage, with a `VendorDocument` row still pointing at it — and per G1 there is no off-host backup to restore from. **Owed:** a one-off backfill that attaches any still-present media referenced by `VendorDocument.MediaId`, `LogoMediaId` or `BannerMediaId` (it rescues anything uploaded within the last 24 hours), then a check of which live applications now have dangling ids so those vendors can be asked to re-upload. |
 
 ---
 
@@ -386,6 +387,13 @@ feature, not a UI one, and is not built.
 **The seller and admin consoles are English-only.** The i18n mechanism is shared and ready, so
 translating them is mechanical, but their strings are not in a catalogue yet. That is a real gap
 for Bangladeshi sellers and should not be left indefinitely.
+
+The bulk import and image library screens added on 2026-09-19 follow the same rule and so add to
+this debt — deliberately, to match the consoles around them rather than leave one screen half
+translated. It is now the largest English-only surface a seller has to work through, and it is the
+screen where a misunderstanding costs the most: a seller who misreads "this will take your product
+off the storefront" confirms something they did not mean. **Translate the consoles starting with
+`products/import`.**
 
 ## Storefront coverage — what the marketplace does and does not do
 

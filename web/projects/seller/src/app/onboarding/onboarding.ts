@@ -2,14 +2,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProblemDetails, VendorService } from 'data-access';
-import { describeSlugProblem, looksLikeEmail, slugify } from 'util';
+import { describeSlugProblem, downscaleImage, looksLikeEmail, slugify } from 'util';
 import { firstValueFrom } from 'rxjs';
 
 import { ShopStore } from '../shop.store';
 
 /** The two documents the API requires before an application can be submitted. */
 const REQUIRED_DOCS = [
-  { kind: 'BusinessRegistration', label: 'Business registration', hint: 'Trade licence or incorporation certificate.' },
+  {
+    kind: 'BusinessRegistration',
+    label: 'Business registration',
+    hint: 'Trade licence or incorporation certificate.',
+  },
   { kind: 'OwnerIdentity', label: 'Owner identity', hint: 'NID or passport of the shop owner.' },
 ] as const;
 
@@ -46,7 +50,9 @@ export class Onboarding {
   protected readonly error = signal<string | null>(null);
   protected readonly notice = signal<string | null>(null);
 
-  protected readonly editable = computed(() => ['none', 'draft', 'rejected'].includes(this.shop.stage()));
+  protected readonly editable = computed(() =>
+    ['none', 'draft', 'rejected'].includes(this.shop.stage()),
+  );
 
   protected readonly attached = computed(() => {
     const docs = this.shop.vendor()?.documents ?? [];
@@ -159,10 +165,12 @@ export class Onboarding {
     this.error.set(null);
 
     try {
-      const media = await firstValueFrom(this.vendors.upload(file, true));
+      const media = await firstValueFrom(this.vendors.upload(await downscaleImage(file), true));
       const vendor = await firstValueFrom(this.vendors.attachDocument(kind, media.id, file.name));
       this.shop.set(vendor);
-      this.notice.set(`${kind === 'OwnerIdentity' ? 'Identity document' : 'Business registration'} uploaded.`);
+      this.notice.set(
+        `${kind === 'OwnerIdentity' ? 'Identity document' : 'Business registration'} uploaded.`,
+      );
     } catch (err) {
       this.error.set(this.describe(err));
     } finally {
@@ -193,23 +201,31 @@ export class Onboarding {
     const f = this.form;
 
     if (!f.legalName.trim()) errors['legalName'] = 'Enter the name on your trade licence.';
-    else if (f.legalName.trim().length > 300) errors['legalName'] = 'That is too long (300 characters).';
+    else if (f.legalName.trim().length > 300)
+      errors['legalName'] = 'That is too long (300 characters).';
 
-    if (!f.displayName.trim()) errors['displayName'] = 'Give your shop a name — buyers see this one.';
-    else if (f.displayName.trim().length > 200) errors['displayName'] = 'That is too long (200 characters).';
+    if (!f.displayName.trim())
+      errors['displayName'] = 'Give your shop a name — buyers see this one.';
+    else if (f.displayName.trim().length > 200)
+      errors['displayName'] = 'That is too long (200 characters).';
 
     if (f.desiredSlug.trim()) {
       const problem = describeSlugProblem(f.desiredSlug);
       if (problem) errors['desiredSlug'] = problem;
     }
 
-    if (!f.contactEmail.trim()) errors['contactEmail'] = 'An email is required — this is how we reach you about the shop.';
-    else if (!looksLikeEmail(f.contactEmail)) errors['contactEmail'] = 'That does not look like an email address.';
+    if (!f.contactEmail.trim())
+      errors['contactEmail'] = 'An email is required — this is how we reach you about the shop.';
+    else if (!looksLikeEmail(f.contactEmail))
+      errors['contactEmail'] = 'That does not look like an email address.';
 
-    if (!f.contactPhone.trim()) errors['contactPhone'] = 'A phone number is required — buyers order over WhatsApp.';
-    else if (f.contactPhone.trim().length > 32) errors['contactPhone'] = 'That is too long (32 characters).';
+    if (!f.contactPhone.trim())
+      errors['contactPhone'] = 'A phone number is required — buyers order over WhatsApp.';
+    else if (f.contactPhone.trim().length > 32)
+      errors['contactPhone'] = 'That is too long (32 characters).';
 
-    if (f.registrationNumber.trim().length > 60) errors['registrationNumber'] = 'That is too long (60 characters).';
+    if (f.registrationNumber.trim().length > 60)
+      errors['registrationNumber'] = 'That is too long (60 characters).';
 
     return errors;
   }
@@ -234,7 +250,9 @@ export class Onboarding {
       case 'vendors.slug_reserved':
       case 'vendors.slug_unavailable':
       case 'vendors.slug_invalid':
-        this.fieldErrors.set({ desiredSlug: problem.detail ?? 'That web address is taken. Try another.' });
+        this.fieldErrors.set({
+          desiredSlug: problem.detail ?? 'That web address is taken. Try another.',
+        });
         return 'That web address cannot be used — see below.';
       case 'media.content_type_not_allowed':
         return 'That file type is not accepted. Use a JPG, PNG, WebP or PDF.';

@@ -12,6 +12,7 @@ import {
   VendorService,
 } from 'data-access';
 import { firstValueFrom } from 'rxjs';
+import { downscaleImage } from 'util';
 
 /**
  * Editing an existing product.
@@ -116,7 +117,12 @@ export class ProductEdit implements OnInit {
     }
   }
 
-  protected async savePrice(variantId: string, price: number | null, compareAt: number | null, isActive: boolean): Promise<void> {
+  protected async savePrice(
+    variantId: string,
+    price: number | null,
+    compareAt: number | null,
+    isActive: boolean,
+  ): Promise<void> {
     const p = this.product();
     if (!p || price === null || this.busy()) return;
 
@@ -201,8 +207,13 @@ export class ProductEdit implements OnInit {
     this.error.set(null);
 
     try {
-      const media = await firstValueFrom(this.vendors.upload(file, false));
-      const images = [...p.images.map((i) => ({ mediaId: i.mediaId, altText: i.altText })), { mediaId: media.id, altText: null }];
+      const media = await firstValueFrom(
+        this.vendors.upload(await downscaleImage(file), false, true),
+      );
+      const images = [
+        ...p.images.map((i) => ({ mediaId: i.mediaId, altText: i.altText })),
+        { mediaId: media.id, altText: null },
+      ];
       this.product.set(await firstValueFrom(this.vendors.setProductImages(p.id, images)));
       this.notice.set('Image added.');
     } catch (err) {
@@ -219,7 +230,9 @@ export class ProductEdit implements OnInit {
 
     this.busy.set('image');
     try {
-      const images = p.images.filter((i) => i.mediaId !== mediaId).map((i) => ({ mediaId: i.mediaId, altText: i.altText }));
+      const images = p.images
+        .filter((i) => i.mediaId !== mediaId)
+        .map((i) => ({ mediaId: i.mediaId, altText: i.altText }));
       this.product.set(await firstValueFrom(this.vendors.setProductImages(p.id, images)));
     } catch (err) {
       this.error.set(this.describe(err));

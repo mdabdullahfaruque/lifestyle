@@ -7,6 +7,7 @@
     <ProjectReference Include="..\Lifestyle.Modules.Platform\Lifestyle.Modules.Platform.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="ClosedXML" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />

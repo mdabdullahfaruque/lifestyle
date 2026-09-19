@@ -73,6 +73,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     internal DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     internal DbSet<ProductImage> ProductImages => Set<ProductImage>();
     internal DbSet<ProductAttributeValue> ProductAttributeValues => Set<ProductAttributeValue>();
+    internal DbSet<ImportJob> ImportJobs => Set<ImportJob>();
+    internal DbSet<ImportJobRow> ImportJobRows => Set<ImportJobRow>();
+    internal DbSet<ImportJobImage> ImportJobImages => Set<ImportJobImage>();
 
     DbSet<Category> ICatalogDbContext.Categories => Categories;
     DbSet<AttributeSet> ICatalogDbContext.AttributeSets => AttributeSets;
@@ -81,6 +84,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     DbSet<ProductVariant> ICatalogDbContext.ProductVariants => ProductVariants;
     DbSet<ProductImage> ICatalogDbContext.ProductImages => ProductImages;
     DbSet<ProductAttributeValue> ICatalogDbContext.ProductAttributeValues => ProductAttributeValues;
+    DbSet<ImportJob> ICatalogDbContext.ImportJobs => ImportJobs;
+    DbSet<ImportJobRow> ICatalogDbContext.ImportJobRows => ImportJobRows;
+    DbSet<ImportJobImage> ICatalogDbContext.ImportJobImages => ImportJobImages;
 
     // ── media ──
     internal DbSet<MediaFile> MediaFiles => Set<MediaFile>();

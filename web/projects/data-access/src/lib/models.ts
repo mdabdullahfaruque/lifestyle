@@ -215,3 +215,99 @@ export interface AuditEntry {
   correlationId: string | null;
   data: string | null;
 }
+
+// ── Bulk import (docs/08) ──
+
+/** One image in the vendor's library. `isUsed` distinguishes spare stock from images on a product. */
+export interface LibraryItem {
+  mediaId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
+  url: string;
+  derivatives: Record<string, string>;
+  isUsed: boolean;
+  uploadedAt: string;
+}
+
+export interface BulkUploadItem {
+  fileName: string;
+  succeeded: boolean;
+  mediaId: string | null;
+  url: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+}
+
+export interface BulkUploadResult {
+  succeeded: number;
+  failed: number;
+  items: BulkUploadItem[];
+}
+
+export type ImportJobStatus =
+  'Analysing' | 'NeedsReview' | 'Committing' | 'Completed' | 'Failed' | 'Cancelled';
+
+/** How sure the matcher was. `Guessed` is pre-filled but shown as a guess in the grid. */
+export type ImportMatchConfidence = 'Matched' | 'Guessed' | 'Unmatched';
+
+export interface ImportImage {
+  id: string;
+  mediaId: string;
+  fileName: string;
+  url: string | null;
+  /** Which product it is currently assigned to; null while it is unplaced. */
+  productCode: string | null;
+  position: number;
+  confidence: ImportMatchConfidence;
+  matchedBy: string | null;
+  /**
+   * Groups unplaced photos taken in one burst, so the grid can offer a whole shoot to drag at
+   * once. Null once the image belongs to a product, or when the photo carries no capture time.
+   */
+  clusterKey: number | null;
+}
+
+export interface ImportRow {
+  id: string;
+  rowNumber: number;
+  sku: string | null;
+  outcome: 'Ok' | 'Error';
+  errorCode: string | null;
+  errorMessage: string | null;
+  isSkipped: boolean;
+  isImportable: boolean;
+}
+
+export interface ImportProduct {
+  productCode: string;
+  name: string | null;
+  isNew: boolean;
+  existingProductId: string | null;
+  /** True when committing would pull a live product off the storefront for re-moderation. */
+  affectsLiveProduct: boolean;
+  liveUpdateConfirmed: boolean;
+  rows: ImportRow[];
+  images: ImportImage[];
+}
+
+export interface ImportJob {
+  id: string;
+  status: ImportJobStatus;
+  sourceFileName: string;
+  categoryId: string;
+  expiresAt: string;
+  createdAt: string;
+  failureReason: string | null;
+  totalRows: number;
+  importableRows: number;
+  errorRows: number;
+  rowsNeedingConfirmation: number;
+  createdCount: number;
+  updatedCount: number;
+  products: ImportProduct[];
+  /** Images the matcher could not place. The seller drags these onto a product. */
+  looseImages: ImportImage[];
+}

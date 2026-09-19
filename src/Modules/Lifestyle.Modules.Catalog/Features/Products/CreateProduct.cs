@@ -125,7 +125,7 @@ internal static class CreateProduct
 
             // Claim the uploads so the orphan sweeper leaves them alone.
             if (request.ImageMediaIds is { Count: > 0 })
-                await media.AttachAsync(request.ImageMediaIds, "product", product.Id, ct);
+                await media.AttachAsync(request.ImageMediaIds, MediaOwnerTypes.Product, product.Id, ct);
 
             return product.ToResponse();
         }

@@ -16,6 +16,7 @@
            offered. -->
       @if (shop.canSell() && !auth.isProvisional()) {
         <a routerLink="/products" routerLinkActive="is-active" (click)="menuOpen.set(false)">Products</a>
+        <a routerLink="/media" routerLinkActive="is-active" (click)="menuOpen.set(false)">Images</a>
         <a routerLink="/settings" routerLinkActive="is-active" (click)="menuOpen.set(false)">Shop settings</a>
       } @else {
         <a routerLink="/apply" routerLinkActive="is-active" (click)="menuOpen.set(false)">Apply for a shop</a>

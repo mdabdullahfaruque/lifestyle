@@ -24,6 +24,18 @@ internal sealed class Product : AggregateRoot, ISoftDeletable
     /// <summary>Unique per vendor, not globally — two shops may both sell a "Red Silk Scarf".</summary>
     public string Slug { get; private set; } = null!;
 
+    /// <summary>
+    /// The vendor's own code for this product — their SKU prefix, supplier reference, whatever they
+    /// already write on the box. Optional, and unique per vendor when set.
+    /// <para>
+    /// Deliberately not the <see cref="Slug"/>: the slug is public and carries the product name for
+    /// search, while this is internal to the shop. Bulk import uses it as the idempotency key, so a
+    /// corrected sheet re-uploaded updates the same products instead of duplicating them
+    /// (docs/08 §9 D1).
+    /// </para>
+    /// </summary>
+    public string? VendorProductCode { get; private set; }
+
     public string? Description { get; private set; }
     public string? ShortDescription { get; private set; }
     public string? Brand { get; private set; }
@@ -64,6 +76,19 @@ internal sealed class Product : AggregateRoot, ISoftDeletable
             Status = ProductStatus.Draft,
             CreatedAt = now
         };
+
+    /// <summary>
+    /// Sets the vendor's own product code. Blank clears it.
+    /// <para>
+    /// Uniqueness is a vendor-wide question, which an aggregate cannot see — the handler checks it
+    /// and the database enforces it with a filtered unique index. This method only normalises.
+    /// </para>
+    /// </summary>
+    public void SetVendorProductCode(string? code, DateTimeOffset now)
+    {
+        VendorProductCode = string.IsNullOrWhiteSpace(code) ? null : code.Trim();
+        UpdatedAt = now;
+    }
 
     public void UpdateDetails(
         Guid categoryId, string name, string? description, string? shortDescription,

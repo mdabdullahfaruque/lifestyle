@@ -19,6 +19,26 @@ internal sealed class VendorScope(ICatalogDbContext db, ICurrentUser currentUser
             ? vendorId
             : Error.Forbidden("catalog.no_vendor_context", "This token is not scoped to a vendor.");
 
+    /// <summary>
+    /// Loads a staged import with its rows and images, and proves the caller's vendor owns it.
+    /// Same 404-not-403 reasoning as <see cref="LoadOwnedProductAsync"/>.
+    /// </summary>
+    public async Task<Result<ImportJob>> LoadOwnedImportJobAsync(Guid jobId, CancellationToken ct)
+    {
+        var vendorId = RequireVendorId();
+        if (vendorId.IsFailure) return vendorId.Error;
+
+        var job = await db.ImportJobs
+            .Include(j => j.Rows)
+            .Include(j => j.Images)
+            .FirstOrDefaultAsync(j => j.Id == jobId, ct);
+
+        if (job is null || job.VendorId != vendorId.Value)
+            return Error.NotFound("catalog.import_not_found");
+
+        return job;
+    }
+
     public async Task<Result<Product>> LoadOwnedProductAsync(Guid productId, CancellationToken ct)
     {
         var vendorId = RequireVendorId();

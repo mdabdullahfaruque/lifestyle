@@ -1,0 +1,331 @@
+<header class="head">
+  <div>
+    <h1>Bulk import</h1>
+    <p class="muted sub">
+      Add many products at once from a spreadsheet. Everything arrives as a draft — nothing goes on
+      the storefront until you submit it and it is approved.
+    </p>
+  </div>
+</header>
+
+@if (error(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="alert alert--ok" role="status">{{ message }}</p>
+}
+
+<!-- ── Step 1 ── -->
+@if (step() === 'choose') {
+  @if (loading()) {
+    <div class="skeleton block"></div>
+  } @else {
+    <section class="card step">
+      <h2><span class="num">1</span> Choose a category</h2>
+      <p class="muted">
+        The sheet is built for the category you pick, with its own columns and dropdowns already in
+        it.
+      </p>
+
+      <select class="input" (change)="onCategoryChange($event)">
+        <option value="">Select a category…</option>
+        @for (c of leafCategories(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </section>
+
+    <section class="card step" [class.step--off]="!categoryId()">
+      <h2><span class="num">2</span> Download the sheet</h2>
+      <p class="muted">
+        Fill in one row per variant. A product with three sizes is three rows sharing one
+        <code>product_code</code>.
+      </p>
+
+      <div class="row">
+        <button
+          class="btn"
+          type="button"
+          [disabled]="!categoryId() || busy()"
+          (click)="downloadTemplate('xlsx')"
+        >
+          Download .xlsx
+        </button>
+        <button
+          class="btn btn--ghost"
+          type="button"
+          [disabled]="!categoryId() || busy()"
+          (click)="downloadTemplate('csv')"
+        >
+          Download .csv
+        </button>
+      </div>
+    </section>
+
+    <section class="card step" [class.step--off]="!categoryId()">
+      <h2><span class="num">3</span> Upload it back</h2>
+      <p class="muted">
+        Name your image files after your product codes — <code>LS-1001.jpg</code>,
+        <code>LS-1001_2.jpg</code> — and upload them to your
+        <a routerLink="/media">image library</a> first. They will be matched automatically.
+      </p>
+
+      <label class="btn btn--primary" [class.btn--busy]="busy()">
+        {{ busy() ? 'Reading…' : 'Upload filled-in sheet' }}
+        <input
+          type="file"
+          class="hidden-input"
+          accept=".xlsx,.csv"
+          [disabled]="!categoryId() || busy()"
+          (change)="onSheetChosen($event)"
+        />
+      </label>
+    </section>
+  }
+}
+
+<!-- ── Step 2: review ── -->
+@if (step() === 'review' && job(); as current) {
+  <section class="summary card">
+    <div class="stat">
+      <strong>{{ current.totalRows }}</strong
+      ><span class="muted">rows</span>
+    </div>
+    <div class="stat">
+      <strong>{{ current.importableRows }}</strong
+      ><span class="muted">ready</span>
+    </div>
+    <div class="stat" [class.stat--bad]="current.errorRows > 0">
+      <strong>{{ current.errorRows }}</strong
+      ><span class="muted">with errors</span>
+    </div>
+    <div class="stat">
+      <strong>{{ products().length }}</strong
+      ><span class="muted">products</span>
+    </div>
+
+    <div class="summary__actions">
+      @if (current.errorRows > 0) {
+        <button class="btn btn--sm" type="button" [disabled]="busy()" (click)="downloadErrors()">
+          Download errors
+        </button>
+      }
+      <button class="btn btn--sm btn--ghost" type="button" (click)="cancel()">Start over</button>
+      <button
+        class="btn btn--primary"
+        type="button"
+        [disabled]="!canCommit() || busy()"
+        (click)="commit()"
+      >
+        {{ busy() ? 'Working…' : 'Import ' + current.importableRows + ' row(s)' }}
+      </button>
+    </div>
+  </section>
+
+  @if (current.errorRows > 0) {
+    <p class="alert alert--warn">
+      {{ current.errorRows }} row(s) have errors and will be skipped. The other
+      {{ current.importableRows }} will still import — download the error sheet, fix those rows, and
+      upload it again afterwards.
+    </p>
+  }
+
+  @if (needsConfirmation().length) {
+    <p class="alert alert--warn">
+      {{ needsConfirmation().length }} product(s) are live or awaiting moderation. Importing them
+      takes them off the storefront until a moderator approves them again, so each one needs your
+      confirmation below.
+    </p>
+  }
+
+  <!-- Unplaced images: the tray the seller drags from -->
+  <section class="card loose" (dragover)="allowDrop($event)" (drop)="dropOnLoose($event)">
+    <h2>Unplaced images ({{ looseImages().length }})</h2>
+
+    @if (!looseImages().length) {
+      <p class="muted small">Every image was matched to a product. Drag one here to detach it.</p>
+    } @else {
+      <p class="muted small">
+        Drag a photo — or a whole shoot by its handle — onto the product it belongs to.
+      </p>
+
+      @for (group of looseGroups(); track group.key) {
+        <div class="shoot">
+          <div
+            class="shoot__handle"
+            [class.shoot__handle--plain]="!group.isShoot"
+            [draggable]="group.isShoot"
+            (dragstart)="onDragStartGroup(group.images)"
+            (dragend)="onDragEnd()"
+          >
+            @if (group.isShoot) {
+              <strong>Shoot {{ group.key + 1 }}</strong>
+              <span class="muted small">
+                {{ group.images.length }} photo(s) taken together — drag to place them all
+              </span>
+            } @else {
+              <strong>No capture time</strong>
+              <span class="muted small">
+                {{ group.images.length }} photo(s) we could not group — place these individually
+              </span>
+            }
+          </div>
+
+          <ul class="thumbs">
+            @for (img of group.images; track img.id) {
+              <li
+                class="thumb"
+                draggable="true"
+                (dragstart)="onDragStart(img)"
+                (dragend)="onDragEnd()"
+              >
+                @if (img.url) {
+                  <img [src]="img.url" [alt]="img.fileName" />
+                }
+                <span class="thumb__name" [title]="img.fileName">{{ img.fileName }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- One card per product -->
+  @for (p of products(); track p.productCode) {
+    <section
+      class="card product"
+      [class.product--live]="p.affectsLiveProduct && !p.liveUpdateConfirmed"
+      (dragover)="allowDrop($event)"
+      (drop)="dropOnProduct($event, p)"
+    >
+      <header class="product__head">
+        <div>
+          <h2>{{ p.name ?? p.productCode }}</h2>
+          <p class="muted small">
+            <code>{{ p.productCode }}</code>
+            · {{ p.rows.length }} variant(s)
+            @if (p.isNew) {
+              · <span class="tag tag--new">New</span>
+            } @else {
+              · <span class="tag">Updates an existing product</span>
+            }
+          </p>
+        </div>
+
+        @if (p.affectsLiveProduct && !p.liveUpdateConfirmed) {
+          <button
+            class="btn btn--sm btn--warn"
+            type="button"
+            [disabled]="busy()"
+            (click)="confirmLive(p)"
+          >
+            Confirm — take it off the storefront
+          </button>
+        }
+      </header>
+
+      @if (p.affectsLiveProduct && p.liveUpdateConfirmed) {
+        <p class="muted small confirmed">✓ Confirmed — this product will return to moderation.</p>
+      }
+
+      <div class="product__body">
+        <ul class="thumbs thumbs--drop">
+          @for (img of p.images; track img.id) {
+            <li
+              class="thumb"
+              [class.thumb--guess]="img.confidence === 'Guessed'"
+              draggable="true"
+              (dragstart)="onDragStart(img)"
+              (dragend)="onDragEnd()"
+            >
+              @if (img.url) {
+                <img [src]="img.url" [alt]="img.fileName" />
+              }
+              <span class="thumb__name" [title]="img.fileName">{{ img.fileName }}</span>
+              @if (img.confidence === 'Guessed') {
+                <span class="thumb__flag">guess</span>
+              }
+              @if (img.position === 0) {
+                <span class="thumb__main">main</span>
+              }
+            </li>
+          } @empty {
+            <li class="thumb thumb--empty muted small">Drop images here</li>
+          }
+        </ul>
+
+        <table class="table rows">
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>SKU</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of p.rows; track r.id) {
+              <tr [class.row--error]="r.outcome === 'Error'" [class.row--skipped]="r.isSkipped">
+                <td>{{ r.rowNumber }}</td>
+                <td>{{ r.sku }}</td>
+                <td>
+                  @if (r.outcome === 'Error') {
+                    <span class="muted small">{{ r.errorMessage }}</span>
+                  } @else if (r.isSkipped) {
+                    <span class="muted small">Skipped</span>
+                  } @else if (r.isImportable) {
+                    <span class="ok small">Ready</span>
+                  } @else {
+                    <span class="muted small">Needs confirmation</span>
+                  }
+                </td>
+                <td class="right">
+                  @if (r.outcome !== 'Error') {
+                    <button
+                      class="btn btn--sm"
+                      type="button"
+                      [disabled]="busy()"
+                      (click)="toggleRow(r.id, !r.isSkipped)"
+                    >
+                      {{ r.isSkipped ? 'Include' : 'Skip' }}
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}
+
+<!-- ── Step 3: done ── -->
+@if (step() === 'done' && job(); as current) {
+  <section class="card done">
+    <h2>Import finished</h2>
+    <p>
+      Created <strong>{{ current.createdCount }}</strong> and updated
+      <strong>{{ current.updatedCount }}</strong> product(s), all as drafts.
+    </p>
+
+    @if (current.errorRows > 0) {
+      <p class="muted">
+        {{ current.errorRows }} row(s) were skipped. Download the error sheet, fix them, and upload
+        it again — re-importing the same <code>product_code</code> updates the product rather than
+        creating a second one.
+      </p>
+      <button class="btn" type="button" [disabled]="busy()" (click)="downloadErrors()">
+        Download errors
+      </button>
+    }
+
+    <div class="row">
+      <button class="btn btn--primary" type="button" (click)="goToProducts()">
+        Go to products
+      </button>
+      <button class="btn btn--ghost" type="button" (click)="cancel()">Import another sheet</button>
+    </div>
+  </section>
+}

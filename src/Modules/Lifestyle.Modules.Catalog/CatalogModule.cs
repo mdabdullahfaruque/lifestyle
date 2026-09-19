@@ -3,6 +3,7 @@ using Lifestyle.Modules.Catalog.Contracts;
 using Lifestyle.Modules.Catalog.Features.Admin;
 using Lifestyle.Modules.Catalog.Features.Attributes;
 using Lifestyle.Modules.Catalog.Features.Categories;
+using Lifestyle.Modules.Catalog.Features.Import;
 using Lifestyle.Modules.Catalog.Features.Inventory;
 using Lifestyle.Modules.Catalog.Features.Products;
 using Lifestyle.Modules.Catalog.Internal;
@@ -28,6 +29,7 @@ public static class CatalogModule
         services.AddScoped<ICatalogModule, CatalogFacade>();
         services.AddScoped<VendorScope>();
         services.AddScoped<ProductSlugFactory>();
+        services.AddScoped<ImportSchemaFactory>();
 
         services.AddScoped<IIntegrationEventHandler<VendorSuspendedEvent>, UnpublishProductsOnVendorSuspended>();
 
@@ -61,6 +63,15 @@ public static class CatalogModule
         UpdateVariant.Map(vendor);
         RemoveVariant.Map(vendor);
         AdjustStock.Map(vendor);
+
+        // ── Vendor Admin: bulk import (docs/08) ──
+        GetImportTemplate.Map(vendor);
+        StartImport.Map(vendor);
+        GetImportJob.Map(vendor);
+        ReviseImportJob.Map(vendor);
+        CancelImportJob.Map(vendor);
+        CommitImport.Map(vendor);
+        GetImportErrors.Map(vendor);
 
         // ── Super Admin ──
         var adminCatalog = app.MapGroup("/v1/admin/catalog").WithTags("Admin · Catalog").RequireAdminSurface();

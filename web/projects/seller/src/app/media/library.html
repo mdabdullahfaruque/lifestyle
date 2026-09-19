@@ -1,0 +1,137 @@
+<header class="head">
+  <div>
+    <h1>Image library</h1>
+    <p class="muted sub">
+      Upload your photos here, then place them on products — one at a time or through a bulk import.
+    </p>
+  </div>
+
+  <div class="head__actions">
+    <label class="btn" [class.btn--busy]="uploading()" title="One folder per product code">
+      Upload a ZIP
+      <input
+        type="file"
+        class="hidden-input"
+        accept=".zip,application/zip"
+        [disabled]="uploading()"
+        (change)="onZipChosen($event)"
+      />
+    </label>
+
+    <label class="btn btn--primary" [class.btn--busy]="uploading()">
+      {{ uploading() ? 'Uploading…' : 'Upload images' }}
+      <input
+        type="file"
+        class="hidden-input"
+        multiple
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+        [disabled]="uploading()"
+        (change)="onFilesChosen($event)"
+      />
+    </label>
+  </div>
+</header>
+
+<p class="muted small hint">
+  Name a folder after each product code — <code>LS-1001/main.jpg</code>,
+  <code>LS-1001/2.jpg</code> — and a bulk import will place every photo for you.
+</p>
+
+@if (error(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="alert alert--ok" role="status">{{ message }}</p>
+}
+
+@if (uploading()) {
+  <section class="card progress-card" role="status">
+    <p class="progress-label">Uploading {{ uploadDone() }} of {{ uploadTotal() }}…</p>
+    <div class="bar"><div class="bar__fill" [style.width.%]="progress()"></div></div>
+    <p class="muted small">Large photos take a moment. You can leave this page once it finishes.</p>
+  </section>
+}
+
+@if (failures().length) {
+  <section class="card failures">
+    <h2>{{ failures().length }} file(s) could not be uploaded</h2>
+    <ul>
+      @for (f of failures(); track f.fileName) {
+        <li>
+          <strong>{{ f.fileName }}</strong> — {{ f.errorMessage }}
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+<div class="filters">
+  <button
+    type="button"
+    class="chip"
+    [class.chip--on]="!unusedOnly()"
+    (click)="unusedOnly() && toggleUnused()"
+  >
+    All images
+  </button>
+  <button
+    type="button"
+    class="chip"
+    [class.chip--on]="unusedOnly()"
+    (click)="!unusedOnly() && toggleUnused()"
+  >
+    Not on a product yet
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else if (!items().length) {
+  <section class="card empty">
+    <h2>No images yet</h2>
+    <p class="muted">
+      Upload your product photos and they will be waiting here when you add or import products.
+    </p>
+  </section>
+} @else {
+  <p class="muted small count">
+    Showing {{ items().length }} of {{ totalCount() }} image(s) · {{ usedCount() }} shown are
+    already on a product
+  </p>
+
+  <ul class="grid">
+    @for (item of items(); track item.mediaId) {
+      <li class="tile" [class.tile--used]="item.isUsed">
+        <img [src]="thumb(item)" [alt]="item.fileName" loading="lazy" />
+
+        <div class="tile__meta">
+          <span class="tile__name" [title]="item.fileName">{{ item.fileName }}</span>
+          <span class="muted small">{{ sizeLabel(item.sizeBytes) }}</span>
+        </div>
+
+        @if (item.isUsed) {
+          <span class="badge" title="Remove it from the product before deleting it"
+            >On a product</span
+          >
+        } @else {
+          <button
+            type="button"
+            class="btn btn--sm btn--danger tile__delete"
+            [disabled]="deleting() === item.mediaId"
+            (click)="remove(item)"
+          >
+            {{ deleting() === item.mediaId ? 'Deleting…' : 'Delete' }}
+          </button>
+        }
+      </li>
+    }
+  </ul>
+
+  @if (hasMore()) {
+    <div class="more">
+      <button class="btn" type="button" [disabled]="loading()" (click)="loadMore()">
+        {{ loading() ? 'Loading…' : 'Load more images' }}
+      </button>
+    </div>
+  }
+}

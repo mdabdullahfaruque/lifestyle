@@ -33,7 +33,23 @@ internal static class UploadFile
     {
         private readonly MediaModuleOptions _options = options.Value;
 
-        internal sealed record Command(IFormFile File, bool IsPrivate);
+        /// <param name="SquareCanvas">
+        /// True for product photography, which is squared onto a white ground so the marketplace
+        /// grid is one shape throughout (docs/08 §6.3). False for shop logos and banners, whose own
+        /// aspect ratio is the point — squaring a wide banner would letterbox it.
+        /// </param>
+        /// <param name="CapturedAtFallback">
+        /// Capture time supplied by the client, used only when the file itself carries no EXIF.
+        /// The browser has to re-encode large photos before upload — a 12 MP phone JPEG exceeds the
+        /// size cap — and that destroys the metadata, so the timestamp is read before the re-encode
+        /// and sent alongside. Without this, capture-time clustering (docs/08 §4.3) would never fire
+        /// for exactly the photos it exists for.
+        /// </param>
+        internal sealed record Command(
+            IFormFile File,
+            bool IsPrivate,
+            bool SquareCanvas = false,
+            DateTimeOffset? CapturedAtFallback = null);
 
         public async Task<Result<MediaAsset>> Handle(Command command, CancellationToken ct)
         {
@@ -59,6 +75,7 @@ internal static class UploadFile
             var originalKey = BuildKey(publicId, "original", extension, command.IsPrivate);
 
             int? width = null, height = null;
+            DateTimeOffset? capturedAt = null;
             var isImage = contentType.StartsWith("image/", StringComparison.Ordinal);
 
             await using (var stream = file.OpenReadStream())
@@ -77,11 +94,14 @@ internal static class UploadFile
 
                 if (isImage)
                 {
-                    var dimensions = await images.ReadDimensionsAsync(stream, ct);
-                    if (dimensions is null)
+                    var metadata = await images.ReadMetadataAsync(stream, ct);
+                    if (metadata is null)
                         return Error.Validation("media.not_an_image", "That file is not a readable image.");
 
-                    (width, height) = dimensions.Value;
+                    // The file's own EXIF wins; the client's value is only a fallback for a photo
+                    // whose metadata the browser had to strip to get it under the size cap.
+                    (width, height) = (metadata.Width, metadata.Height);
+                    capturedAt = metadata.CapturedAt ?? command.CapturedAtFallback;
                     stream.Position = 0;
                 }
 
@@ -90,12 +110,12 @@ internal static class UploadFile
 
             var media = MediaFile.Record(
                 publicId, SafeFileName(file.FileName), contentType, file.Length, originalKey,
-                width, height, userId, currentUser.VendorId, command.IsPrivate, clock.UtcNow);
+                width, height, userId, currentUser.VendorId, command.IsPrivate, clock.UtcNow, capturedAt);
 
             // Private files get no public derivatives: they are documents for a reviewer, not
             // storefront imagery, and every derivative would be another key to protect.
             if (isImage && !command.IsPrivate)
-                await GenerateDerivativesAsync(media, file, publicId, extension, ct);
+                await GenerateDerivativesAsync(media, file, publicId, extension, command.SquareCanvas, ct);
 
             db.MediaFiles.Add(media);
             await db.SaveChangesAsync(ct);
@@ -104,7 +124,8 @@ internal static class UploadFile
         }
 
         private async Task GenerateDerivativesAsync(
-            MediaFile media, IFormFile file, string publicId, string extension, CancellationToken ct)
+            MediaFile media, IFormFile file, string publicId, string extension, bool squareCanvas,
+            CancellationToken ct)
         {
             foreach (var variant in MediaVariants.All)
             {
@@ -113,7 +134,7 @@ internal static class UploadFile
                 try
                 {
                     await using var source = file.OpenReadStream();
-                    using var resized = await images.ResizeAsync(source, maxEdge, ct);
+                    using var resized = await images.ResizeAsync(source, maxEdge, squareCanvas, ct);
 
                     // Null means the source was already smaller than this variant — reuse the
                     // original rather than upscaling it into a bigger, blurrier file.
@@ -175,11 +196,18 @@ internal static class UploadFile
         media.IsPrivate ? $"/v1/media/private/{media.PublicId}" : storage.GetPublicUrl(media.StorageKey),
         media.IsPrivate
             ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : media.Derivatives.ToDictionary(d => d.Variant, d => storage.GetPublicUrl(d.StorageKey), StringComparer.Ordinal));
+            : media.Derivatives.ToDictionary(d => d.Variant, d => storage.GetPublicUrl(d.StorageKey), StringComparer.Ordinal),
+        media.CapturedAt);
 
     public static void Map(IEndpointRouteBuilder group) =>
-        group.MapPost("/", async (IFormFile file, [Microsoft.AspNetCore.Mvc.FromForm(Name = "private")] bool? isPrivate, Handler handler, CancellationToken ct) =>
-                (await handler.Handle(new Handler.Command(file, isPrivate ?? false), ct)).ToHttpResult())
+        group.MapPost("/", async (
+                IFormFile file,
+                [Microsoft.AspNetCore.Mvc.FromForm(Name = "private")] bool? isPrivate,
+                [Microsoft.AspNetCore.Mvc.FromForm(Name = "squareCanvas")] bool? squareCanvas,
+                Handler handler,
+                CancellationToken ct) =>
+                (await handler.Handle(
+                    new Handler.Command(file, isPrivate ?? false, squareCanvas ?? false), ct)).ToHttpResult())
             .WithName("UploadFile")
             .WithSummary("Upload an image or document and generate its derivative sizes.")
             .RequireAuthorization()
