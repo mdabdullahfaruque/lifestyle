@@ -134,4 +134,27 @@ export class ImportService {
   downloadErrors(jobId: string): Observable<Blob> {
     return this.http.get(this.errorsUrl(jobId), { responseType: 'blob' });
   }
+  /**
+   * Creates draft products from grouped library photos — the images-first path. No spreadsheet
+   * anywhere: the seller uploads a shoot, drags the photos into piles, names each pile.
+   */
+  createFromImages(
+    categoryId: string,
+    products: {
+      name: string;
+      price: number;
+      sku?: string | null;
+      stockQuantity: number;
+      description?: string | null;
+      mediaIds: string[];
+    }[],
+  ): Observable<{
+    created: number;
+    products: { id: string; name: string; slug: string; imageCount: number }[];
+  }> {
+    return this.http.post<{
+      created: number;
+      products: { id: string; name: string; slug: string; imageCount: number }[];
+    }>(`${this.baseUrl}/v1/vendor/products/from-images`, { categoryId, products });
+  }
 }

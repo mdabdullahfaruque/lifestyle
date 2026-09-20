@@ -40,6 +40,13 @@ export const routes: Routes = [
         title: 'Products · Seller Console',
       },
       {
+        // Images-first: upload a shoot, drag the photos into groups, name each group.
+        // Ordered before :productId for the same reason as the sheet importer below.
+        path: 'products/from-photos',
+        loadComponent: () => import('./products/import/group-photos').then((m) => m.GroupPhotos),
+        title: 'Add products from photos · Seller Console',
+      },
+      {
         // Before :productId, or "import" would be read as a product id.
         path: 'products/import',
         loadComponent: () =>

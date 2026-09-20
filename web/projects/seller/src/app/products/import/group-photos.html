@@ -1,0 +1,177 @@
+<header class="head">
+  <div>
+    <h1>Add products from photos</h1>
+    <p class="muted sub">
+      Upload a whole shoot, drag the photos into groups — one group is one product — then name and
+      price each one. No spreadsheet. Everything arrives as a draft.
+    </p>
+  </div>
+
+  <label class="btn btn--primary" [class.btn--busy]="uploading()">
+    {{ uploading() ? 'Uploading ' + uploadDone() + '/' + uploadTotal() + '…' : 'Upload photos' }}
+    <input
+      type="file"
+      class="hidden-input"
+      multiple
+      accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+      [disabled]="uploading()"
+      (change)="onFilesChosen($event)"
+    />
+  </label>
+</header>
+
+@if (error(); as message) {
+  <p class="alert" role="alert">{{ message }}</p>
+}
+@if (notice(); as message) {
+  <p class="alert alert--ok" role="status">{{ message }}</p>
+}
+
+@if (loading()) {
+  <div class="skeleton block"></div>
+} @else {
+  <section class="card bar">
+    <label class="bar__field">
+      <span class="muted small">Category for everything created here</span>
+      <select class="input" (change)="onCategoryChange($event)">
+        <option value="">Select a category…</option>
+        @for (c of leafCategories(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </label>
+
+    <div class="bar__actions">
+      <button
+        class="btn btn--sm"
+        type="button"
+        [disabled]="!selected().size"
+        (click)="groupSelected()"
+      >
+        Group {{ selected().size || '' }} selected
+      </button>
+      <button class="btn btn--sm" type="button" (click)="addPile()">Add empty product</button>
+      <button
+        class="btn btn--primary"
+        type="button"
+        [disabled]="!readyCount() || !categoryId() || busy()"
+        (click)="create()"
+      >
+        {{ busy() ? 'Creating…' : createLabel() }}
+      </button>
+    </div>
+  </section>
+
+  <!-- Unplaced photos -->
+  <section class="card tray" (dragover)="allowDrop($event)" (drop)="dropOnLoose($event)">
+    <h2>Photos not yet in a product ({{ loose().length }})</h2>
+
+    @if (!loose().length) {
+      <p class="muted small">
+        Nothing loose. Upload more photos, or drag one out of a product to put it back here.
+      </p>
+    } @else {
+      <p class="muted small">
+        Click to select several, then <strong>Group selected</strong> — or drag straight onto a
+        product below.
+      </p>
+      <ul class="thumbs">
+        @for (img of loose(); track img.mediaId) {
+          <li
+            class="thumb"
+            [class.thumb--on]="isSelected(img)"
+            draggable="true"
+            (dragstart)="onDragStart(img)"
+            (click)="toggle(img)"
+          >
+            <img [src]="thumb(img)" [alt]="img.fileName" loading="lazy" />
+            <span class="thumb__name" [title]="img.fileName">{{ img.fileName }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- Drop here to start a new product -->
+  <section class="newdrop" (dragover)="allowDrop($event)" (drop)="dropOnNew($event)">
+    Drop photos here to start a new product
+  </section>
+
+  <!-- One card per product being built -->
+  @for (p of piles(); track p.key) {
+    <section
+      class="card pile"
+      [class.pile--ready]="isReady(p)"
+      (dragover)="allowDrop($event)"
+      (drop)="dropOnPile($event, p)"
+    >
+      <header class="pile__head">
+        <strong>{{ p.name.trim() || 'Untitled product' }}</strong>
+        <span class="muted small">{{ p.images.length }} photo(s)</span>
+        @if (isReady(p)) {
+          <span class="tag tag--ok">Ready</span>
+        }
+        <button class="btn btn--sm btn--ghost pile__remove" type="button" (click)="removePile(p)">
+          Remove
+        </button>
+      </header>
+
+      <div class="pile__body">
+        <ul class="thumbs thumbs--drop">
+          @for (img of p.images; track img.mediaId) {
+            <li class="thumb" draggable="true" (dragstart)="onDragStartFromPile(p, img)">
+              <img [src]="thumb(img)" [alt]="img.fileName" loading="lazy" />
+              @if (img.mediaId === p.images[0].mediaId) {
+                <span class="thumb__main">main</span>
+              }
+            </li>
+          } @empty {
+            <li class="thumb thumb--empty muted small">Drag photos here</li>
+          }
+        </ul>
+
+        <div class="fields">
+          <label>
+            <span class="muted small">Name *</span>
+            <input class="input" type="text" [(ngModel)]="p.name" placeholder="Red silk scarf" />
+          </label>
+
+          <div class="fields__row">
+            <label>
+              <span class="muted small">Price *</span>
+              <input class="input" type="number" min="0" step="0.01" [(ngModel)]="p.price" />
+            </label>
+            <label>
+              <span class="muted small">Stock</span>
+              <input class="input" type="number" min="0" [(ngModel)]="p.stock" />
+            </label>
+          </div>
+
+          <label>
+            <span class="muted small">SKU — left blank, one is generated</span>
+            <input class="input" type="text" [(ngModel)]="p.sku" />
+          </label>
+
+          <label>
+            <span class="muted small">Description — needed before you can submit for review</span>
+            <textarea class="input" rows="2" [(ngModel)]="p.description"></textarea>
+          </label>
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (piles().length) {
+    <div class="footer">
+      <button
+        class="btn btn--primary"
+        type="button"
+        [disabled]="!readyCount() || !categoryId() || busy()"
+        (click)="create()"
+      >
+        {{ busy() ? 'Creating…' : createLabel() }}
+      </button>
+      <button class="btn btn--ghost" type="button" (click)="goToProducts()">Go to products</button>
+    </div>
+  }
+}

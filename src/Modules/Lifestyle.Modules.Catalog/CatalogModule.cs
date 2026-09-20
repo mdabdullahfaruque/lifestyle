@@ -72,6 +72,7 @@ public static class CatalogModule
         CancelImportJob.Map(vendor);
         CommitImport.Map(vendor);
         GetImportErrors.Map(vendor);
+        CreateProductsFromImages.Map(vendor);
 
         // ── Super Admin ──
         var adminCatalog = app.MapGroup("/v1/admin/catalog").WithTags("Admin · Catalog").RequireAdminSurface();
